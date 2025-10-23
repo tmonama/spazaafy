@@ -1,0 +1,38 @@
+
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: spazaafy_db
+    environment:
+      POSTGRES_DB: spazaafy
+      POSTGRES_USER: spazaafy
+      POSTGRES_PASSWORD: spazaafy
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: always
+
+  # --- ADD THIS ENTIRE 'healthcheck' BLOCK ---
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spazaafy -d spazaafy"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      
+  web:
+    build: .
+    container_name: spazaafy_web
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+    restart: always
+
+volumes:
+  pgdata:
