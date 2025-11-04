@@ -34,7 +34,6 @@ INSTALLED_APPS = [
     'apps.core','apps.accounts','apps.shops','apps.compliance','apps.support','apps.visits','apps.reports',
     'apps.password_reset',
     'cloudinary_storage', # Add this
-    'django.contrib.staticfiles',
     'cloudinary', # Add this
 ]
 
