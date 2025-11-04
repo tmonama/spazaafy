@@ -1,0 +1,143 @@
+{
+  "header": {
+    "dashboard": "Ideshibhodi",
+    "support": "Inkxaso",
+    "settings": "Izicwangciso",
+    "welcome": "Wamkelekile, i-{{name}}",
+    "logout": "Ukuphuma"
+  },
+  "settings": {
+    "title": "Izicwangciso",
+    "theme": {
+      "title": "Umxholo",
+      "description": "Tshintsha phakathi kokukhanya kunye nemowudi emnyama."
+    },
+    "language": {
+      "title": "Ulwimi",
+      "description": "Khetha ulwimi oluthandayo."
+    }
+  },
+  "accountPage": {
+    "myAccount": "Iakhawunti yam",
+    "loading": "Ukulayisha iinkcukacha zeakhawunti...",
+    "shopOwnerInfo": "Ulwazi lwevenkile kunye nomnini",
+    "profileInfo": "Inkcazelo yeprofayile",
+    "emailLabel": "Idilesi ye-imeyile (ayinakutshintshwa)",
+    "ownerFirstNameLabel": "Igama lokuqala lomnini",
+    "firstNameLabel": "Igama lokuqala",
+    "ownerLastNameLabel": "Igama lokugqibela lomnini",
+    "lastNameLabel": "Igama lokugqibela",
+    "ownerPhoneLabel": "Inombolo yefowuni yomnini",
+    "phoneLabel": "Inombolo yefowuni",
+    "shopNameLabel": "Igama leVenkile yeSpaza",
+    "addressLabel": "Idilesi yeshishini",
+    "saveButton": "Gcina Utshintsho",
+    "savingButton": "Ukulondoloza ...",
+    "passwordManagement": {
+      "title": "Ulawulo lweGama eligqithisiweyo",
+      "description": "Cofa iqhosha elingezantsi ukuze ufumane ikhonkco lokuseta kwakhona iphasiwedi kwi-imeyile yakho.",
+      "resetButton": "Vula kwakhona kwakhona i-password"
+    },
+    "alerts": {
+      "pdfOnlyError": "Ukulayisha kuhlulekile. Amafayela e-PDF kuphela amukelwayo.",
+      "unknownDocType": "Uhlobo lwedokhumenti olungaziwa: {{docName}}",
+      "uploadFailed": "Ukulayisha kuhlulekile.",
+      "updateSuccess": "Ulwazi lwakho luhlaziywe ngempumelelo!",
+      "updateError": "Kwenzekee impazamo Nceda uzame kwakhona.",
+      "resetRequestSuccess": "Ikhonkco lokuseta kwakhona iphasiwedi lithunyelwe kwidilesi yakho ye-imeyile.",
+      "resetRequestError": "Impazamo yenzeke ngoku bekuphunyezwa unxulumano olukhuphayo Nceda uzame kwakhona."
+    }
+  },
+  "supportPage": {
+    "yourTickets": "Amatikiti akho enkxaso",
+    "loading": "Ukulayisha amatikiti ...",
+    "loadError": "Ayiphumelelanga ukufaka amatikiti enkxaso.",
+    "noTickets": "Awuzange wenze nawaphi na amatikiti enkxaso okwangoku.",
+    "openedOn": "Ivuliwe kwi: {{date}}",
+    "createTicket": "Yenza itikiti elitsha",
+    "queryTitle": "Isihloko sombuzo",
+    "description": "Inkcazo",
+    "submitButton": "Ngenisa iTikiti",
+    "submittingButton": "Ukuthumela...",
+    "status": {
+      "open": "VULA",
+      "closed": "IVALIWE"
+    }
+  },
+  "consumerDashboard": {
+    "nearbyShops": "Iivenkile zeSpaza ezikufutshane",
+    "buttons": {
+      "list": "List",
+      "map": "Imephu"
+    },
+    "searchPlaceholder": "Khangela ngegama okanye idilesi ye-Spaza...",
+    "filterByDistance": "Uhluzo lokuhluza umgama:",
+    "all": "Zonke",
+    "loadingLocation": "Fumana indawo yakho ...",
+    "loadingShops": "Iivenkile zokulayisha ...",
+    "noShopsFound": "Akukho venkile ifunyenwe ihambelana neenqobo zakho.",
+    "modalTitle": "Iinkonzo zendawo ezifunekayo",
+    "modalBody": "I-Spazaafy ifuna indawo yakho ukuze ifumane iivenkile ezikufutshane kuwe. Nceda uvule iinkonzo zendawo kwisikhangeli sakho okanye imimiselo yenkqubo ukuba ziqhubeke."
+  },
+  "shopOwnerDashboard": {
+    "loading": "Ilayisha ideshibhodi yakho...",
+    "noShop": "Akukho venkile ifunyenweyo kwiakhawunti yakho.",
+    "welcome": "Wamkelekile, i-{{shopName}}",
+    "description": "Lawula ukuthotyelwa kwevenkile yakho kunye nenqanaba lokuqinisekiswa apha.",
+    "verificationStatus": {
+      "label": "Ubume bokuqinisekisa:",
+      "verified": "Uqinisekisiwe",
+      "pending": "Uqinisekiso olusalindileyo"
+    },
+    "complianceAlert": "ISILUMKISO SOKUTHOBELA: ISIBAMBI SENDAWO",
+    "requiredDocs": "Amaxwebhu afunekayo",
+    "siteVisit": "Utyelelo lweSayithi ukuze kuqinisekiswe",
+    "requestButton": "Cela utyelelo lwendawo",
+    "uploadNotices": {
+      "rejected": "Ukungeniswa kwangaphambili kwakhatywa. Nceda ulayishe kwakhona.",
+      "expired": "Uxwebhu sele luphelelwe lixesha. Nceda ulayishe kwakhona."
+    },
+    "documentDetails": {
+      "submitted": "Ingeniswe",
+      "expires": "Iphelelwa lixesha",
+      "status": "Ubume"
+    },
+    "siteVisitDetails": {
+      "statusLabel": "Isimo sakho sokutyelela indawo:",
+      "approvedExpires": "Ukuqinisekiswa kuvunyiwe. Iphelelwa lixesha kwi-{{date}}.",
+      "scheduledDate": "Umhla ocwangcisiweyo/ovunyiweyo"
+    },
+    "eligibilityMessages": {
+      "required": "Ukutyelela iwebhusayithi kuyafuneka ukugqibezela ukuqinisekiswa kwakho. Nceda ucele ukutyelelwa ngumhloli.",
+      "pending": "",
+      "approved": "Ukuqinisekiswa kuvunyiwe. Iphelelwa lixesha kwi-{{date}}.",
+      "expired": "Isiqinisekiso siphelelwe nge {{date}}. Nceda uphinde ufake isicelo sotyelelo lwesiza.",
+      "rejectedEligible": "Utyelelo lwangaphambili lwakhatywa. Ngoku unelungelo lokufaka isicelo sokuphinda ufake isicelo sokutyelela indawo.",
+      "rejectedIneligible": "Utyelelo lwangaphambili lwakhatywa. Unokufaka isicelo kwakhona kwi-{{date}}."
+    }
+  },
+  "enums": {
+    "docNames": {
+      "Fire Safety Certificate": "Isatifikethi soKhuseleko loMlilo",
+      "Proof of Property Ownership/Lease": "Ubungqina bobunini bepropathi / ukuqeshisa",
+      "Bank Confirmation Letter": "Ileta yokuqinisekiswa kweBhanki",
+      "Other Supporting Documents": "Amanye amaxwebhu axhasayo",
+      "Business Licence / Trading Permit": "Ilayisensi Yebhizinisi/Imvume Yokuhweba",
+      "Business Registration Certificate": "Isitifiketi Sokubhaliswa Kwebhizinisi",
+      "Certificate of Acceptability (Health)": "Isitifiketi Sokwamukelwa (Impilo)",
+      "Tax / SARS Documents": "Intela/Imibhalo yakwa-SARS",
+      "Certified ID/Passport/Permit": "I-id/Passport/Permit eqinisekisiwe"
+    },
+    "docStatuses": {
+      "Verified": "Uqinisekisiwe",
+      "Pending": "Ilindelwe",
+      "Rejected": "Iyakhatywa"
+    },
+    "visitStatuses": {
+      "Approved": "Ivunyiwe",
+      "Pending": "Ilindelwe",
+      "Scheduled": "Icwangcisiwe",
+      "Rejected": "Iyakhatywa"
+    }
+  }
+}

@@ -1,87 +1,90 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole, Theme } from '../types';
-import { MOCK_DB } from '../data/mockData';
+import { User, Theme } from '../types'; // Make sure to import Theme
+import mockApi from '../api/mockApi';
 
+// Define the shape of your context data, now including theme properties
 export interface AuthContextType {
-    user: User | null;
-    loading: boolean;
-    login: (email: string, role: UserRole) => boolean;
-    logout: () => void;
-    register: (details: Omit<User, 'id'> & { shopName?: string; address?: string }) => void;
-    updateUser: (updatedUser: User) => void;
-    theme: Theme;
-    toggleTheme: () => void;
+  user: User | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  register: (payload: any) => Promise<void>;
+  updateUser: (updatedUser: User) => void;
+  theme: Theme;
+  toggleTheme: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [theme, setTheme] = useState<Theme>(() => {
-        const storedTheme = localStorage.getItem('theme');
-        return (storedTheme as Theme) || 'light';
-    });
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        // Check for logged-in user in session storage
-        try {
-            const storedUser = sessionStorage.getItem('user');
-            if (storedUser) {
-                setUser(JSON.parse(storedUser));
-            }
-        } catch (error) {
-            console.error("Failed to parse user from sessionStorage", error);
-            sessionStorage.removeItem('user');
-        } finally {
-            setLoading(false);
+  // --- THEME MANAGEMENT LOGIC (RESTORED) ---
+  const [theme, setTheme] = useState<Theme>(() => {
+    const storedTheme = localStorage.getItem('theme');
+    return (storedTheme === 'dark' || storedTheme === 'light') ? storedTheme : 'light';
+  });
+
+  // Effect to apply the 'dark' class to the <html> element
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+  };
+  // --- END OF THEME LOGIC ---
+
+  useEffect(() => {
+    // On initial app load, check for user in session storage to persist login
+    const checkUserSession = () => {
+      try {
+        const storedUser = sessionStorage.getItem('user');
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
         }
-    }, []);
-
-    useEffect(() => {
-        if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-        localStorage.setItem('theme', theme);
-    }, [theme]);
-    
-    const login = (email: string, role: UserRole): boolean => {
-        const foundUser = MOCK_DB.users.findAll().find(u => u.email === email && u.role === role);
-        if (foundUser) {
-            setUser(foundUser);
-            sessionStorage.setItem('user', JSON.stringify(foundUser));
-            return true;
-        }
-        return false;
+      } catch (error) {
+        console.error("Failed to parse user from session storage", error);
+        sessionStorage.removeItem('user'); // Clear corrupted data
+      } finally {
+        setLoading(false);
+      }
     };
+    checkUserSession();
+  }, []);
 
-    const logout = () => {
-        setUser(null);
-        sessionStorage.removeItem('user');
-    };
+  // --- ASYNCHRONOUS AUTH FUNCTIONS ---
+  const login = async (email: string, password: string) => {
+    const { user } = await mockApi.auth.login(email, password);
+    setUser(user);
+    return user; // <-- Return the user from the successful API call
+  };
 
-    const register = (details: Omit<User, 'id'> & { shopName?: string; address?: string; phone?: string }) => {
-        const newUser = MOCK_DB.users.create(details);
-        setUser(newUser);
-        sessionStorage.setItem('user', JSON.stringify(newUser));
-    };
+  const logout = async () => {
+    await mockApi.auth.logout();
+    setUser(null);
+  };
 
-    const updateUser = (updatedUser: User) => {
-        setUser(updatedUser);
-        sessionStorage.setItem('user', JSON.stringify(updatedUser));
-    };
-    
-    const toggleTheme = () => {
-        setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
-    };
+  const register = async (payload: any) => {
+    const { user } = await mockApi.auth.register(payload);
+    setUser(user);
+  };
 
-    const value = { user, loading, login, logout, register, updateUser, theme, toggleTheme };
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    sessionStorage.setItem('user', JSON.stringify(updatedUser));
+  };
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
+  // The complete value provided to all components that use the 'useAuth' hook
+  const value = { user, loading, login, logout, register, updateUser, theme, toggleTheme };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

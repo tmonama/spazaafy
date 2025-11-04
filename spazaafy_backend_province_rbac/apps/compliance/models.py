@@ -4,16 +4,19 @@ from apps.shops.models import SpazaShop
 from django.utils import timezone
 
 class DocumentType(models.TextChoices):
-    COR_REG = "COR_REG", "Business Reg"
-    TAX = "TAX", "Tax Compliance"
-    COA = "COA", "Health/COA"
+    COR_REG = "COR_REG", "Business Registration Certificate"
+    COA = "COA", "Certificate of Acceptability (Health)"
+    TAX = "TAX", "Tax / SARS Documents"
+    ID_PERMIT = "ID_PERMIT", "Certified ID/Passport/Permit"
     BUSINESS_LICENCE = "BUSINESS_LICENCE", "Business Licence / Trading Permit"
     FIRE_SAFETY = "FIRE_SAFETY", "Fire Safety Certificate"
+    PROOF_OF_PROPERTY = "PROOF_OF_PROPERTY", "Proof of Property Ownership/Lease" 
+    BANK_LETTER = "BANK_LETTER", "Bank Confirmation Letter" 
     OTHER = "OTHER", "Other Supporting Documents"
 
 class DocumentStatus(models.TextChoices):
     PENDING="PENDING","Pending"
-    VERIFIED="VERIFIED","Verified"
+    VERIFIED = 'VERIFIED', 'Verified'
     REJECTED="REJECTED","Rejected"
 
 def upload_to(instance, filename):
@@ -21,7 +24,7 @@ def upload_to(instance, filename):
 
 class Document(models.Model):
     shop = models.ForeignKey(SpazaShop, on_delete=models.CASCADE, related_name='documents')
-    type = models.CharField(max_length=20, choices=DocumentType.choices)
+    type = models.CharField(max_length=50, choices=DocumentType.choices)
     file = models.FileField(upload_to=upload_to)
     status = models.CharField(max_length=20, choices=DocumentStatus.choices, default=DocumentStatus.PENDING)
     notes = models.TextField(blank=True)
@@ -38,3 +41,7 @@ class Document(models.Model):
         types = set(self.shop.documents.filter(status=DocumentStatus.VERIFIED).values_list('type', flat=True))
         if required.issubset(types):
             self.shop.verified = True; self.shop.save()
+
+    @property
+    def shop_name(self):
+        return self.shop.name if self.shop else None

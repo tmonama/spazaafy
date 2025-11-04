@@ -45,6 +45,17 @@ const ConsumerAccountView: React.FC = () => {
         return <p>Loading user data...</p>;
     }
 
+    const handlePasswordReset = async () => {
+        if (!user) return;
+        try {
+            await mockApi.auth.requestPasswordReset(user.email);
+            alert('A password reset link has been sent to your email address.');
+        } catch (err) {
+            console.error("Failed to request password reset:", err);
+            alert('An error occurred. Please try again.');
+        }
+    };
+
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Account</h1>
@@ -63,10 +74,10 @@ const ConsumerAccountView: React.FC = () => {
             </Card>
 
             <Card title="Password Management">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Click the button below to receive a password reset link to your email.</p>
-                <Button variant="secondary" onClick={() => alert('Password reset functionality is not implemented in this mock.')}>
-                    Reset Password
-                </Button>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Click the button below to receive a password reset link to your email.</p>
+                        <div className="mt-4">
+                            <Button variant="danger" onClick={handlePasswordReset}>Reset Password</Button>
+                        </div>
             </Card>
         </div>
     );

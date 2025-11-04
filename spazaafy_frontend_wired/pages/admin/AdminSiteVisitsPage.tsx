@@ -1,28 +1,87 @@
-import React, { useState, useMemo } from 'react';
-import { SiteVisit, SiteVisitStatus } from '../../types';
-import { MOCK_DB } from '../../data/mockData';
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { SiteVisit, SiteVisitStatus, SpazaShop } from '../../types';
+import mockApi from '../../api/mockApi';
 import Card from '../../components/Card';
 import SiteVisitListItemAdmin from '../../components/SiteVisitListItemAdmin';
+import Button from '../../components/Button'; // <-- Import Button
+
 
 type FilterStatus = SiteVisitStatus | 'All';
 
 const AdminSiteVisitsPage: React.FC = () => {
-    const allVisits = useMemo(() => MOCK_DB.siteVisits.findAll().sort((a,b) => new Date(b.requestedDateTime).getTime() - new Date(a.requestedDateTime).getTime()), []);
-    // FIX: Used SiteVisitStatus enum member for type safety.
-    const [filter, setFilter] = useState<FilterStatus>(SiteVisitStatus.PENDING);
+    const [allVisits, setAllVisits] = useState<SiteVisit[]>([]);
+    const [loading, setLoading] = useState(true);
+    // ✅ FIX: Set default filter to SCHEDULED
+    const [filter, setFilter] = useState<FilterStatus>(SiteVisitStatus.PENDING); 
 
+    useEffect(() => {
+        const fetchVisits = async () => {
+            try {
+                setLoading(true);
+                // ✅ FIX 2: Fetch both visits and shops concurrently
+                const [visitsRaw, allShops] = await Promise.all([
+                    mockApi.visits.list(),
+                    mockApi.shops.getAll()
+                ]);
+
+                // Create a map for quick shop name lookup: { 'shopId': 'shopName' }
+                const shopMap = new Map<string, string>();
+                allShops.forEach(shop => {
+                    shopMap.set(shop.id, shop.shopName);
+                });
+
+                // ✅ FIX 3: Stitch the shopName onto each visit object
+                const visitsWithNames = visitsRaw.map(visit => ({
+                    ...visit,
+                    shopName: shopMap.get(visit.shopId) || `Shop ID: ${visit.shopId}`
+                }));
+
+                setAllVisits(visitsWithNames.sort((a,b) => new Date(b.requestedDateTime).getTime() - new Date(a.requestedDateTime).getTime()));
+            } catch(error) {
+                console.error("Failed to fetch site visits:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchVisits();
+    }, []); // Runs once on mount
+    
     const filteredVisits = useMemo(() => {
-        if (filter === 'All') {
-            return allVisits;
-        }
+        if (filter === 'All') return allVisits;
+        // This filter is correct. It uses the converted status from mockApi.ts
         return allVisits.filter(visit => visit.status === filter);
     }, [allVisits, filter]);
     
-    // FIX: Used SiteVisitStatus enum members instead of string literals for type safety.
-    const filterOptions: FilterStatus[] = [SiteVisitStatus.PENDING, SiteVisitStatus.APPROVED, SiteVisitStatus.FAILED, 'All'];
+    const filterOptions: FilterStatus[] = [
+        SiteVisitStatus.PENDING, 
+        SiteVisitStatus.SCHEDULED,
+        SiteVisitStatus.APPROVED, 
+        SiteVisitStatus.REJECTED, 
+        'All'
+    ];
+
+    if (loading) {
+        return <p>Loading site visits...</p>;
+    }
+
+    // ✅ THIS IS THE FIX
+    const handleExport = async () => {
+        try {
+            // It now calls the correct export function for visits
+            await mockApi.visits.exportCsv();
+        } catch (error) {
+            console.error("Failed to export site visits:", error);
+            alert("Could not export site visits.");
+        }
+    };
 
     return (
         <div>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+                <Button onClick={handleExport}>Export to CSV</Button>
+            </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Site Visits</h1>
             <Card>
                 <div className="flex items-center space-x-2 p-4 border-b border-gray-200 dark:border-gray-700">

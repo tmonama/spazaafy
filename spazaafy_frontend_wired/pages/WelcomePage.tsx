@@ -1,12 +1,16 @@
+// src/pages/WelcomePage.tsx
+
 import React from 'react';
 import { Link } from 'react-router-dom';
-import Card from '../components/Card'; // <-- 1. ADD THIS IMPORT
+import Card from '../components/Card';
 
 const WelcomePage: React.FC = () => {
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen bg-gray-100 dark:bg-dark-bg flex flex-col items-center justify-center p-4">
             <div className="text-center mb-12">
-                <h1 className="text-5xl font-extrabold text-primary dark:text-primary-light">Spazaafy</h1>
+                <h1 className="text-5xl font-extrabold text-primary dark:text-primary">
+                    Spazaafy
+                </h1>
                 <p className="mt-2 text-lg text-gray-600 dark:text-gray-300">Trust your spaza. Spazaafy it!</p>
             </div>
 
@@ -33,14 +37,5 @@ const WelcomePage: React.FC = () => {
         </div>
     );
 };
-
-// 2. REMOVE THE DUMMY CARD COMPONENT FROM HERE
-/*
-const Card: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 ${className}`}>
-        {children}
-    </div>
-);
-*/
 
 export default WelcomePage;

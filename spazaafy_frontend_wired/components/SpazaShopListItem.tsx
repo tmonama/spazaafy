@@ -1,3 +1,5 @@
+// src/components/SpazaShopListItem.tsx
+
 import React from 'react';
 import { SpazaShop } from '../types';
 
@@ -37,13 +39,13 @@ const SpazaShopListItem: React.FC<SpazaShopListItemProps> = ({ shop, userLocatio
     };
     
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-200">
+        <div className="bg-white dark:bg-dark-surface p-4 rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-200">
             <div className="flex justify-between items-start">
                  <div className="flex-1">
                     <h3 className="text-lg font-bold text-primary dark:text-primary-light">{shop.shopName}</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1"><LocationIcon /> {shop.location.address}</p>
                     {shop.isVerified && (
-                        <div className="mt-2 flex items-center text-sm font-semibold text-primary">
+                        <div className="mt-2 flex items-center text-sm font-semibold text-green-600 dark:text-green-400">
                             <VerifiedIcon />
                             <span className="ml-1">Verified by Spazaafy</span>
                         </div>
@@ -55,10 +57,10 @@ const SpazaShopListItem: React.FC<SpazaShopListItemProps> = ({ shop, userLocatio
                 </div>
             </div>
             {userLocation && (
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border">
                     <button
                         onClick={handleGetDirections}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary dark:text-primary-light bg-primary/10 hover:bg-primary/20 transition-colors"
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary dark:text-primary-light bg-primary/10 dark:bg-primary/40 hover:bg-primary/20 dark:hover:bg-primary/50 transition-colors"
                     >
                         <DirectionsIcon />
                         Get Directions

@@ -1,32 +1,51 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ShopDocument, DocumentStatus } from '../types';
 
 interface DocumentUploadItemProps {
     document: ShopDocument;
+    documentName: string;
 }
 
-const statusColors: Record<DocumentStatus, string> = {
-    [DocumentStatus.PENDING]: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-    [DocumentStatus.VERIFIED]: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-    [DocumentStatus.REJECTED]: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+const getStatusColor = (status: DocumentStatus): string => {
+    switch (status) {
+        case DocumentStatus.VERIFIED:
+            return 'text-green-600 dark:text-green-400';
+        case DocumentStatus.REJECTED:
+            return 'text-red-600 dark:text-red-400';
+        case DocumentStatus.PENDING:
+        default:
+            return 'text-yellow-600 dark:text-yellow-400';
+    }
 };
 
+const DocumentUploadItem: React.FC<DocumentUploadItemProps> = ({ document, documentName }) => {
+    const { t } = useTranslation();
+    
+    const statusColor = getStatusColor(document.status);
+    const submittedDate = document.submittedAt ? new Date(document.submittedAt).toLocaleDateString() : 'N/A';
+    const expiryDateString = document.expiryDate ? new Date(document.expiryDate).toLocaleDateString() : null;
+    
+    // Create dynamic keys for translation
+    const docNameKey = `enums.docNames.${documentName}`;
+    const statusKey = `enums.docStatuses.${document.status}`;
 
-const DocumentUploadItem: React.FC<DocumentUploadItemProps> = ({ document }) => {
     return (
-        <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 sm:space-x-4">
+        <div className="flex justify-between items-center p-3 border rounded-md bg-gray-50 dark:bg-dark-surface border-gray-200 dark:border-dark-border">
             <div>
-                <p className="font-medium text-gray-900 dark:text-gray-100">{document.name}</p>
-                <div className="flex items-center mt-1">
-                    <p className="text-xs text-green-600 dark:text-green-400 font-semibold">Submitted</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 ml-2">({new Date(document.submittedAt).toLocaleDateString()})</p>
-                </div>
+                <p className="font-medium text-gray-800 dark:text-gray-100">{t(docNameKey, documentName)}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {t('shopOwnerDashboard.documentDetails.submitted')}: {submittedDate}
+                </p>
+                
+                {document.status === DocumentStatus.VERIFIED && expiryDateString && (
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        {t('shopOwnerDashboard.documentDetails.expires')}: {expiryDateString}
+                    </p>
+                )}
             </div>
-            <div className="flex items-center space-x-2">
-                <span className="text-xs text-gray-600 dark:text-gray-300">Status:</span>
-                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${statusColors[document.status]}`}>
-                    {document.status}
-                </span>
+            <div className={`text-sm font-semibold ${statusColor}`}>
+                {t('shopOwnerDashboard.documentDetails.status')}: {t(statusKey, document.status)}
             </div>
         </div>
     );

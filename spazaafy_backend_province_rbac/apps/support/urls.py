@@ -1,5 +1,19 @@
-from rest_framework.routers import DefaultRouter
-from .views import TicketViewSet
-router = DefaultRouter()
-router.register(r'tickets', TicketViewSet, basename='tickets')
-urlpatterns = router.urls
+# spazaafy_backend_province_rbac/apps/support/urls.py
+
+from django.urls import path, include
+from rest_framework_nested import routers
+from .views import TicketViewSet, MessageViewSet
+
+# Main router for the top-level resource (Tickets)
+router = routers.DefaultRouter()
+router.register(r'tickets', TicketViewSet, basename='ticket')
+
+# Nested router for the child resource (Messages)
+# It creates URLs like /tickets/{ticket_pk}/messages/
+tickets_router = routers.NestedDefaultRouter(router, r'tickets', lookup='ticket')
+tickets_router.register(r'messages', MessageViewSet, basename='ticket-messages')
+
+urlpatterns = [
+    path('', include(router.urls)),
+    path('', include(tickets_router.urls)),
+]

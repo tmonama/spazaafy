@@ -1,10 +1,8 @@
-# apps/accounts/serializers.py
-
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import RefreshToken
+from apps.shops.models import Province, SpazaShop
 
 User = get_user_model()
 
@@ -21,10 +19,14 @@ class RegisterSerializer(serializers.Serializer):
     phone = serializers.CharField(required=False, allow_blank=True)
     role = serializers.ChoiceField(choices=[(r, r) for r in ROLE_CHOICES])
 
-    # Optional shop fields (used when role == OWNER)
+    # Optional shop fields
     shop_name = serializers.CharField(required=False, allow_blank=True)
     address = serializers.CharField(required=False, allow_blank=True)
-    province = serializers.CharField(required=False, allow_blank=True)
+    province = serializers.PrimaryKeyRelatedField(
+        queryset=Province.objects.all(),
+        required=False,
+        allow_null=True
+    )
 
     def validate_email(self, value: str) -> str:
         email = value.strip().lower()
@@ -36,66 +38,36 @@ class RegisterSerializer(serializers.Serializer):
         validate_password(value)
         return value
 
-    def _generate_unique_username(self, email: str) -> str:
-        """
-        Generate a unique username from the email local-part.
-        This avoids IntegrityError on accounts_user.username unique constraint.
-        """
-        base = (email.split('@')[0] or 'user').lower()
-        candidate = base
-        i = 1
-        while User.objects.filter(username=candidate).exists():
-            candidate = f"{base}{i}"
-            i += 1
-        return candidate
-
     def create(self, validated_data):
-        role = validated_data.pop('role')
-        shop_name = (validated_data.pop('shop_name', '') or '').strip()
-        address = (validated_data.pop('address', '') or '').strip()
-        province = (validated_data.pop('province', '') or '').strip()
+        # Pop shop-specific data first.
+        shop_name = validated_data.pop('shop_name', None)
+        address = validated_data.pop('address', None)
+        province = validated_data.pop('province', None)
 
-        raw_password = validated_data.pop('password')
-        email = validated_data.get('email', '').strip().lower()
+        # --- THIS IS THE FIX ---
+        # Pop the arguments that are passed explicitly to create_user
+        password = validated_data.pop('password')
+        email = validated_data.pop('email') # <-- This line was missing
 
-        # Instantiate user and set required fields explicitly
-        user = User(**validated_data)
+        # The remaining validated_data (first_name, last_name, etc.) are passed as extra fields.
+        user = User.objects.create_user(
+            username=email,  # Use email as the username
+            email=email,
+            password=password,
+            **validated_data
+        )
+        # --- END OF FIX ---
 
-        # If your User model still has a unique 'username' (AbstractUser-based),
-        # set a unique value derived from email to prevent duplicate '' inserts.
-        if hasattr(user, 'username'):
-            user.username = self._generate_unique_username(email)
-
-        # Persist role if the model has it
-        if hasattr(user, 'role'):
-            setattr(user, 'role', role)
-
-        user.setPassword = getattr(user, "set_password", None)
-        if callable(user.setPassword):
-            user.set_password(raw_password)
-        else:
-            # Fallback (shouldn't happen): store raw (NOT recommended)
-            raise ValidationError("User model missing set_password implementation.")
-
-        user.save()
-
-        # If registering an OWNER and a shop name was provided, create the shop record.
-        if role == 'OWNER' and shop_name:
-            try:
-                from apps.shops.models import SpazaShop  # if app is namespaced under apps/
-            except Exception:
-                # Fallback in case app is registered simply as 'shops'
-                from shops.models import SpazaShop
-
-            # Ensure your SpazaShop model has these fields or adjust as needed.
+        # If the role is OWNER and a shop name was provided, create the shop.
+        if user.role == 'OWNER' and shop_name:
             SpazaShop.objects.create(
+                owner=user,
                 name=shop_name,
                 address=address,
                 province=province,
-                owner=user,        # owner = models.ForeignKey(settings.AUTH_USER_MODEL, ...)
-                verified=False,
+                verified=False
             )
-
+        
         return user
 
     def to_representation(self, user):
@@ -122,11 +94,9 @@ class LoginSerializer(serializers.Serializer):
         email = (attrs.get("email") or "").strip().lower()
         password = attrs.get("password")
 
-        # If you configured an email auth backend, this will work:
         user = authenticate(request=self.context.get('request'), email=email, password=password)
 
         if not user:
-            # Fallback: look up by email and check_password
             UserModel = get_user_model()
             try:
                 u = UserModel.objects.get(email__iexact=email)
@@ -154,3 +124,9 @@ class LoginSerializer(serializers.Serializer):
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         }
+    
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'first_name', 'last_name', 'role']

@@ -15,6 +15,8 @@ const MapView: React.FC<MapViewProps> = ({ shops, userLocation }) => {
     const [isApiLoaded, setApiLoaded] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
 
+    console.log("[MapView.tsx] Received props:", { shops, userLocation });
+
     useEffect(() => {
         loadGoogleMapsApi()
             .then(() => setApiLoaded(true))
@@ -78,6 +80,7 @@ const MapView: React.FC<MapViewProps> = ({ shops, userLocation }) => {
 
             // Add new markers for shops
             shops.forEach(shop => {
+                console.log(`[MapView.tsx] Creating marker for '${shop.shopName}' at position:`, shop.location);
                 const marker = new window.google.maps.Marker({
                     position: shop.location,
                     map: mapInstanceRef.current,

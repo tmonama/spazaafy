@@ -2,8 +2,9 @@
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions
-from .serializers import RegisterSerializer, LoginSerializer
+from rest_framework import status, permissions, viewsets
+from .models import User
+from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -23,11 +24,10 @@ class LoginView(APIView):
     def post(self, request):
         ser = LoginSerializer(data=request.data, context={"request": request})
         if ser.is_valid():
-            # ✅ FIX: Instead of ser.data, call to_representation on the validated data
+            # ✅ FIX: Call to_representation on the validated data
             response_data = ser.to_representation(ser.validated_data)
             return Response(response_data, status=status.HTTP_200_OK)
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -42,3 +42,13 @@ class MeView(APIView):
             "phone": getattr(u, "phone", ""),
             "role": u.role,
         })
+    
+    # --- THIS IS THE MISSING VIEWSET ---
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    A viewset for viewing user instances.
+    Only accessible by admin users.
+    """
+    queryset = User.objects.all().order_by('first_name')
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAdminUser]

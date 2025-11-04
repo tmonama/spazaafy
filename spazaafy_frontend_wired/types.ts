@@ -22,6 +22,8 @@ export enum SiteVisitStatus {
   PENDING = 'Pending',
   APPROVED = 'Approved',
   REJECTED = 'Rejected',
+  SCHEDULED = 'Scheduled',
+  EXPIRED = 'Expired', 
 }
 
 export interface User {
@@ -44,6 +46,8 @@ export interface SpazaShop extends User {
   };
   distance: number;
   registeredAt: string;
+  ownerId: string;
+  province: Province; // <-- ADD THIS LINE
 }
 
 export interface ShopDocument {
@@ -82,16 +86,36 @@ export interface SiteVisit {
   shopName: string;
   requestedDateTime: string;
   status: SiteVisitStatus;
+  updatedAt: string; 
   applicationForm?: Attachment;
+
+  shareCode?: string; // Optional: The generated code
+  shareCodeExpiresAt?: string; // Optional: When the code expires
 }
 
 export interface SiteVisitForm {
+  id: string;
   visitId: string;
+  inspectorName: string;
+  inspectorSurname: string;
+  contractorCompany: string;
   cleanliness: 'Poor' | 'Fair' | 'Good' | 'Excellent';
   stockRotationObserved: boolean;
   fireExtinguisherValid: boolean;
   businessLicenceDisplayed: boolean;
   healthCertificateDisplayed: boolean;
+
+  refundPolicyVisible: boolean;
+  salesRecordPresent: boolean;
+  inventorySystemInPlace: boolean;
+  foodLabelsAndExpiryPresent: boolean;
+  pricesVisible: boolean;
+  noticesPoliciesDisplayed: boolean;
+  supplierListPresent: boolean;
+  buildingPlanPresent: boolean;
+  adequateVentilation: boolean;
+  healthyStorageGoods: boolean;
+  
   inspectorNotes: string;
   submittedAt: string;
 }
@@ -131,4 +155,14 @@ export type Ticket = {
   attachments?: TicketAttachment[];
   unreadForAssignee?: boolean;
   unreadForCreator?: boolean;
+
+  // ✅ ADD THESE NEW OPTIONAL FIELDS
+  submitterName?: string;
+  submitterRole?: UserRole;
+  submitterEmail?: string;
 };
+
+export interface Province {
+  id: number; 
+  name: string;
+}

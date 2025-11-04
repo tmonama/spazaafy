@@ -1,54 +1,82 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ShopDocument, DocumentStatus } from '../../types';
-import { MOCK_DB } from '../../data/mockData';
+import mockApi from '../../api/mockApi';
 import DocumentReviewItem from '../../components/DocumentReviewItem';
 import Card from '../../components/Card';
+import Button from '../../components/Button';
 
 type FilterStatus = DocumentStatus | 'All';
 
 const DocumentVerificationPage: React.FC = () => {
-    const [documents, setDocuments] = useState<ShopDocument[]>(MOCK_DB.documents.findAll());
-    // FIX: Used DocumentStatus enum member for type safety.
+    const [documents, setDocuments] = useState<ShopDocument[]>([]);
+    const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<FilterStatus>(DocumentStatus.PENDING);
 
-    const handleUpdateStatus = (docId: string, status: DocumentStatus) => {
-        MOCK_DB.documents.updateStatus(docId, status);
-        
-        // If the new status is 'Verified', check if the shop can be fully verified
-        if (status === DocumentStatus.VERIFIED) {
-            const doc = documents.find(d => d.id === docId);
-            if(doc) {
-                const shopDocs = MOCK_DB.documents.findByShopOwnerId(doc.shopOwnerId);
-                const allDocsVerified = shopDocs.every(d => d.status === DocumentStatus.VERIFIED);
-                if (allDocsVerified) {
-                    // In a real app, you might also check for a successful site visit
-                    MOCK_DB.shops.updateVerificationStatus(doc.shopOwnerId, true);
-                }
-            }
-        } else {
-             const doc = documents.find(d => d.id === docId);
-             if(doc) {
-                 MOCK_DB.shops.updateVerificationStatus(doc.shopOwnerId, false);
-             }
+    const fetchDocuments = async () => {
+        try {
+            setLoading(true);
+            const docs = await mockApi.documents.list();
+            docs.sort((a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
+            setDocuments(docs);
+        } catch (error) {
+            console.error("Failed to fetch documents:", error);
+        } finally {
+            setLoading(false);
         }
-        
-        setDocuments(MOCK_DB.documents.findAll());
+    };
+
+    useEffect(() => {
+        fetchDocuments();
+    }, []);
+
+    const handleUpdateStatus = async (docId: string, status: 'verify' | 'reject', expiryDate: string | null = null) => {
+        const newStatus = status === 'verify' ? DocumentStatus.VERIFIED : DocumentStatus.REJECTED;
+
+        setDocuments(currentDocs =>
+            currentDocs.map(doc =>
+                doc.id === docId ? { ...doc, status: newStatus, expiryDate: expiryDate || doc.expiryDate } : doc
+            )
+        );
+
+        try {
+            await mockApi.documents.updateStatus(docId, status, { 
+                notes: `Admin action: ${status}`, 
+                expiry_date: expiryDate 
+            });
+        } catch (error) {
+            console.error(`Failed to ${status} document:`, error);
+            alert(`Could not update the document status.`);
+            fetchDocuments(); // Revert on failure
+        }
     };
 
     const filteredDocuments = useMemo(() => {
-        if (filter === 'All') {
-            return documents;
-        }
+        if (filter === 'All') return documents;
         return documents.filter(doc => doc.status === filter);
     }, [documents, filter]);
 
-    // FIX: Used DocumentStatus enum members instead of string literals for type safety.
     const filterOptions: FilterStatus[] = [DocumentStatus.PENDING, DocumentStatus.VERIFIED, DocumentStatus.REJECTED, 'All'];
+
+    if (loading) { return <p>Loading documents for verification...</p>; }
+
+    // ✅ THIS IS THE FIX
+    const handleExport = async () => {
+        try {
+            // It now calls the correct export function for documents
+            await mockApi.documents.exportCsv();
+        } catch (error) {
+            console.error("Failed to export documents:", error);
+            alert("Could not export documents.");
+        }
+    };
 
     return (
         <div>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+                <Button onClick={handleExport}>Export to CSV</Button>
+            </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Document Verification</h1>
-            
             <Card>
                  <div className="flex items-center space-x-2 p-4 border-b border-gray-200 dark:border-gray-700">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by status:</span>
@@ -59,7 +87,7 @@ const DocumentVerificationPage: React.FC = () => {
                             className={`px-3 py-1 text-sm rounded-full font-semibold ${
                                 filter === option 
                                 ? 'bg-primary text-white' 
-                                : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500'
+                                : 'bg-gray-200 dark:bg-gray-600'
                             }`}
                         >
                             {option}
@@ -68,20 +96,14 @@ const DocumentVerificationPage: React.FC = () => {
                 </div>
                 
                 <div className="space-y-4 p-4">
-                    {filteredDocuments.length > 0 ? (
-                        filteredDocuments.map(doc => (
-                            <DocumentReviewItem
-                                key={doc.id}
-                                document={doc}
-                                onApprove={() => handleUpdateStatus(doc.id, DocumentStatus.VERIFIED)}
-                                onReject={() => handleUpdateStatus(doc.id, DocumentStatus.REJECTED)}
-                            />
-                        ))
-                    ) : (
-                        <p className="text-center text-gray-500 dark:text-gray-400 py-8">
-                            No documents match the current filter.
-                        </p>
-                    )}
+                    {filteredDocuments.map(doc => (
+                        <DocumentReviewItem
+                            key={doc.id}
+                            document={doc}
+                            onApprove={(expiryDate) => handleUpdateStatus(doc.id, 'verify', expiryDate)}
+                            onReject={() => handleUpdateStatus(doc.id, 'reject')}
+                        />
+                    ))}
                 </div>
             </Card>
         </div>

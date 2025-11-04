@@ -1,15 +1,32 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SpazaShop } from '../../types';
-import { MOCK_DB } from '../../data/mockData';
+import mockApi from '../../api/mockApi';
 import ShopListItemAdmin from '../../components/ShopListItemAdmin';
 import Card from '../../components/Card';
+import Button from '../../components/Button';
 
 type FilterStatus = 'All' | 'Verified' | 'Unverified';
 
 const SpazaShopsPage: React.FC = () => {
-    const allShops = useMemo(() => MOCK_DB.shops.findAll(), []);
+    const [allShops, setAllShops] = useState<SpazaShop[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState<FilterStatus>('All');
+
+    useEffect(() => {
+        const fetchShops = async () => {
+            try {
+                setLoading(true);
+                const shops = await mockApi.shops.getAll();
+                setAllShops(shops);
+            } catch (error) {
+                console.error("Failed to fetch shops:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchShops();
+    }, []);
 
     const filteredShops = useMemo(() => {
         return allShops
@@ -24,9 +41,28 @@ const SpazaShopsPage: React.FC = () => {
                 `${shop.firstName} ${shop.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
             );
     }, [allShops, searchTerm, filter]);
+    
+    if (loading) {
+        return <p>Loading shop list...</p>;
+    }
+
+    // ✅ THIS IS THE FIX
+    const handleExport = async () => {
+        try {
+            // It now calls the correct export function for shops
+            await mockApi.shops.exportCsv();
+        } catch (error) {
+            console.error("Failed to export spaza shops:", error);
+            alert("Could not export spaza shops.");
+        }
+    };
 
     return (
         <div>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+                <Button onClick={handleExport}>Export to CSV</Button>
+            </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Spaza Shops</h1>
             
             <Card>

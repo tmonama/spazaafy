@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { UserRole } from '../types';
@@ -21,7 +20,7 @@ const DashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
       <Header />
       <main>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">

@@ -1,19 +1,28 @@
 import os
+import dj_database_url
 from pathlib import Path
 from datetime import timedelta
-from dotenv import load_dotenv; load_dotenv()
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --- Core ---
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev')
-DEBUG = os.environ.get('DJANGO_DEBUG', 'true').lower() == 'true'
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Africa/Johannesburg'
 USE_I18N = True
 USE_TZ = True
+GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY')
+
+# Add this line if you are deploying on Render
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # --- Apps ---
 INSTALLED_APPS = [
@@ -21,13 +30,19 @@ INSTALLED_APPS = [
     'django.contrib.sessions','django.contrib.messages','django.contrib.staticfiles',
     'rest_framework','corsheaders','drf_spectacular',
     'django.contrib.gis',            # GIS support (PostGIS)
+    'django_filters',
     'apps.core','apps.accounts','apps.shops','apps.compliance','apps.support','apps.visits','apps.reports',
+    'apps.password_reset',
+    'cloudinary_storage', # Add this
+    'django.contrib.staticfiles',
+    'cloudinary', # Add this
 ]
 
 # --- Middleware ---
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -51,17 +66,18 @@ TEMPLATES = [{
 }]
 WSGI_APPLICATION = 'spazaafy_backend.wsgi.application'
 
-# --- Database (single, PostGIS-ready block) ---
+# --- Database ---
+# This block replaces your old DATABASES setting.
+# It uses the DATABASE_URL from Render in production, but falls back to your
+# local Docker setup if that variable isn't set.
 DATABASES = {
-    'default': {
-        'ENGINE': os.getenv('DB_ENGINE', 'django.contrib.gis.db.backends.postgis'),
-        'NAME': os.getenv('DB_NAME', 'spazaafy'),
-        'USER': os.getenv('DB_USER', 'spazaafy'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'spazaafy'),
-        'HOST': os.getenv('DB_HOST', 'db'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-    }
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL', 'postgres://spazaafy:spazaafy@db:5432/spazaafy'),
+        conn_max_age=600
+    )
 }
+# For PostGIS, you need to set the engine manually when using dj_database_url
+DATABASES['default']['ENGINE'] = 'django.contrib.gis.db.backends.postgis'
 
 # --- Auth / DRF / JWT ---
 AUTH_USER_MODEL = 'accounts.User'
@@ -77,6 +93,10 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
+    ],
 }
 
 from datetime import timedelta
@@ -93,7 +113,8 @@ SPECTACULAR_SETTINGS = {
 
 # --- Static / Media ---
 STATIC_URL = '/static/'
-STATIC_ROOT = os.environ.get('STATIC_ROOT', str(BASE_DIR / 'staticfiles'))
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.environ.get('MEDIA_ROOT', str(BASE_DIR / 'media'))
 
@@ -105,3 +126,33 @@ CORS_ALLOWED_ORIGINS = [o for o in os.environ.get('CORS_ALLOWED_ORIGINS','').spl
     'http://127.0.0.1:3000',
 ]
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get('CSRF_TRUSTED_ORIGINS','').split(',') if o]
+
+# spazaafy_backend/settings.py
+
+# --- Email Configuration (for development) ---
+# In production, use a real email backend like SendGrid or AWS SES.
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'noreply@spazaafy.com'
+
+# --- Frontend URL ---
+# This is used to construct the reset link in the email
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+# This will be set on Render as an environment variable
+CLOUDINARY_URL = os.getenv('CLOUDINARY_URL')
+
+
+# --- Email Configuration (Production with Brevo) ---
+if not DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp-relay.brevo.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    # This reads the EMAIL_HOST_USER variable from your .env file
+    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+    # This reads the EMAIL_HOST_PASSWORD variable from your .env file
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+    # This reads the DEFAULT_FROM_EMAIL variable from your .env file
+    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
+

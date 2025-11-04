@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions
-from .models import Ticket
-from .serializers import TicketSerializer
+from .models import Ticket, Message
+from .serializers import TicketSerializer, MessageSerializer
 from apps.core.permissions import ProvinceScopedMixin
 
 class TicketViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
@@ -18,4 +18,17 @@ class TicketViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
         return Ticket.objects.filter(user=u)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        user_province = getattr(self.request.user, 'province', None)
+        serializer.save(user=self.request.user, province=user_province)
+
+class MessageViewSet(viewsets.ModelViewSet):
+    serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        ticket_id = self.kwargs.get('ticket_pk')
+        return Message.objects.filter(ticket_id=ticket_id)
+
+    def perform_create(self, serializer):
+        ticket_id = self.kwargs.get('ticket_pk')
+        serializer.save(ticket_id=ticket_id, sender=self.request.user)

@@ -1,20 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCgopEvYZT1tPM7P2TC6l_figAkmLp-k6c&libraries=places"></script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Spazaafy: Trust Your Spaza</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    
     <script>
       tailwind.config = {
         theme: {
           extend: {
             colors: {
+              'dark-bg': '#1f2020',
+              'dark-surface': '#3c3c3c',
+              'dark-input': '#545454',
+              'dark-border': '#737373',
+              
+              // ✅ UPDATED: A more vibrant green for your primary brand color
               primary: {
-                DEFAULT: '#00bf63',
-                light: '#ade4b6',
-                dark: '#00a555',
+                DEFAULT: '#22c55e', // Brighter Green
+                light: '#bbf7d0',   // Lighter shade for highlights
+                dark: '#16a34a',    // Darker shade for hover states
               },
               secondary: {
                 DEFAULT: '#ff5757',
@@ -44,7 +51,7 @@
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-slate-50 dark:bg-gray-900 transition-colors duration-300">
+  <body class="bg-slate-50 dark:bg-dark-bg transition-colors duration-300">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

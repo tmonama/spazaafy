@@ -11,3 +11,14 @@ class User(AbstractUser):
     phone = models.CharField(max_length=30, blank=True)
     province = models.ForeignKey(Province, null=True, blank=True, on_delete=models.SET_NULL,
         help_text='If set for ADMIN, user is a Province Admin. If null and ADMIN, user is Global Admin.')
+    
+    # --- ADD THIS METHOD ---
+    def get_full_name(self):
+        """
+        Return the first_name plus the last_name, with a space in between.
+        """
+        full_name = '%s %s' % (self.first_name, self.last_name)
+        return full_name.strip()
+
+    def __str__(self):
+        return self.email

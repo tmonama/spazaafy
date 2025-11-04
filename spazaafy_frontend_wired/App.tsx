@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
@@ -24,6 +25,11 @@ import AdminTicketsPage from './pages/admin/AdminTicketsPage';
 import AdminTicketDetailPage from './pages/admin/AdminTicketDetailPage';
 import AdminSiteVisitsPage from './pages/admin/AdminSiteVisitsPage';
 import AdminSiteVisitDetailPage from './pages/admin/AdminSiteVisitDetailPage';
+// Import the new public component
+import PublicSiteVisitForm from './pages/PublicSiteVisitForm'; 
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+
 
 
 function App() {
@@ -36,6 +42,10 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin-login" element={<AdminLoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          {/* ✅ The Public Form Route is correctly defined here */}
+          <Route path="/site-visits/:visitId/form" element={<PublicSiteVisitForm />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           
           {/* User Routes */}
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

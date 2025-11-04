@@ -1,16 +1,12 @@
-// AdminShopDetailPage.tsx
+// --- START OF FILE AdminShopDetailPage.tsx (FINAL FIX) ---
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-// --- FIX: Added UserRole to imports ---
-import { SpazaShop, ShopDocument, SiteVisit, DocumentStatus, UserRole } from '../../types';
+import { SpazaShop, ShopDocument, DocumentStatus, UserRole } from '../../types';
 import mockApi from '../../api/mockApi';
 import { REQUIRED_DOCS, NAME_TO_TYPE } from '../../constants';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
-
-// NOTE: This is no longer needed as mockApi now constructs the full URL
-// const API_BASE = (import.meta as any)?.env?.VITE_API_BASE_URL || 'http://localhost:8000';
 
 function reverseNameFromType(typeCode: string): string {
   const match = Object.entries(NAME_TO_TYPE).find(([, code]) => code === typeCode);
@@ -22,7 +18,7 @@ const AdminShopDetailPage: React.FC = () => {
 
   const [shop, setShop] = useState<SpazaShop | null>(null);
   const [documents, setDocuments] = useState<ShopDocument[]>([]);
-  const [siteVisit, setSiteVisit] = useState<SiteVisit | null>(null);
+  const [siteVisit, setSiteVisit] = useState<any | null>(null); // Use 'any' as SiteVisit is not fully mocked here
   const [loading, setLoading] = useState<boolean>(true);
   const [busy, setBusy] = useState<boolean>(false);
 
@@ -32,18 +28,17 @@ const AdminShopDetailPage: React.FC = () => {
 
     try {
         // 1) Shop detail
-        const allShops = await mockApi.shops.getAll();
-        const currentShop = allShops.find((s) => s.id === shopId) || null;
+        const currentShop = await mockApi.shops.getById(shopId);
         setShop(currentShop);
 
         // 2) Documents (filter by this shop FK)
         const allDocs = await mockApi.documents.list();
-        const shopDocs = allDocs.filter((d) => d.shopOwnerId === shopId);
+        const shopDocs = allDocs.filter((d) => String(d.shopOwnerId) === shopId);
         setDocuments(shopDocs);
 
-        // 3) Site visit (if any)
-        const allVisits = await mockApi.siteVisits.list();
-        const shopVisit = allVisits.find((v) => v.shopId === shopId) || null;
+        // 3) Site visit (if any) - NOTE: This is still a simplified fetch
+        const allVisits = await mockApi.visits.list();
+        const shopVisit = allVisits.find((v) => String(v.shopId) === shopId) || null;
         setSiteVisit(shopVisit);
     } catch (e) {
         console.error(e);
@@ -54,7 +49,6 @@ const AdminShopDetailPage: React.FC = () => {
     setLoading(true);
     refreshAllData().finally(() => setLoading(false));
   }, [shopId]);
-
 
   const isVerified = useMemo(() => {
     if (shop) return shop.isVerified;
@@ -81,7 +75,8 @@ const AdminShopDetailPage: React.FC = () => {
         // Verify any required docs that are not yet verified
         for (const doc of documents) {
           if (REQUIRED_DOCS.includes(doc.name) && doc.status !== DocumentStatus.VERIFIED) {
-            await mockApi.documents.verify(doc.id, 'verify', 'Admin verified.');
+            // ✅ FIX: Use the mockApi.documents.updateStatus with the correct action name
+            await mockApi.documents.updateStatus(doc.id, 'verify', 'Admin verified.');
           }
         }
         alert('All required documents are now verified.');
@@ -95,7 +90,8 @@ const AdminShopDetailPage: React.FC = () => {
           alert('No verified document to reject. The shop is already effectively unverified.');
           return;
         }
-        await mockApi.documents.verify(lastVerifiedDoc.id, 'reject', 'Admin marked shop as unverified');
+        // ✅ FIX: Use the mockApi.documents.updateStatus with the correct action name
+        await mockApi.documents.updateStatus(lastVerifiedDoc.id, 'reject', 'Admin marked shop as unverified');
         alert('Shop marked as unverified.');
       }
 
@@ -107,6 +103,13 @@ const AdminShopDetailPage: React.FC = () => {
       setBusy(false);
     }
   };
+
+
+  const filteredDocuments = useMemo(() => {
+    // NOTE: This memoized function is not used in this file but kept for consistency
+    return documents; 
+  }, [documents]);
+
 
   if (loading) return <p>Loading shop details...</p>;
   if (!shop) return <p>Shop not found.</p>;
@@ -149,7 +152,8 @@ const AdminShopDetailPage: React.FC = () => {
             <h4 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">Documents Checklist</h4>
             <ul className="space-y-2">
               {REQUIRED_DOCS.map((docName) => {
-                const submittedDoc = documents.find(d => d.name === docName);
+                const docTypeCode = NAME_TO_TYPE[docName];
+                const submittedDoc = documents.find(d => d.type === docTypeCode);
                 const status = submittedDoc ? submittedDoc.status : 'Missing';
                 const statusColors = {
                   [DocumentStatus.PENDING]: 'text-yellow-500',

@@ -1,0 +1,76 @@
+{
+  "shopOwnerDashboard": {
+    "loading": "Loading your dashboard...",
+    "noShop": "No shop found for your account.",
+    "welcome": "Welcome, {{shopName}}",
+    "description": "Manage your shop's compliance and verification status here.",
+    "verificationStatus": {
+      "label": "Verification Status:",
+      "verified": "Verified",
+      "pending": "Pending Verification"
+    },
+    "complianceAlert": "COMPLIANCE ALERT: {{message}}",
+    "requiredDocs": "Required Documents",
+    "siteVisit": "Site Visit for Verification",
+    "requestButton": "Request Site Visit",
+    
+    "chooseFileButton": "Choose File",
+    "noFileChosen": "No file chosen",
+    "uploadButton": "Upload",
+    "uploadingButton": "Uploading...",
+
+    "uploadNotices": {
+      "rejected": "Previous submission was REJECTED. Please re-upload.",
+      "expired": "Document has EXPIRED. Please re-upload."
+    },
+    "documentDetails": {
+      "submitted": "Submitted",
+      "expires": "Expires",
+      "status": "Status"
+    },
+    "siteVisitDetails": {
+      "statusLabel": "Your site visit status:",
+      "approvedExpires": "Verification Approved. Expires on {{date}}.",
+      "scheduledDate": "Scheduled/Approved Date"
+    },
+    "alerts": {
+      "pdfOnlyError": "Upload failed. Only PDF files are accepted.",
+      "unknownDocType": "Unknown document type: {{docName}}",
+      "uploadFailed": "Upload failed",
+      "visitRequestSuccess": "Site visit has been requested. An inspector will be in touch.",
+      "visitRequestFailed": "Failed to request site visit."
+    },
+    "eligibilityMessages": {
+      "required": "A site visit is required to complete your verification. Please request a visit from an inspector.",
+      "pending": "",
+      "approved": "Verification Approved. Expires on {{date}}.",
+      "expired": "Verification Expired on {{date}}. Please re-apply for a site visit.",
+      "rejectedEligible": "Previous visit was Rejected. You are now eligible to re-apply for a site visit.",
+      "rejectedIneligible": "Previous visit was Rejected. You may re-apply on {{date}}."
+    }
+  },
+  "enums": {
+    "docNames": {
+      "Fire Safety Certificate": "Fire Safety Certificate",
+      "Proof of Property Ownership/Lease": "Proof of Property Ownership/Lease",
+      "Bank Confirmation Letter": "Bank Confirmation Letter",
+      "Other Supporting Documents": "Other Supporting Documents",
+      "Business Licence / Trading Permit": "Business Licence / Trading Permit",
+      "Business Registration Certificate": "Business Registration Certificate",
+      "Certificate of Acceptability (Health)": "Certificate of Acceptability (Health)",
+      "Tax / SARS Documents": "Tax / SARS Documents",
+      "Certified ID/Passport/Permit": "Certified ID/Passport/Permit"
+    },
+    "docStatuses": {
+      "Verified": "Verified",
+      "Pending": "Pending",
+      "Rejected": "Rejected"
+    },
+    "visitStatuses": {
+      "Approved": "Approved",
+      "Pending": "Pending",
+      "Scheduled": "Scheduled",
+      "Rejected": "Rejected"
+    }
+  }
+}

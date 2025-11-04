@@ -1,6 +1,10 @@
+// src/pages/ShopOwnerView.tsx
+
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
-import { SpazaShop, ShopDocument, SiteVisit, SiteVisitStatus } from '../types';
+import { addMonths, isAfter } from 'date-fns'; 
+import { SpazaShop, ShopDocument, SiteVisit, SiteVisitStatus, DocumentStatus } from '../types';
 import mockApi from '../api/mockApi';
 import Card from '../components/Card';
 import DocumentUploadItem from '../components/DocumentUploadItem';
@@ -8,63 +12,107 @@ import RequiredDocumentSlot from '../components/RequiredDocumentSlot';
 import Button from '../components/Button';
 import { REQUIRED_DOCS, NAME_TO_TYPE } from '../constants';
 
-const API_BASE = (import.meta as any)?.env?.VITE_API_BASE_URL || 'http://localhost:8000';
-
-function reverseNameFromType(typeCode: string): string {
-  const match = Object.entries(NAME_TO_TYPE).find(([, code]) => code === typeCode);
-  return match?.[0] || typeCode;
-}
-
-function mapVisitStatus(apiStatus: string): SiteVisitStatus {
-  switch ((apiStatus || '').toUpperCase()) {
-    case 'COMPLETED':
-    case 'APPROVED': // Add APPROVED as a valid status
-      return SiteVisitStatus.APPROVED;
-    case 'SCHEDULED':
-    case 'IN_PROGRESS':
-    case 'PENDING': // Add PENDING as a valid status
-      return SiteVisitStatus.PENDING;
-    case 'CANCELLED':
-    case 'REJECTED': // Add REJECTED as a valid status
-      return SiteVisitStatus.REJECTED;
-    default:
-      return SiteVisitStatus.PENDING;
-  }
-}
-
 const ShopOwnerView: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
-  const [shop, setShop] = useState<Omit<SpazaShop, 'distance'> | null>(null);
+  const [shop, setShop] = useState<SpazaShop | null>(null);
   const [documents, setDocuments] = useState<ShopDocument[]>([]);
   const [siteVisit, setSiteVisit] = useState<SiteVisit | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   const isOwner = useMemo(() => !!user && user.role === 'shop_owner', [user]);
 
+  const { isShopUnverifiedDueToCompliance, complianceMessage } = useMemo(() => {
+    if (!shop) {
+      return { isShopUnverifiedDueToCompliance: false, complianceMessage: '' };
+    }
+    const now = new Date();
+    let unverifiedStatus = false;
+    let messages: string[] = [];
+    if (siteVisit && siteVisit.status === SiteVisitStatus.APPROVED) {
+      const siteVisitExpiryDate = addMonths(new Date(siteVisit.updatedAt), 6);
+      const gracePeriodEnd = addMonths(siteVisitExpiryDate, 1);
+      if (isAfter(now, siteVisitExpiryDate)) {
+        messages.push(t('shopOwnerDashboard.complianceMessages.visitExpired', { date: siteVisitExpiryDate.toLocaleDateString() }));
+      }
+      if (isAfter(now, gracePeriodEnd)) {
+        unverifiedStatus = true;
+        messages.push(t('shopOwnerDashboard.complianceMessages.visitGracePeriodPassed'));
+      }
+    }
+    const expiredDocs = documents.filter(d => d.status === DocumentStatus.VERIFIED && d.expiryDate && isAfter(now, new Date(d.expiryDate)));
+    if (expiredDocs.length > 0) {
+        messages.push(t('shopOwnerDashboard.complianceMessages.docsExpired', { count: expiredDocs.length }));
+        const gracePeriodViolated = expiredDocs.some(d => {
+            const docExpiryDate = new Date(d.expiryDate as string);
+            const docGracePeriodEnd = addMonths(docExpiryDate, 1);
+            return isAfter(now, docGracePeriodEnd);
+        });
+        if (gracePeriodViolated) {
+            unverifiedStatus = true;
+            messages.push(t('shopOwnerDashboard.complianceMessages.docsGracePeriodPassed'));
+        }
+    }
+    return { isShopUnverifiedDueToCompliance: unverifiedStatus, complianceMessage: messages.join(' ') };
+  }, [shop, siteVisit, documents, t]);
+
+  const { isEligibleForNewRequest, eligibilityMessage } = useMemo(() => {
+    const now = new Date();
+    if (!siteVisit) {
+      return { isEligibleForNewRequest: true, eligibilityMessage: t('shopOwnerDashboard.eligibilityMessages.required') };
+    } 
+    if (siteVisit.status === SiteVisitStatus.PENDING || siteVisit.status === SiteVisitStatus.SCHEDULED) {
+      return { isEligibleForNewRequest: false, eligibilityMessage: t('shopOwnerDashboard.eligibilityMessages.pending') };
+    } 
+    if (siteVisit.status === SiteVisitStatus.APPROVED) {
+      const expiryDate = addMonths(new Date(siteVisit.updatedAt), 6);
+      if (isAfter(now, expiryDate)) {
+        return { isEligibleForNewRequest: true, eligibilityMessage: t('shopOwnerDashboard.eligibilityMessages.expired', { date: expiryDate.toLocaleDateString() }) };
+      } else {
+        return { isEligibleForNewRequest: false, eligibilityMessage: t('shopOwnerDashboard.eligibilityMessages.approved', { date: expiryDate.toLocaleDateString() }) };
+      }
+    } 
+    if (siteVisit.status === SiteVisitStatus.REJECTED) {
+      const reApplyDate = addMonths(new Date(siteVisit.updatedAt), 1);
+      if (isAfter(now, reApplyDate)) {
+        return { isEligibleForNewRequest: true, eligibilityMessage: t('shopOwnerDashboard.eligibilityMessages.rejectedEligible') };
+      } else {
+        return { isEligibleForNewRequest: false, eligibilityMessage: t('shopOwnerDashboard.eligibilityMessages.rejectedIneligible', { date: reApplyDate.toLocaleDateString() }) };
+      }
+    }
+    return { isEligibleForNewRequest: false, eligibilityMessage: '' };
+  }, [siteVisit, t]);
+
   const fetchShopData = async () => {
     if (!user) return;
     try {
-      // For simplicity, assuming the first shop belongs to the logged-in owner.
-      // In a real app, you'd fetch the specific shop for the user.
+      setLoading(true);
       const allShops = await mockApi.shops.getAll();
-      const myShop = allShops.find(s => s.id === user.id) || allShops?.[0] || null;
-      setShop(myShop);
-      if (!myShop) return;
-
-      const apiDocs = await mockApi.documents.list();
-      const myDocs = apiDocs.filter((d: any) => String(d.shopOwnerId) === String(myShop.id));
+      const myShop = allShops.find(s => s.ownerId === user.id);
+      if (!myShop) {
+        setShop(null);
+        setLoading(false);
+        return; 
+      }
+      setShop(myShop); 
+      const [apiDocs, apiVisits] = await Promise.all([
+        mockApi.documents.list(),
+        mockApi.visits.list()
+      ]);
+      const myDocs = apiDocs.filter(d => String(d.shopOwnerId) === String(myShop.id));
       setDocuments(myDocs);
-
-      // ✅ FIX 1: Changed mockApi.siteVisits to mockApi.visits
-      const visits = await mockApi.visits.list();
-      const myVisitRaw = visits.find((v: any) => String(v.shopId) === String(myShop.id));
-      
-      const myVisit: SiteVisit | null = myVisitRaw ? {
-        ...myVisitRaw,
-        status: mapVisitStatus(myVisitRaw.status as any),
-      } : null;
-      setSiteVisit(myVisit);
-
+      const myShopVisits = apiVisits.filter(v => String(v.shopId) === String(myShop.id));
+      if (myShopVisits.length > 0) {
+        const activeVisit = myShopVisits.find(v => v.status === SiteVisitStatus.PENDING || v.status === SiteVisitStatus.SCHEDULED);
+        if (activeVisit) {
+          setSiteVisit(activeVisit);
+        } else {
+          myShopVisits.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+          setSiteVisit(myShopVisits[0]);
+        }
+      } else {
+        setSiteVisit(null);
+      }
     } catch (e) {
       console.error("Failed to fetch shop data:", e);
     } finally {
@@ -74,7 +122,6 @@ const ShopOwnerView: React.FC = () => {
 
   useEffect(() => {
     if (isOwner) {
-      setLoading(true);
       fetchShopData();
     } else {
       setLoading(false);
@@ -84,73 +131,120 @@ const ShopOwnerView: React.FC = () => {
   const handleDocumentUpload = async (documentName: string, file: File) => {
     if (!user || !shop) return;
     const typeCode = NAME_TO_TYPE[documentName];
-    if (!typeCode) return alert(`Unknown document type: ${documentName}`);
-
+    if (!typeCode) return alert(t('shopOwnerDashboard.alerts.unknownDocType', { docName: documentName }));
     try {
-      // ✅ FIX 2: Correctly passing arguments to the upload function
       await mockApi.documents.upload(String(shop.id), { name: documentName, type: typeCode, file });
-      await fetchShopData(); 
+      await fetchShopData();
     } catch (e: any) {
       console.error(e);
-      alert(e?.message || 'Upload failed');
+      alert(e?.message || t('shopOwnerDashboard.alerts.uploadFailed'));
     }
   };
 
   const handleRequestVisit = async () => {
     if (!user || !shop) return;
     try {
-      // ✅ FIX 3: Changed mockApi.siteVisits.create to mockApi.visits.requestVisit
-      await mockApi.visits.requestVisit(String(shop.id), new Date().toISOString());
+      await mockApi.visits.requestVisit(String(shop.id), new Date().toISOString()); 
       await fetchShopData();
-      alert('Site visit has been requested. An inspector will be in touch.');
+      alert(t('shopOwnerDashboard.alerts.visitRequestSuccess'));
     } catch (e) {
       console.error(e);
-      alert('Failed to request site visit.');
+      alert(t('shopOwnerDashboard.alerts.visitRequestFailed'));
     }
   };
 
-  if (!isOwner) return <p>Owner view is only available to shop owners.</p>;
-  if (loading) return <p>Loading shop details...</p>;
-  if (!shop) return <p>No shop found for your account.</p>;
+  if (loading) {
+      return <p className="text-center p-8">{t('shopOwnerDashboard.loading')}</p>;
+  }
 
-  const submittedDocNames = documents.map((doc) => doc.name);
-  const unsubmittedDocs = REQUIRED_DOCS.filter((name) => !submittedDocNames.includes(name));
+  if (!shop) {
+      return <p className="text-center p-8">{t('shopOwnerDashboard.noShop')}</p>;
+  }
+
+  const displayedVerificationStatus = shop.isVerified 
+      ? t('shopOwnerDashboard.verificationStatus.verified') 
+      : t('shopOwnerDashboard.verificationStatus.pending');
+  const statusColorClass = shop.isVerified 
+      ? 'bg-green-100 text-green-800 dark:bg-green-900/60 dark:text-green-200' 
+      : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/60 dark:text-yellow-200';
+  
+  const shouldShowComplianceAlert = !shop.isVerified && isShopUnverifiedDueToCompliance;
 
   return (
     <div className="space-y-8">
-      <Card title={`Welcome, ${shop.shopName}`}>
-        <p className="text-gray-600 dark:text-gray-400">Manage your shop's compliance and verification status here.</p>
-        <div className={`mt-4 p-3 rounded-md text-sm ${shop.isVerified ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200'}`}>
-          Verification Status: <span className="font-bold">{shop.isVerified ? 'Verified' : 'Pending Verification'}</span>
+      <Card title={t('shopOwnerDashboard.welcome', { shopName: shop.shopName })}>
+        <p className="text-gray-600 dark:text-gray-400">{t('shopOwnerDashboard.description')}</p>
+        
+        <div className={`mt-4 p-3 rounded-md text-sm ${statusColorClass}`}>
+          {t('shopOwnerDashboard.verificationStatus.label')} <span className="font-bold">{displayedVerificationStatus}</span>
         </div>
-      </Card>
-      <Card title="Required Documents">
-        <div className="space-y-3">
-          {documents.map((doc) => <DocumentUploadItem key={doc.id} document={doc} />)}
-          {unsubmittedDocs.map((name) => (
-            <RequiredDocumentSlot key={name} documentName={name} onUpload={handleDocumentUpload} />
-          ))}
-        </div>
-      </Card>
-      <Card title="Site Visit for Verification">
-        {!siteVisit && (
-          <div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              A site visit is required to complete your verification. Please request a visit from an inspector.
-            </p>
-            <Button onClick={handleRequestVisit}>Request Site Visit</Button>
-          </div>
+
+        {shouldShowComplianceAlert && (
+            <div className="mt-4 p-3 rounded-md text-sm bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 font-semibold">
+                ⚠️ {t('shopOwnerDashboard.complianceAlert', { message: complianceMessage })}
+            </div>
         )}
-        {siteVisit && (
-          <div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Your site visit status:</p>
-            <p className={`font-bold text-lg ${
-                siteVisit.status === SiteVisitStatus.PENDING ? 'text-yellow-500'
-                : siteVisit.status === SiteVisitStatus.APPROVED ? 'text-green-500'
-                : 'text-red-500'
-            }`}>
-              {siteVisit.status}
+      </Card>
+      <Card title={t('shopOwnerDashboard.requiredDocs')}>
+        <div className="space-y-3">
+          {REQUIRED_DOCS.map((docName) => {
+            const docTypeCode = NAME_TO_TYPE[docName];
+            const submittedDoc = documents.find(d => d.type === docTypeCode);
+            
+            let isDocumentExpired = false;
+            if (submittedDoc && submittedDoc.status === DocumentStatus.VERIFIED && submittedDoc.expiryDate) {
+                isDocumentExpired = isAfter(new Date(), new Date(submittedDoc.expiryDate));
+            }
+
+            const isSlotOccupied = submittedDoc && (submittedDoc.status === DocumentStatus.PENDING || (submittedDoc.status === DocumentStatus.VERIFIED && !isDocumentExpired));
+
+            if (isSlotOccupied) {
+              return <DocumentUploadItem key={docName} document={submittedDoc} documentName={docName}/>;
+            } else {
+              const isRejected = submittedDoc && submittedDoc.status === DocumentStatus.REJECTED;
+              const showExpiredNotice = submittedDoc && isDocumentExpired; 
+
+              return (
+                <div key={docName}>
+                  {(isRejected || showExpiredNotice) && (
+                      <p className="text-red-500 text-sm mb-1 font-semibold">
+                         {isRejected ? t('shopOwnerDashboard.uploadNotices.rejected') : t('shopOwnerDashboard.uploadNotices.expired')}
+                      </p>
+                  )}
+                  <RequiredDocumentSlot documentName={docName} onUpload={handleDocumentUpload} />
+                </div>
+              );
+            }
+          })}
+        </div>
+      </Card>
+      <Card title={t('shopOwnerDashboard.siteVisit')}>
+        {eligibilityMessage && (
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                {eligibilityMessage}
             </p>
+        )}
+
+        {isEligibleForNewRequest && (
+          <Button onClick={handleRequestVisit}>{t('shopOwnerDashboard.requestButton')}</Button>
+        )}
+        
+        {siteVisit && !isEligibleForNewRequest && (
+          <div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{t('shopOwnerDashboard.siteVisitDetails.statusLabel')}</p>
+            <p className={`font-bold text-lg ${
+                siteVisit.status === SiteVisitStatus.PENDING || siteVisit.status === SiteVisitStatus.SCHEDULED ? 'text-blue-500'
+                : siteVisit.status === SiteVisitStatus.APPROVED ? 'text-green-500'
+                : siteVisit.status === SiteVisitStatus.REJECTED ? 'text-red-500'
+                : 'text-yellow-500'
+            }`}>
+              {t(`enums.visitStatuses.${siteVisit.status}`, siteVisit.status)}
+            </p>
+            {(siteVisit.status === SiteVisitStatus.SCHEDULED || siteVisit.status === SiteVisitStatus.APPROVED) && (
+                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {t('shopOwnerDashboard.siteVisitDetails.scheduledDate')}: {new Date(siteVisit.requestedDateTime).toLocaleDateString()}
+                </p>
+            )}
           </div>
         )}
       </Card>
