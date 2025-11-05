@@ -9,7 +9,7 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
-      colors: { /* Copy all your custom colors from index.html here */
+      colors: { 
         ...colors, 
         'dark-bg': '#1f2020',
         'dark-surface': '#3c3c3c',
@@ -19,6 +19,19 @@ export default {
           DEFAULT: '#22c55e',
           light: '#bbf7d0',
           dark: '#16a34a',
+
+        secondary: {
+          DEFAULT: '#ff5757',
+          light: '#ff7676',
+          dark: '#e84e4e',
+        },
+
+        danger: {
+                DEFAULT: '#ff5757',
+                light: '#ff7676',
+                dark: '#e84e4e',
+              },
+
         } 
       }     
     },
