@@ -506,6 +506,23 @@ const auth = {
       body: JSON.stringify(payload),
     }, /*withAuth*/ false);
   },
+
+  async requestAdminCode(email: string): Promise<void> {
+    await request('/auth/request-admin-code', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }, false);
+  },
+
+  async registerAdminVerified(payload: { email: string; password: string, code: string }): Promise<{ user: User }> {
+    const data = await request<{ user: any }>('/auth/register-admin-verified', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, false);
+    
+    const shaped = toUser(data.user);
+    return { user: shaped };
+  },
 };
 
 // ==================================================================
