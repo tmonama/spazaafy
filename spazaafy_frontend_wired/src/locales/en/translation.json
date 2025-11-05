@@ -71,6 +71,8 @@
       "map": "Map"
     },
     "searchPlaceholder": "Search for a spaza shop...",
+    "loadingLocation": "Loading location",
+    "loadingShops": "Loading shops",
     "filterByDistance": "Filter by distance:",
     "all": "All",
     "noShopsFound": "No spaza shops found near you."
@@ -145,7 +147,6 @@
       "Pending": "Pending",
       "Scheduled": "Scheduled",
       "Rejected": "Rejected"
-    },
-    "consumerDashboard.loadingLocation": "Loading location"
+    }
   }
 }
