@@ -860,7 +860,7 @@ const site = {
 
 const core = {
   async getProvinces(): Promise<Province[]> {
-    const data = await request<Province[]>('/provinces/');
+    const data = await request<Province[]>('/core/provinces/');
     return data;
   }
 };
