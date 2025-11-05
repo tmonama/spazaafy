@@ -1,6 +1,6 @@
-
-// api/mockApi.ts — FULL FILE (wired to live backend) - CORRECTED
 /// <reference types="vite/client" />
+// api/mockApi.ts — FULL FILE (wired to live backend) - CORRECTED
+
 import {
   User,
   UserRole,
@@ -15,17 +15,10 @@ import {
   Province,
   SiteVisitForm 
 } from '../types';
-import axios from "axios";
 
 const API_BASE =
-  (import.meta.env.VITE_API_BASE || "").trim() ||
-  (import.meta.env.DEV ? "http://localhost:8000/api" : "/api");
-
-
-export const http = axios.create({
-  baseURL: API_BASE,
-  // withCredentials: true, // enable if your backend uses cookies/sessions
-});
+  (import.meta as any)?.env?.VITE_API_BASE?.replace(/\/+$/, '') ||
+  'http://localhost:8000/api';
 
 type LoginResponse = {
   user: any;
@@ -863,21 +856,11 @@ const site = {
   },
 };
 
-
 const core = {
   async getProvinces(): Promise<Province[]> {
-    const data = await request<any>('/provinces/');
-
-    // unwrap array or { results: [...] }
-    const list: any[] = Array.isArray(data) ? data
-                   : (Array.isArray(data?.results) ? data.results : []);
-
-    // id as number, name as string
-    return list.map((p) => ({
-      id: Number(p.id ?? p.code ?? p.pk),
-      name: String(p.name ?? p.province ?? p.title),
-    }));
-  },
+    const data = await request<Province[]>('/provinces/');
+    return data;
+  }
 };
 
 // ==================================================================
