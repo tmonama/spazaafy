@@ -863,10 +863,20 @@ const site = {
   },
 };
 
+
 const core = {
-  async getProvinces() {
-    const { data } = await http.get("/core/provinces/");
-    return data;
+  async getProvinces(): Promise<Province[]> {
+    const data = await request<any>('/core/provinces/');
+
+    // unwrap array or { results: [...] }
+    const list: any[] = Array.isArray(data) ? data
+                   : (Array.isArray(data?.results) ? data.results : []);
+
+    // id as number, name as string
+    return list.map((p) => ({
+      id: Number(p.id ?? p.code ?? p.pk),
+      name: String(p.name ?? p.province ?? p.title),
+    }));
   },
 };
 

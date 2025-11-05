@@ -8,4 +8,4 @@ class ProvinceViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Province.objects.all().order_by('name')
     serializer_class = ProvinceSerializer
-    permission_classes = [permissions.IsAuthenticated] # Only logged-in users can see this
+    permission_classes = [permissions.AllowAny]
