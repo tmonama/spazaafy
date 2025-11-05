@@ -8,6 +8,7 @@ export default {
   theme: {
     extend: {
       colors: { /* Copy all your custom colors from index.html here */
+        ...colors, 
         'dark-bg': '#1f2020',
         'dark-surface': '#3c3c3c',
         'dark-input': '#545454',
