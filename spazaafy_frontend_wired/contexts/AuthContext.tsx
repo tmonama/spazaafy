@@ -6,9 +6,10 @@ import mockApi from '../api/mockApi';
 export interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
-  register: (payload: any) => Promise<void>;
+  // ✅ Also corrected this one for consistency
+  register: (payload: any) => Promise<User>;
   updateUser: (updatedUser: User) => void;
   theme: Theme;
   toggleTheme: () => void;
@@ -72,6 +73,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (payload: any) => {
     const { user } = await mockApi.auth.register(payload);
     setUser(user);
+    return user;
   };
 
   const updateUser = (updatedUser: User) => {
