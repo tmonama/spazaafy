@@ -3,7 +3,7 @@
     "dashboard": "Dashboard",
     "support": "Support",
     "settings": "Settings",
-    "welcome": "Welcome",
+    "welcome": "Welcome, {{name}}",
     "logout": "Logout"
   },
   "settings": {
@@ -145,6 +145,7 @@
       "Pending": "Pending",
       "Scheduled": "Scheduled",
       "Rejected": "Rejected"
-    }
+    },
+    "consumerDashboard.loadingLocation": "Loading location"
   }
 }
