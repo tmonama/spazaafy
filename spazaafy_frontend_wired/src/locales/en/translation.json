@@ -75,7 +75,9 @@
     "loadingShops": "Loading shops",
     "filterByDistance": "Filter by distance:",
     "all": "All",
-    "noShopsFound": "No spaza shops found near you."
+    "noShopsFound": "No spaza shops found near you.",
+    "modalTitle": "Location Services Required",
+    "modalBody": "Spazaafy needs your location to find nearby shops. Please enable location services in your browser or system settings to continue."
   },
   "shopOwnerDashboard": {
     "loading": "Loading your dashboard...",
