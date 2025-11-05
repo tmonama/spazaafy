@@ -866,7 +866,7 @@ const site = {
 
 const core = {
   async getProvinces(): Promise<Province[]> {
-    const data = await request<any>('/core/provinces/');
+    const data = await request<any>('/provinces/');
 
     // unwrap array or { results: [...] }
     const list: any[] = Array.isArray(data) ? data
