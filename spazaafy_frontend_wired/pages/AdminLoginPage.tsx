@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // <-- Add Link import
 import { useAuth } from '../hooks/useAuth';
 import Button from '../components/Button';
 import Input from '../components/Input';
@@ -14,26 +14,20 @@ const AdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
   const auth = useAuth();
 
-const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
-      // ✅ FIX 1: Capture the user object that is returned by the login function
       const loggedInUser = await auth.login(email, password);
-
-      // ✅ FIX 2: Check the role of the user object we just received
       if (loggedInUser?.role === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
-        // If the user is valid but not an admin, log them out immediately
         await auth.logout();
         setError('Access denied. This user is not an administrator.');
       }
     } catch (err: any) {
       console.error("Admin login failed:", err);
-      // The error from the API (like "Invalid email or password") will be caught here
       setError(err.message || 'Invalid admin credentials.');
     } finally {
       setLoading(false);
@@ -53,14 +47,20 @@ const handleSubmit = async (e: React.FormEvent) => {
           <form className="space-y-6" onSubmit={handleSubmit}>
             <Input id="email" label="Admin Email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
             <Input id="password" label="Password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-
             {error && <p className="text-sm text-center text-red-600 dark:text-red-400">{error}</p>}
-            
             <Button type="submit" className="w-full" isLoading={loading}>
               Sign in as Admin
             </Button>
           </form>
         </Card>
+        {/* --- ADD THIS BLOCK --- */}
+        <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+          Need to create a new admin account?{' '}
+          <Link to="/admin/register" className="font-medium text-primary hover:text-primary-dark dark:text-primary-light">
+            Register here
+          </Link>
+        </p>
+        {/* --- END OF BLOCK --- */}
       </div>
     </div>
   );
