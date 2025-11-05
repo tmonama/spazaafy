@@ -16,9 +16,11 @@ import {
   SiteVisitForm 
 } from '../types';
 
+const RAW_BASE = (import.meta as any)?.env?.VITE_API_BASE;
 const API_BASE =
-  (import.meta as any)?.env?.VITE_API_BASE?.replace(/\/+$/, '') ||
-  'http://localhost:8000/api';
+  (RAW_BASE ? RAW_BASE.replace(/\/+$/, '') : '') ||
+  // ✅ if not localhost, force /api instead of localhost
+  (window.location.hostname === 'localhost' ? 'http://localhost:8000/api' : '/api');
 
 type LoginResponse = {
   user: any;
