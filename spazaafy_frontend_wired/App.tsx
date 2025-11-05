@@ -30,6 +30,8 @@ import PublicSiteVisitForm from './pages/PublicSiteVisitForm';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 
+import AdminRegisterPage from './pages/admin/AdminRegisterPage';
+
 
 
 function App() {
@@ -37,6 +39,7 @@ function App() {
     <AuthProvider>
       <HashRouter>
         <Routes>
+          <Route path="/admin/register" element={<AdminRegisterPage />} />
           {/* Public Routes */}
           <Route path="/" element={<WelcomePage />} />
           <Route path="/login" element={<LoginPage />} />
