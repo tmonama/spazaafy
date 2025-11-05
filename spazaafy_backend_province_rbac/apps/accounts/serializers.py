@@ -1,13 +1,65 @@
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
+from django.utils import timezone
+from datetime import timedelta
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.shops.models import Province, SpazaShop
+from .models import AdminVerificationCode
 
 User = get_user_model()
 
 # Keep these in sync with the frontend (it sends 'CONSUMER' / 'OWNER' / 'ADMIN')
 ROLE_CHOICES = ('CONSUMER', 'OWNER', 'ADMIN')
+ALLOWED_ADMIN_DOMAINS = ['spazaafy.com', 'spazaafy.co.za']
+
+
+# --- NEW SERIALIZER FOR REQUESTING A CODE ---
+class AdminRequestCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        domain = value.split('@')[1]
+        if domain not in ALLOWED_ADMIN_DOMAINS:
+            raise serializers.ValidationError("Registration is restricted to authorized personnel.")
+        return value
+    
+
+# --- NEW SERIALIZER FOR VERIFIED REGISTRATION ---
+class AdminVerifiedRegistrationSerializer(serializers.ModelSerializer):
+    code = serializers.CharField(write_only=True, required=True, max_length=6)
+
+    class Meta:
+        model = User
+        fields = ('email', 'password', 'code')
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def validate(self, data):
+        email = data.get('email')
+        code = data.get('code')
+        
+        try:
+            verification = AdminVerificationCode.objects.get(email=email)
+            if verification.created_at < timezone.now() - timedelta(minutes=10):
+                verification.delete()
+                raise serializers.ValidationError("Verification code has expired. Please request a new one.")
+            
+            if verification.code != code:
+                raise serializers.ValidationError("Invalid verification code.")
+
+        except AdminVerificationCode.DoesNotExist:
+            raise serializers.ValidationError("No verification code was requested for this email.")
+            
+        return data
+
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            email=validated_data['email'],
+            password=validated_data['password'],
+            role='ADMIN'
+        )
+        AdminVerificationCode.objects.filter(email=validated_data['email']).delete()
+        return user
 
 
 class RegisterSerializer(serializers.Serializer):
