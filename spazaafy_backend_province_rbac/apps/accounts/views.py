@@ -2,9 +2,53 @@
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions, viewsets
+from rest_framework import status, permissions, viewsets, generics
 from .models import User
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
+import random
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import AdminVerificationCode
+from .serializers import AdminRequestCodeSerializer, AdminVerifiedRegistrationSerializer
+
+
+# --- NEW ADMIN REGISTRATION VIEWS ---
+class RequestAdminVerificationCodeView(generics.GenericAPIView):
+    serializer_class = AdminRequestCodeSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        code = str(random.randint(100000, 999999))
+        
+        AdminVerificationCode.objects.update_or_create(email=email, defaults={'code': code})
+
+        try:
+            send_mail(
+                subject='Your Spazaafy Admin Verification Code',
+                message=f'Your verification code is: {code}',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            return Response({"detail": f"Failed to send email. Please check server configuration. Error: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response({"detail": "Verification code sent."}, status=status.HTTP_200_OK)
+
+class AdminVerifiedRegistrationView(generics.CreateAPIView):
+    serializer_class = AdminVerifiedRegistrationSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        user_data = UserSerializer(user).data
+        return Response({'user': user_data}, status=status.HTTP_201_CREATED)
+
 
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
