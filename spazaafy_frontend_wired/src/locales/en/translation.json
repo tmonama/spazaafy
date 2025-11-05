@@ -1,4 +1,80 @@
 {
+  "header": {
+    "dashboard": "Dashboard",
+    "support": "Support",
+    "settings": "Settings",
+    "welcome": "Welcome",
+    "logout": "Logout"
+  },
+  "settings": {
+    "title": "Settings",
+    "theme": {
+      "title": "Theme",
+      "description": "Switch between light and dark mode."
+    },
+    "language": {
+      "title": "Language",
+      "description": "Choose your preferred language."
+    }
+  },
+  "accountPage": {
+    "myAccount": "My Account",
+    "loading": "Loading account details...",
+    "shopOwnerInfo": "Shop and Owner Information",
+    "profileInfo": "Profile Information",
+    "emailLabel": "Email Address (cannot be changed)",
+    "ownerFirstNameLabel": "Owner's First Name",
+    "firstNameLabel": "First Name",
+    "ownerLastNameLabel": "Owner's Last Name",
+    "lastNameLabel": "Last Name",
+    "ownerPhoneLabel": "Owner's Phone Number",
+    "phoneLabel": "Phone Number",
+    "shopNameLabel": "Spaza Shop Name",
+    "addressLabel": "Business Address",
+    "saveButton": "Save Changes",
+    "savingButton": "Saving...",
+    "passwordManagement": {
+      "title": "Password Management",
+      "description": "Click the button below to receive a password reset link to your email.",
+      "resetButton": "Request Password Reset"
+    },
+    "alerts": {
+      "pdfOnlyError": "Upload failed. Only PDF files are accepted.",
+      "unknownDocType": "Unknown document type: {{docName}}",
+      "uploadFailed": "Upload failed.",
+      "updateSuccess": "Your information has been updated successfully!",
+      "updateError": "An error occurred. Please try again.",
+      "resetRequestSuccess": "A password reset link has been sent to your email address.",
+      "resetRequestError": "An error occurred while requesting a password reset. Please try again."
+    }
+  },
+  "supportPage": {
+    "yourTickets": "Your Support Tickets",
+    "loading": "Loading tickets...",
+    "loadError": "Failed to load support tickets.",
+    "noTickets": "You haven't created any support tickets yet.",
+    "openedOn": "Opened on: {{date}}",
+    "createTicket": "Create a New Ticket",
+    "queryTitle": "Subject",
+    "description": "Description",
+    "submitButton": "Submit Ticket",
+    "submittingButton": "Submitting...",
+    "status": {
+      "open": "OPEN",
+      "closed": "CLOSED"
+    }
+  },
+  "consumerDashboard": {
+    "nearbyShops": "Nearby Shops",
+    "buttons": {
+      "list": "List",
+      "map": "Map"
+    },
+    "searchPlaceholder": "Search for a spaza shop...",
+    "filterByDistance": "Filter by distance:",
+    "all": "All",
+    "noShopsFound": "No spaza shops found near you."
+  },
   "shopOwnerDashboard": {
     "loading": "Loading your dashboard...",
     "noShop": "No shop found for your account.",
@@ -13,12 +89,10 @@
     "requiredDocs": "Required Documents",
     "siteVisit": "Site Visit for Verification",
     "requestButton": "Request Site Visit",
-    
     "chooseFileButton": "Choose File",
     "noFileChosen": "No file chosen",
     "uploadButton": "Upload",
     "uploadingButton": "Uploading...",
-
     "uploadNotices": {
       "rejected": "Previous submission was REJECTED. Please re-upload.",
       "expired": "Document has EXPIRED. Please re-upload."
