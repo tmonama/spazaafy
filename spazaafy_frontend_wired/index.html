@@ -7,38 +7,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Spazaafy: Trust Your Spaza</title>
     
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              'dark-bg': '#1f2020',
-              'dark-surface': '#3c3c3c',
-              'dark-input': '#545454',
-              'dark-border': '#737373',
-              
-              // ✅ UPDATED: A more vibrant green for your primary brand color
-              primary: {
-                DEFAULT: '#22c55e', // Brighter Green
-                light: '#bbf7d0',   // Lighter shade for highlights
-                dark: '#16a34a',    // Darker shade for hover states
-              },
-              secondary: {
-                DEFAULT: '#ff5757',
-                light: '#ff7676',
-                dark: '#e84e4e',
-              },
-              danger: {
-                DEFAULT: '#ff5757',
-                light: '#ff7676',
-                dark: '#e84e4e',
-              },
-            },
-          },
-        },
-        darkMode: 'class',
-      }
-    </script>
+    <!-- ✅ CRITICAL FIX: The entire Tailwind config script block is REMOVED -->
+    <!-- The Tailwind config is now handled by the PostCSS/Vite build process -->
+    
+    <!-- You MUST still have a link to the Tailwind CDN for the styles to load in the browser -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
   <script type="importmap">
 {
   "imports": {
@@ -49,8 +23,9 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+<link rel="stylesheet" href="index.css">
 </head>
+  <!-- The body class must now rely on the CDN or the built CSS -->
   <body class="bg-slate-50 dark:bg-dark-bg transition-colors duration-300">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
