@@ -29,7 +29,7 @@ const AdminRegisterPage: React.FC = () => {
     setError('');
     setSuccess('');
     if (!validateEmailDomain(email)) {
-      setError('Registration is only allowed for @spazaafy.com or @spazaafy.co.za emails.');
+      setError('Registration is only allowed for authorised personnel.');
       return;
     }
     setIsLoading(true);
