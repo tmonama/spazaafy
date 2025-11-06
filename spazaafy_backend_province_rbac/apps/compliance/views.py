@@ -24,19 +24,18 @@ class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """
-        Ensure the user uploading the document is the owner of the shop.
-        This prevents a user from uploading documents to another user's shop
-        and also prevents crashes from anonymous users.
+        Explicitly set the shop based on the authenticated user.
+        This prevents the "chicken and egg" problem and also makes the endpoint more secure.
         """
         user = self.request.user
-        shop_id = self.request.data.get('shop')
-        
-        # Check if the shop exists and belongs to the authenticated user
-        if not SpazaShop.objects.filter(id=shop_id, owner=user).exists():
-            raise PermissionDenied("You do not have permission to upload documents for this shop.")
-            
-        # If the check passes, proceed with saving the serializer
-        serializer.save()
+        try:
+            # We assume a shop owner has one shop. For multiple shops, this logic would need adjustment.
+            shop = SpazaShop.objects.get(owner=user)
+        except SpazaShop.DoesNotExist:
+            raise PermissionDenied("You do not own a shop and cannot upload documents.")
+        # Pass the validated shop object directly to the serializer's save method.
+        # This ensures instance.shop exists before `upload_to` is called.
+        serializer.save(shop=shop)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def verify(self, request, pk=None):
