@@ -24,17 +24,19 @@ class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """
-        Explicitly set the shop based on the authenticated user.
-        This prevents the "chicken and egg" problem and also makes the endpoint more secure.
+        Robustly get the user's shop and associate it with the new document.
+        This handles cases where a user might have zero or multiple shops.
         """
         user = self.request.user
-        try:
-            # We assume a shop owner has one shop. For multiple shops, this logic would need adjustment.
-            shop = SpazaShop.objects.get(owner=user)
-        except SpazaShop.DoesNotExist:
+        
+        # Use .filter().first() instead of .get() to avoid crashing
+        shop = SpazaShop.objects.filter(owner=user).first()
+        
+        # Now, explicitly check if a shop was found
+        if not shop:
             raise PermissionDenied("You do not own a shop and cannot upload documents.")
-        # Pass the validated shop object directly to the serializer's save method.
-        # This ensures instance.shop exists before `upload_to` is called.
+        
+        # If we found a shop, save the document with the association
         serializer.save(shop=shop)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
