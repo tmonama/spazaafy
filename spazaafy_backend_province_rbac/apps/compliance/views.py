@@ -7,6 +7,8 @@ from .models import Document, DocumentStatus
 from .serializers import DocumentSerializer
 from apps.core.permissions import ProvinceScopedMixin
 from django.utils import timezone
+from apps.shops.models import SpazaShop
+from rest_framework.exceptions import PermissionDenied
 
 class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
     queryset = Document.objects.select_related('shop', 'verified_by')
@@ -19,6 +21,22 @@ class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
         if user.is_staff and getattr(user, 'role', None) == 'ADMIN':
             return self.scope_by_province(qs, user)
         return qs.filter(shop__owner=user)
+    
+    def perform_create(self, serializer):
+        """
+        Ensure the user uploading the document is the owner of the shop.
+        This prevents a user from uploading documents to another user's shop
+        and also prevents crashes from anonymous users.
+        """
+        user = self.request.user
+        shop_id = self.request.data.get('shop')
+        
+        # Check if the shop exists and belongs to the authenticated user
+        if not SpazaShop.objects.filter(id=shop_id, owner=user).exists():
+            raise PermissionDenied("You do not have permission to upload documents for this shop.")
+            
+        # If the check passes, proceed with saving the serializer
+        serializer.save()
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def verify(self, request, pk=None):

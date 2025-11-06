@@ -11,14 +11,16 @@ import DocumentUploadItem from '../components/DocumentUploadItem';
 import RequiredDocumentSlot from '../components/RequiredDocumentSlot';
 import Button from '../components/Button';
 import { REQUIRED_DOCS, NAME_TO_TYPE } from '../constants';
+import { useNavigate } from 'react-router-dom';
 
 const ShopOwnerView: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [shop, setShop] = useState<SpazaShop | null>(null);
   const [documents, setDocuments] = useState<ShopDocument[]>([]);
   const [siteVisit, setSiteVisit] = useState<SiteVisit | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const navigate = useNavigate(); // <-- Add this if it's not already there
 
   const isOwner = useMemo(() => !!user && user.role === 'shop_owner', [user]);
 
@@ -113,8 +115,13 @@ const ShopOwnerView: React.FC = () => {
       } else {
         setSiteVisit(null);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to fetch shop data:", e);
+      // ✅ THE FIX: Check for session expiry and log the user out
+      if (e.message.includes('Session expired')) {
+        logout();
+        navigate('/login');
+      }
     } finally {
       setLoading(false);
     }

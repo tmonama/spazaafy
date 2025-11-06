@@ -434,6 +434,46 @@ async function request<T = any>(url: string, options: RequestInit = {}, withAuth
   return undefined as T;
 }
 
+// --- ✅ NEW HELPER FOR FILE UPLOADS ---
+async function requestWithFile<T = any>(url: string, options: Omit<RequestInit, 'headers' | 'body'> & { body: FormData }): Promise<T> {
+  let headers: Record<string, string> = {}; // No 'Content-Type' for FormData, browser sets it
+  const token = getAccess();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  let res = await fetch(`${API_BASE}${url}`, { ...options, headers });
+  
+  const errorText = res.status === 401 ? await res.text().catch(() => '') : '';
+
+  if (!res.ok && res.status === 401 && errorText.includes('token_not_valid')) {
+    // This is a simplified version of the token refresh logic from the main `request` function
+    console.log('Token expired on file upload, attempting refresh...');
+    try {
+      await auth.refresh();
+      const newToken = getAccess();
+      headers['Authorization'] = `Bearer ${newToken}`;
+      // Retry the request
+      res = await fetch(`${API_BASE}${url}`, { ...options, headers });
+    } catch (e) {
+      clearTokens();
+      window.location.href = '/#/login';
+      return Promise.reject(new Error('Session expired.'));
+    }
+  }
+
+  if (!res.ok) {
+    const finalErrorText = await res.text().catch(() => 'Request failed');
+    throw new Error(`HTTP ${res.status} ${res.statusText}: ${finalErrorText}`);
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return (await res.json()) as T;
+  }
+  return undefined as T;
+}
+
 // ---------- API ----------
 const auth = {
   async register(payload: {
@@ -612,26 +652,22 @@ const documents = {
   
   async upload(shopId: string, payload: { name: string; type: string; file: File; expiry_date?: string | null }) {
     const form = new FormData();
+    // The field name 'shop' must match what the DRF serializer expects
     form.append('shop', shopId); 
     form.append('type', payload.type);
-    form.append('name', payload.name); 
-    form.append('file', payload.file);
+    // The backend serializer doesn't use a 'name' field for document creation, 
+    // it likely uses the filename. We can omit sending `payload.name`.
+    form.append('file', payload.file, payload.file.name); // Send file with its name
     if (payload.expiry_date) {
       form.append('expiry_date', payload.expiry_date);
     }
-
-    const token = getAccess();
-    const res = await fetch(`${API_BASE}/compliance/documents/`, {
+    
+    // Use the new helper function
+    const json = await requestWithFile<any>('/compliance/documents/', {
       method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       body: form,
     });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`HTTP ${res.status} ${res.statusText}: ${text}`);
-    }
-    const json = await res.json();
+    
     return toDocument(json);
   },
 
