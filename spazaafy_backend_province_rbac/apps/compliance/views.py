@@ -9,6 +9,7 @@ from apps.core.permissions import ProvinceScopedMixin
 from django.utils import timezone
 from apps.shops.models import SpazaShop
 from rest_framework.exceptions import PermissionDenied
+import sys
 
 class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
     queryset = Document.objects.select_related('shop', 'verified_by')
@@ -27,17 +28,22 @@ class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
         Robustly get the user's shop and associate it with the new document.
         This handles cases where a user might have zero or multiple shops.
         """
+        print("--- DOCUMENT UPLOAD: Starting perform_create ---", file=sys.stderr) # Log Step 1
         user = self.request.user
+        print(f"--- DOCUMENT UPLOAD: User is {user.email} ---", file=sys.stderr) # Log Step 2
+
         
         # Use .filter().first() instead of .get() to avoid crashing
         shop = SpazaShop.objects.filter(owner=user).first()
         
         # Now, explicitly check if a shop was found
         if not shop:
+            print("--- DOCUMENT UPLOAD: FAILED - User does not own a shop. ---", file=sys.stderr) # Log Failure
             raise PermissionDenied("You do not own a shop and cannot upload documents.")
-        
+        print(f"--- DOCUMENT UPLOAD: Found shop '{shop.name}' (ID: {shop.id}) ---", file=sys.stderr) # Log Step 3
         # If we found a shop, save the document with the association
         serializer.save(shop=shop)
+        print("--- DOCUMENT UPLOAD: serializer.save() completed successfully! ---", file=sys.stderr) # Log Success
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def verify(self, request, pk=None):
