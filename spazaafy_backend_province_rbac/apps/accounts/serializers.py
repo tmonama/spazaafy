@@ -12,6 +12,7 @@ User = get_user_model()
 # Keep these in sync with the frontend (it sends 'CONSUMER' / 'OWNER' / 'ADMIN')
 ROLE_CHOICES = ('CONSUMER', 'OWNER', 'ADMIN')
 ALLOWED_ADMIN_DOMAINS = ['spazaafy.com', 'spazaafy.co.za']
+ALLOWED_SPECIFIC_EMAILS = ['spazaafy@gmail.com']
 
 
 # --- NEW SERIALIZER FOR REQUESTING A CODE ---
@@ -19,10 +20,24 @@ class AdminRequestCodeSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
     def validate_email(self, value):
-        domain = value.split('@')[1]
-        if domain not in ALLOWED_ADMIN_DOMAINS:
-            raise serializers.ValidationError("Registration is restricted to authorized personnel.")
-        return value
+        # ✅ THE FIX: Update validation logic
+        email_lower = value.lower()
+
+        # 1. First, check if the email is in the specific allowed list
+        if email_lower in ALLOWED_SPECIFIC_EMAILS:
+            return value # It's valid, we're done.
+
+        # 2. If not, check if the domain is in the allowed list
+        try:
+            domain = email_lower.split('@')[1]
+            if domain in ALLOWED_ADMIN_DOMAINS:
+                return value # Domain is valid, we're done.
+        except IndexError:
+             # This handles cases where there's no '@' symbol
+            raise serializers.ValidationError("Please enter a valid email address.")
+
+        # 3. If neither condition was met, it's invalid.
+        raise serializers.ValidationError("Registration is restricted to authorized personnel")
     
 
 # --- NEW SERIALIZER FOR VERIFIED REGISTRATION ---

@@ -6,6 +6,7 @@ import Input from '../../components/Input';
 import Card from '../../components/Card';
 
 const ALLOWED_DOMAINS = ['spazaafy.com', 'spazaafy.co.za'];
+const ALLOWED_SPECIFIC_EMAILS = ['spazaafy@gmail.com'];
 type FormStage = 'enter-email' | 'enter-code-password' | 'complete';
 
 const AdminRegisterPage: React.FC = () => {
@@ -18,18 +19,26 @@ const AdminRegisterPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const validateEmailDomain = (email: string) => {
-    if (!email.includes('@')) return false;
-    const domain = email.split('@')[1];
-    return ALLOWED_DOMAINS.includes(domain?.toLowerCase());
+  const validateAdminEmail = (email: string) => {
+    const emailLower = email.toLowerCase();
+    
+    // 1. Check if it's a specifically allowed email
+    if (ALLOWED_SPECIFIC_EMAILS.includes(emailLower)) {
+      return true;
+    }
+    
+    // 2. If not, check the domain
+    if (!emailLower.includes('@')) return false;
+    const domain = emailLower.split('@')[1];
+    return ALLOWED_DOMAINS.includes(domain);
   };
 
-  const handleSendCode = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendCode = async () => {
     setError('');
-    setSuccess('');
-    if (!validateEmailDomain(email)) {
-      setError('Registration is only allowed for authorised personnel.');
+    // Use the updated validation function
+    if (!validateAdminEmail(email)) {
+      // ✅ THE FIX: Update the error message
+      setError('Registration is restricted to authorized emails.');
       return;
     }
     setIsLoading(true);
