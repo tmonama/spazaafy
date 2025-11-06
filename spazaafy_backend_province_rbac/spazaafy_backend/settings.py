@@ -158,3 +158,5 @@ if not DEBUG:
     # This reads the DEFAULT_FROM_EMAIL variable from your .env file
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 
+
+
