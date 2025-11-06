@@ -33,8 +33,7 @@ INSTALLED_APPS = [
     'django_filters',
     'apps.core','apps.accounts','apps.shops','apps.compliance','apps.support','apps.visits','apps.reports',
     'apps.password_reset',
-    'cloudinary_storage', # Add this
-    'cloudinary', # Add this
+    'storages'
 ]
 
 # --- Middleware ---
@@ -139,10 +138,10 @@ DEFAULT_FROM_EMAIL = 'noreply@spazaafy.com'
 # --- Frontend URL ---
 # This is used to construct the reset link in the email
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+# DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # This will be set on Render as an environment variable
-CLOUDINARY_URL = os.getenv('CLOUDINARY_URL')
+# CLOUDINARY_URL = os.getenv('CLOUDINARY_URL')
 
 
 # --- Email Configuration (Production with Brevo) ---
@@ -162,3 +161,15 @@ FILE_UPLOAD_HANDLERS = [
     'django.core.files.uploadhandler.MemoryFileUploadHandler',
 ]
 
+# --- ADD THESE NEW AWS S3 SETTINGS ---
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = 'public-read' # Make files publicly readable by default
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400', # Cache files for 1 day
+}
+# This points to your S3 bucket for all media file uploads
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'

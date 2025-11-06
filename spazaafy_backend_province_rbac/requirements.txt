@@ -13,10 +13,10 @@ django-filter
 googlemaps
 
 dj-database-url
-psycopg2
 
-cloudinary
-django-cloudinary-storage
 
 gunicorn
 whitenoise
+
+django-storages
+boto3
