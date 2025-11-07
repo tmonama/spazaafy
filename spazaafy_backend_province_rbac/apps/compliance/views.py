@@ -15,6 +15,7 @@ import traceback
 from django.core.files.storage import default_storage
 from django.conf import settings
 import os
+import boto3, botocore
 
 class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
     parser_classes = (MultiPartParser, FormParser)
@@ -49,6 +50,14 @@ class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
         # Use .filter().first() instead of .get() to avoid crashing
         shop = SpazaShop.objects.filter(owner=user).first()
         
+        print(f"--- AWS_ACCESS_KEY_ID present? {bool(settings.AWS_ACCESS_KEY_ID)} ---")
+        print(f"--- AWS_BUCKET: {settings.AWS_STORAGE_BUCKET_NAME} | REGION: {settings.AWS_S3_REGION_NAME} ---")
+
+        try:
+            who = boto3.client("sts").get_caller_identity()
+            print(f"--- STS caller: {who} ---")
+        except botocore.exceptions.ClientError as e:
+            print(f"--- STS error: {e} ---")
         # Now, explicitly check if a shop was found
         if not shop:
             print("--- DOCUMENT UPLOAD: FAILED - User does not own a shop. ---", file=sys.stderr) # Log Failure
