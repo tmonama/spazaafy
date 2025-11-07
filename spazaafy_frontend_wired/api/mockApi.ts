@@ -17,10 +17,15 @@ import {
 } from '../types';
 
 const RAW_BASE = (import.meta as any)?.env?.VITE_API_BASE;
+
+// ✅ THIS IS THE CORRECTED LOGIC
+// In production, always use the relative '/api' path to go through the proxy.
+// In local development, use the environment variable or a hardcoded default.
 const API_BASE =
-  (RAW_BASE ? RAW_BASE.replace(/\/+$/, '') : '') ||
-  // ✅ if not localhost, force /api instead of localhost
-  (window.location.hostname === 'localhost' ? 'http://localhost:8000/api' : '/api');
+  window.location.hostname === 'localhost'
+    ? (RAW_BASE || 'http://localhost:8000/api').replace(/\/+$/, '')
+    : '/api';
+
 
 type LoginResponse = {
   user: any;
@@ -67,7 +72,7 @@ async function requestAndDownloadCsv(url: string, filename: string) {
   a.remove();
 }
 
-// --- (All functions from toUserRole to toMessage remain the same) ---
+// --- (All functions from toUserRole to the end of the file remain the same) ---
 
 function toUserRole(apiRole?: string): UserRole {
   const r = String(apiRole || '').toLowerCase();
