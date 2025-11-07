@@ -4,12 +4,15 @@ import { UserRole } from '../types';
 import Header from '../components/Header';
 import ConsumerView from './ConsumerView';
 import ShopOwnerView from './ShopOwnerView';
+import AdminDashboardPage from './admin/AdminDashboardPage';
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
 
   const renderContent = () => {
     switch (user?.role) {
+      case UserRole.ADMIN: // <-- Add case for Admin role
+        return <AdminDashboardPage />;
       case UserRole.CONSUMER:
         return <ConsumerView />;
       case UserRole.SHOP_OWNER:
