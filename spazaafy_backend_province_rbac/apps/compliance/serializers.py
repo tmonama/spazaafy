@@ -2,20 +2,20 @@ from rest_framework import serializers
 from .models import Document
 
 class DocumentSerializer(serializers.ModelSerializer):
-    # ✅ FIX 1: Add a read-only field that gets the correct URL directly from S3.
-    # This will be included in API responses for the frontend to use.
-    file_url = serializers.URLField(source='file.url', read_only=True)
+    # This field will be created manually in the method below.
+    # It ensures DRF's schema generation knows about it.
+    fileUrl = serializers.URLField(read_only=True, source='file.url') 
 
     class Meta:
         model = Document
-        # ✅ FIX 2: Add 'file_url' to the list of fields.
+        # The 'file' field is kept here so it can be used for uploads.
         fields = [
             'id',
             'shop',
             'shop_name',
             'type',
-            'file',       # This is kept for uploads
-            'file_url',   # This is added for viewing
+            'file', 
+            'fileUrl', # Add the new field name here
             'status',
             'notes',
             'expiry_date',
@@ -24,10 +24,25 @@ class DocumentSerializer(serializers.ModelSerializer):
             'verified_by'
         ]
         read_only_fields = ['shop', 'status','uploaded_at','verified_at','verified_by']
-        
-        # ✅ FIX 3: Make the original 'file' field write-only.
-        # This means it's used when you upload a file, but it's hidden from the API response,
-        # preventing the bad URL from being generated.
+        # Make the original 'file' field write-only. This is critical.
+        # It means it's used for uploads but HIDDEN from the final JSON response.
         extra_kwargs = {
             'file': {'write_only': True}
         }
+
+    def to_representation(self, instance):
+        """
+        ✅ THIS IS THE GUARANTEED FIX.
+        This method lets us manually build the JSON response dictionary.
+        We explicitly get the clean S3 URL from `instance.file.url` and
+        assign it to a field named `fileUrl`, which the frontend will use.
+        This completely bypasses DRF's broken URL generation.
+        """
+        # Get the default serialized data dictionary
+        representation = super().to_representation(instance)
+        
+        # Manually add the correct URL to the response if the file exists
+        if hasattr(instance, 'file') and instance.file:
+            representation['fileUrl'] = instance.file.url
+            
+        return representation

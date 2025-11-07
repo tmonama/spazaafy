@@ -28,7 +28,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
     // In production, ALWAYS use the relative path '/api' to go through the proxy.
     apiBase = '/api';
 }
-const API_BASE = apiBase.replace(/\/+$/, ''); // Ensure no trailing slash
+export const API_BASE = apiBase.replace(/\/+$/, ''); // Ensure no trailing slash
 
 
 type LoginResponse = {
@@ -223,15 +223,16 @@ function toDocument(d: any): ShopDocument {
   return {
     id: String(d.id),
     shopOwnerId: String(d.shop ?? d.shop_owner ?? d.shopOwnerId ?? d.owner_id ?? ''),
-    // ✅ THE FIX: Added d.shop?.name to the fallback chain to capture nested shop object details
     shopName: String(d.shop_details?.name ?? d.shop_name ?? d.shopName ?? d.shop?.name ?? d.shop ?? ''),
     name: String(d.name ?? d.display_name ?? d.document_name ?? ''),
     type: String(d.type ?? d.document_type ?? ''),
     status: toDocStatus(d.status),
-    // ✅ THE FIX: Use the robust submissionDate variable
     submittedAt: submissionDate ? String(submissionDate) : null,
     expiryDate: d.expiry_date ? String(d.expiry_date) : null,
-    fileUrl: d.file_url ?? d.url ?? d.file ?? undefined,
+    
+    // ✅ THIS IS THE FIX: Only look for the 'fileUrl' field from the backend.
+    // We are removing the fallback to 'd.file' to prevent it from ever using the broken URL.
+    fileUrl: d.fileUrl || undefined, 
   };
 }
 
