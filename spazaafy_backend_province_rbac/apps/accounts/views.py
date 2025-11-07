@@ -2,16 +2,21 @@
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions, viewsets, generics
+from rest_framework import status, permissions, viewsets, generics, serializers
 from .models import User
-from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
+from django.utils import timezone
+from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, AdminRequestCodeSerializer, AdminVerifiedRegistrationSerializer, AdminVerificationCode
 import random
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import AdminVerificationCode
-from .serializers import AdminRequestCodeSerializer, AdminVerifiedRegistrationSerializer
-from django.conf import settings
-from django.utils import timezone
+from django.db import IntegrityError
+from rest_framework.exceptions import ValidationError
+import traceback, sys
+from django.contrib.auth.password_validation import validate_password
+from django.db import transaction
+from datetime import timedelta
+
 
 # --- NEW ADMIN REGISTRATION VIEWS ---
 class RequestAdminVerificationCodeView(generics.GenericAPIView):
@@ -60,7 +65,18 @@ class AdminVerifiedRegistrationView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
+        try:
+            user = serializer.save()
+        except IntegrityError:
+            raise ValidationError({"email": ["A user with this email already exists."]})
+        except TypeError as e:
+            # e.g., your User model requires username; add username=email in serializer.create()
+            raise ValidationError({"detail": [str(e)]})
+        except Exception as e:
+            # log full traceback to Render logs for quick diagnosis
+            traceback.print_exc(file=sys.stderr)
+            raise ValidationError({"detail": [str(e)]})
+
         user_data = UserSerializer(user).data
         return Response({'user': user_data}, status=status.HTTP_201_CREATED)
 
@@ -111,3 +127,54 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all().order_by('first_name')
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAdminUser]
+
+
+
+class AdminVerifiedRegistrationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    verification_code = serializers.CharField(trim_whitespace=True)
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        email = attrs["email"].strip().lower()
+        code  = attrs["verification_code"].strip()
+
+        # 1. Check code exists
+        try:
+            ver = AdminVerificationCode.objects.get(email=email, code=code)
+        except AdminVerificationCode.DoesNotExist:
+            raise serializers.ValidationError({"verification_code": ["Invalid verification code."]})
+
+        # 2. Check expiry (10 minutes)
+        if ver.created_at < timezone.now() - timedelta(minutes=10):
+            raise serializers.ValidationError({"verification_code": ["Verification code has expired. Please request a new one."]})
+
+        # 3. Ensure no existing user
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError({"email": ["A user with this email already exists."]})
+
+        # 4. Password validation
+        validate_password(attrs["password"])
+        attrs["email"] = email
+        return attrs
+
+    @transaction.atomic
+    def create(self, validated):
+        email = validated["email"]
+        password = validated["password"]
+
+        # Handle username if required
+        extra = {}
+        if hasattr(User, "username"):
+            extra["username"] = email
+
+        user = User.objects.create_user(
+            email=email,
+            password=password,
+            role="ADMIN",
+            **extra
+        )
+
+        # Remove verification record
+        AdminVerificationCode.objects.filter(email=email).delete()
+        return user
