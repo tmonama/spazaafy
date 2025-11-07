@@ -19,12 +19,16 @@ import {
 const RAW_BASE = (import.meta as any)?.env?.VITE_API_BASE;
 
 // ✅ THIS IS THE CORRECTED LOGIC
-// In production, always use the relative '/api' path to go through the proxy.
-// In local development, use the environment variable or a hardcoded default.
-const API_BASE =
-  window.location.hostname === 'localhost'
-    ? (RAW_BASE || 'http://localhost:8000/api').replace(/\/+$/, '')
-    : '/api';
+// This block ensures the correct API base URL is used for production vs. development.
+let apiBase;
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    // In local development, use the environment variable or a hardcoded default.
+    apiBase = RAW_BASE || 'http://localhost:8000/api';
+} else {
+    // In production, ALWAYS use the relative path '/api' to go through the proxy.
+    apiBase = '/api';
+}
+const API_BASE = apiBase.replace(/\/+$/, ''); // Ensure no trailing slash
 
 
 type LoginResponse = {
