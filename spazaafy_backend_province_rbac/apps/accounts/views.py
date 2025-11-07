@@ -11,6 +11,7 @@ from django.conf import settings
 from .models import AdminVerificationCode
 from .serializers import AdminRequestCodeSerializer, AdminVerifiedRegistrationSerializer
 from django.conf import settings
+from django.utils import timezone
 
 # --- NEW ADMIN REGISTRATION VIEWS ---
 class RequestAdminVerificationCodeView(generics.GenericAPIView):
@@ -23,7 +24,16 @@ class RequestAdminVerificationCodeView(generics.GenericAPIView):
         email = serializer.validated_data['email']
         code = str(random.randint(100000, 999999))
         
-        AdminVerificationCode.objects.update_or_create(email=email, defaults={'code': code})
+        obj, created = AdminVerificationCode.objects.update_or_create(
+            email=email,
+            defaults={'code': code}
+        )
+        if not created:
+            # refresh timestamp so the code is valid for the next 10 minutes
+            AdminVerificationCode.objects.filter(email=email).update(
+                created_at=timezone.now()
+        )
+
 
         print("--- EMAIL_BACKEND:", settings.EMAIL_BACKEND)
         print("--- EMAIL_HOST:", getattr(settings, "EMAIL_HOST", None))
