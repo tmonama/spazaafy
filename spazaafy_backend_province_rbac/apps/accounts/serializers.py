@@ -1,82 +1,119 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
-from datetime import timedelta
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
+
 from apps.shops.models import Province, SpazaShop
-from .models import AdminVerificationCode
+from apps.accounts.models import AdminVerificationCode
 
 User = get_user_model()
 
 # Keep these in sync with the frontend (it sends 'CONSUMER' / 'OWNER' / 'ADMIN')
 ROLE_CHOICES = ('CONSUMER', 'OWNER', 'ADMIN')
+
+# Admin email gating
 ALLOWED_ADMIN_DOMAINS = ['spazaafy.com', 'spazaafy.co.za']
 ALLOWED_SPECIFIC_EMAILS = ['spazaafy@gmail.com']
 
 
-# --- NEW SERIALIZER FOR REQUESTING A CODE ---
+# -----------------------------
+# Request admin verification code
+# -----------------------------
 class AdminRequestCodeSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
-    def validate_email(self, value):
-        # ✅ THE FIX: Update validation logic
-        email_lower = value.lower()
+    def validate_email(self, value: str) -> str:
+        email_lower = value.strip().lower()
 
-        # 1. First, check if the email is in the specific allowed list
+        # Allow exact addresses first
         if email_lower in ALLOWED_SPECIFIC_EMAILS:
-            return value # It's valid, we're done.
+            return email_lower
 
-        # 2. If not, check if the domain is in the allowed list
+        # Otherwise allow specific domains
         try:
-            domain = email_lower.split('@')[1]
-            if domain in ALLOWED_ADMIN_DOMAINS:
-                return value # Domain is valid, we're done.
+            domain = email_lower.split('@', 1)[1]
         except IndexError:
-             # This handles cases where there's no '@' symbol
             raise serializers.ValidationError("Please enter a valid email address.")
+        if domain not in ALLOWED_ADMIN_DOMAINS:
+            raise serializers.ValidationError(
+                "Registration is restricted to authorized personnel"
+            )
+        return email_lower
 
-        # 3. If neither condition was met, it's invalid.
-        raise serializers.ValidationError("Registration is restricted to authorized personnel")
-    
 
-# --- NEW SERIALIZER FOR VERIFIED REGISTRATION ---
+# --------------------------------
+# Complete admin registration (OTP)
+# --------------------------------
 class AdminVerifiedRegistrationSerializer(serializers.ModelSerializer):
-    code = serializers.CharField(write_only=True, required=True, max_length=6)
+    # Extra input fields
+    code = serializers.CharField(write_only=True, max_length=6)
+    first_name = serializers.CharField(write_only=True, max_length=150)
+    last_name = serializers.CharField(write_only=True, max_length=150)
 
     class Meta:
         model = User
-        fields = ('email', 'password', 'code')
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ('email', 'first_name', 'last_name', 'password', 'code')
+        extra_kwargs = {
+            'password': {'write_only': True, 'min_length': 8},
+        }
 
-    def validate(self, data):
-        email = data.get('email')
-        code = data.get('code')
-        
+    def validate(self, attrs):
+        email = (attrs.get('email') or '').strip().lower()
+        code = (attrs.get('code') or '').strip()
+
+        # Already registered?
+        if User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+
+        # Validate the code record
         try:
             verification = AdminVerificationCode.objects.get(email=email)
-            if verification.created_at < timezone.now() - timedelta(minutes=10):
-                verification.delete()
-                raise serializers.ValidationError("Verification code has expired. Please request a new one.")
-            
-            if verification.code != code:
-                raise serializers.ValidationError("Invalid verification code.")
-
         except AdminVerificationCode.DoesNotExist:
             raise serializers.ValidationError("No verification code was requested for this email.")
-            
-        return data
+
+        # Expiry (10 minutes)
+        if verification.created_at < timezone.now() - timedelta(minutes=10):
+            verification.delete()
+            raise serializers.ValidationError("Verification code has expired. Please request a new one.")
+
+        if verification.code != code:
+            raise serializers.ValidationError("Invalid verification code.")
+
+        # Validate password against Django validators
+        validate_password(attrs.get('password'))
+
+        # Keep normalized email
+        attrs['email'] = email
+        return attrs
 
     def create(self, validated_data):
+        # Pull fields
+        email = validated_data['email']
+        password = validated_data['password']
+        first_name = validated_data['first_name'].strip()
+        last_name = validated_data['last_name'].strip()
+
+        # Create ADMIN user. Important: provide username (email) for UserManager.create_user(...)
         user = User.objects.create_user(
-            email=validated_data['email'],
-            password=validated_data['password'],
-            role='ADMIN'
+            username=email,
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            role='ADMIN',
         )
-        AdminVerificationCode.objects.filter(email=validated_data['email']).delete()
+
+        # Remove used code
+        AdminVerificationCode.objects.filter(email=email).delete()
         return user
 
 
+# --------------------------
+# Consumer/Owner registration
+# --------------------------
 class RegisterSerializer(serializers.Serializer):
     # Core user fields
     email = serializers.EmailField()
@@ -86,7 +123,7 @@ class RegisterSerializer(serializers.Serializer):
     phone = serializers.CharField(required=False, allow_blank=True)
     role = serializers.ChoiceField(choices=[(r, r) for r in ROLE_CHOICES])
 
-    # Optional shop fields
+    # Optional shop fields (for OWNER)
     shop_name = serializers.CharField(required=False, allow_blank=True)
     address = serializers.CharField(required=False, allow_blank=True)
     province = serializers.PrimaryKeyRelatedField(
@@ -106,35 +143,33 @@ class RegisterSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):
-        # Pop shop-specific data first.
+        # Extract shop info
         shop_name = validated_data.pop('shop_name', None)
         address = validated_data.pop('address', None)
         province = validated_data.pop('province', None)
 
-        # --- THIS IS THE FIX ---
-        # Pop the arguments that are passed explicitly to create_user
+        # Extract auth fields explicitly
         password = validated_data.pop('password')
-        email = validated_data.pop('email') # <-- This line was missing
+        email = validated_data.pop('email').strip().lower()
 
-        # The remaining validated_data (first_name, last_name, etc.) are passed as extra fields.
+        # Create user (use email as username)
         user = User.objects.create_user(
-            username=email,  # Use email as the username
+            username=email,
             email=email,
             password=password,
-            **validated_data
+            **validated_data  # first_name, last_name, phone, role
         )
-        # --- END OF FIX ---
 
-        # If the role is OWNER and a shop name was provided, create the shop.
+        # If OWNER, optionally create the shop
         if user.role == 'OWNER' and shop_name:
             SpazaShop.objects.create(
                 owner=user,
                 name=shop_name,
                 address=address,
                 province=province,
-                verified=False
+                verified=False,
             )
-        
+
         return user
 
     def to_representation(self, user):
@@ -153,6 +188,9 @@ class RegisterSerializer(serializers.Serializer):
         }
 
 
+# -------------
+# Login
+# -------------
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
@@ -191,7 +229,7 @@ class LoginSerializer(serializers.Serializer):
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         }
-    
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

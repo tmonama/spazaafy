@@ -12,6 +12,8 @@ type FormStage = 'enter-email' | 'enter-code-password' | 'complete';
 const AdminRegisterPage: React.FC = () => {
   const [stage, setStage] = useState<FormStage>('enter-email');
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName]   = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
@@ -58,7 +60,7 @@ const AdminRegisterPage: React.FC = () => {
     setError('');
     setIsLoading(true);
     try {
-      await mockApi.auth.registerAdminVerified({ email, password, code });
+      await mockApi.auth.registerAdminVerified({ email, password, code, first_name: firstName, last_name:  lastName });
       setSuccess('Admin account created successfully! Redirecting to login...');
       setStage('complete');
       setTimeout(() => navigate('/admin/login'), 3000);
@@ -84,6 +86,17 @@ const AdminRegisterPage: React.FC = () => {
               disabled={stage !== 'enter-email'}
               readOnly={stage !== 'enter-email'}
             />
+
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                id="firstName" label="First name" type="text" required
+                value={firstName} onChange={(e) => setFirstName(e.target.value)}
+              />
+              <Input
+                id="lastName" label="Last name" type="text" required
+                value={lastName} onChange={(e) => setLastName(e.target.value)}
+              />
+          </div>
 
             {stage === 'enter-email' && (
               <Button type="button" onClick={handleSendCode} className="w-full" isLoading={isLoading}>

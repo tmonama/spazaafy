@@ -554,7 +554,7 @@ const auth = {
     }, false);
   },
 
-  async registerAdminVerified(payload: { email: string; password: string, code: string }): Promise<{ user: User }> {
+  async registerAdminVerified(payload: { email: string; password: string, code: string, first_name: string, last_name: string }): Promise<{ user: User }> {
     const data = await request<{ user: any }>('/auth/register-admin-verified', {
       method: 'POST',
       body: JSON.stringify(payload),
