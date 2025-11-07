@@ -31,6 +31,10 @@ class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
         Robustly get the user's shop and associate it with the new document.
         This handles cases where a user might have zero or multiple shops.
         """
+
+        from django.core.files.storage import default_storage
+        print(f"--- STORAGE IN USE: {default_storage.__class__} ---")
+
         print("--- DOCUMENT UPLOAD: Starting perform_create ---", file=sys.stderr) # Log Step 1
         user = self.request.user
         print(f"--- DOCUMENT UPLOAD: User is {user.email} ---", file=sys.stderr) # Log Step 2

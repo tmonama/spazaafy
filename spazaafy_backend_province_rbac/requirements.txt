@@ -18,5 +18,5 @@ dj-database-url
 gunicorn
 whitenoise
 
-django-storages
+django-storages[boto3]
 boto3
