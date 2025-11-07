@@ -20,7 +20,8 @@ class DocumentStatus(models.TextChoices):
     REJECTED="REJECTED","Rejected"
 
 def upload_to(instance, filename):
-    return f"docs/shop_{instance.shop_id}/{filename}"
+    shop_id = instance.shop_id or getattr(instance.shop, 'id', 'unassigned')
+    return f"docs/shop_{shop_id}/{filename}"
 
 class Document(models.Model):
     shop = models.ForeignKey(SpazaShop, on_delete=models.CASCADE, related_name='documents')

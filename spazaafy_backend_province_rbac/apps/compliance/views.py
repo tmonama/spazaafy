@@ -10,8 +10,11 @@ from django.utils import timezone
 from apps.shops.models import SpazaShop
 from rest_framework.exceptions import PermissionDenied
 import sys
+from rest_framework.parsers import MultiPartParser, FormParser
+import traceback
 
 class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
+    parser_classes = (MultiPartParser, FormParser)
     queryset = Document.objects.select_related('shop', 'verified_by')
     serializer_class = DocumentSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -42,7 +45,11 @@ class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
             raise PermissionDenied("You do not own a shop and cannot upload documents.")
         print(f"--- DOCUMENT UPLOAD: Found shop '{shop.name}' (ID: {shop.id}) ---", file=sys.stderr) # Log Step 3
         # If we found a shop, save the document with the association
-        serializer.save(shop=shop)
+        try:
+            serializer.save(shop=shop)
+        except Exception:
+            traceback.print_exc()
+            raise
         print("--- DOCUMENT UPLOAD: serializer.save() completed successfully! ---", file=sys.stderr) # Log Success
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
