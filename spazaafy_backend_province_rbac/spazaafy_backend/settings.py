@@ -176,6 +176,10 @@ AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazo
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
 
+AWS_QUERYSTRING_AUTH = True
+# 2. This sets the expiry time for the pre-signed URLs (e.g., 1 hour in seconds).
+AWS_QUERYSTRING_EXPIRE = 1800
+
 STORAGES = {
     "default": {
         "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
