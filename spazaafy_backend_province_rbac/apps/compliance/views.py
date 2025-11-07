@@ -12,6 +12,9 @@ from rest_framework.exceptions import PermissionDenied
 import sys
 from rest_framework.parsers import MultiPartParser, FormParser
 import traceback
+from django.core.files.storage import default_storage
+from django.conf import settings
+import os
 
 class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
     parser_classes = (MultiPartParser, FormParser)
@@ -32,8 +35,11 @@ class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
         This handles cases where a user might have zero or multiple shops.
         """
 
-        from django.core.files.storage import default_storage
         print(f"--- STORAGE IN USE: {default_storage.__class__} ---")
+        print(f"--- SETTINGS FILE: {getattr(settings, '__file__', None)} ---")
+        print(f"--- DEFAULT_FILE_STORAGE setting: {getattr(settings, 'DEFAULT_FILE_STORAGE', None)} ---")
+        print(f"--- DJANGO_SETTINGS_MODULE: {os.environ.get('DJANGO_SETTINGS_MODULE')} ---")
+        
 
         print("--- DOCUMENT UPLOAD: Starting perform_create ---", file=sys.stderr) # Log Step 1
         user = self.request.user
