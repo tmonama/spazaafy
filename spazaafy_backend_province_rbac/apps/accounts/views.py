@@ -10,7 +10,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import AdminVerificationCode
 from .serializers import AdminRequestCodeSerializer, AdminVerifiedRegistrationSerializer
-
+from django.conf import settings
 
 # --- NEW ADMIN REGISTRATION VIEWS ---
 class RequestAdminVerificationCodeView(generics.GenericAPIView):
@@ -24,6 +24,11 @@ class RequestAdminVerificationCodeView(generics.GenericAPIView):
         code = str(random.randint(100000, 999999))
         
         AdminVerificationCode.objects.update_or_create(email=email, defaults={'code': code})
+
+        print("--- EMAIL_BACKEND:", settings.EMAIL_BACKEND)
+        print("--- EMAIL_HOST:", getattr(settings, "EMAIL_HOST", None))
+        print("--- EMAIL_HOST_USER:", getattr(settings, "EMAIL_HOST_USER", None))
+        print("--- DEFAULT_FROM_EMAIL:", getattr(settings, "DEFAULT_FROM_EMAIL", None))
 
         try:
             send_mail(
