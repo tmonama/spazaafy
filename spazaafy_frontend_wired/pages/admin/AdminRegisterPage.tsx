@@ -129,7 +129,7 @@ const AdminRegisterPage: React.FC = () => {
         </Card>
         <p className="text-center text-sm text-gray-600 dark:text-gray-400">
           Already have an account?{' '}
-          <Link to="/admin/login" className="font-medium text-primary hover:text-primary-dark dark:text-primary-light">
+          <Link to="/admin-login" className="font-medium text-primary hover:text-primary-dark dark:text-primary-light">
             Sign in
           </Link>
         </p>
