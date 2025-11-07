@@ -10,7 +10,8 @@ interface DocumentReviewItemProps {
     onReject: () => void;
 }
 
-const API_BASE_URL = 'http://localhost:8000';
+// ✅ THE FIX 1: This constant is no longer needed and can be removed.
+// const API_BASE_URL = 'http://localhost:8000';
 
 const statusColors: Record<DocumentStatus, string> = {
     [DocumentStatus.PENDING]: 'border-yellow-500',
@@ -21,7 +22,8 @@ const statusColors: Record<DocumentStatus, string> = {
 const DocumentReviewItem: React.FC<DocumentReviewItemProps> = ({ document, onApprove, onReject }) => {
     
     const [expiryDate, setExpiryDate] = useState('');
-    const fullFileUrl = document.fileUrl ? `${API_BASE_URL}${document.fileUrl}` : '#';
+    // ✅ THE FIX 2: Use the document.fileUrl directly. It is now a complete URL.
+    const fullFileUrl = document.fileUrl || '#';
 
     return (
         <div className={`p-4 rounded-lg bg-white dark:bg-gray-800 shadow-sm border-l-4 ${statusColors[document.status]}`}>
@@ -34,7 +36,6 @@ const DocumentReviewItem: React.FC<DocumentReviewItemProps> = ({ document, onApp
                     <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                         Submitted: {document.submittedAt ? new Date(document.submittedAt).toLocaleString() : 'N/A'}
                     </p>
-                    {/* ✅ THIS IS THE FIX: Display the expiry date if it exists */}
                     {document.status === DocumentStatus.VERIFIED && document.expiryDate && (
                         <p className="text-xs text-red-500 dark:text-red-400 font-semibold mt-1">
                             Expires: {new Date(document.expiryDate).toLocaleDateString()}
@@ -42,6 +43,7 @@ const DocumentReviewItem: React.FC<DocumentReviewItemProps> = ({ document, onApp
                     )}
                 </div>
                 <div className="mt-4 sm:mt-0 flex items-center space-x-3">
+                    {/* This link will now use the correct URL */}
                     <a href={fullFileUrl} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" variant="neutral" disabled={!document.fileUrl}>View Document</Button>
                     </a>
