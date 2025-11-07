@@ -106,6 +106,8 @@ class AdminVerifiedRegistrationSerializer(serializers.ModelSerializer):
             role='ADMIN',
         )
 
+        user.is_staff = True
+        user.save()
         # Remove used code
         AdminVerificationCode.objects.filter(email=email).delete()
         return user
