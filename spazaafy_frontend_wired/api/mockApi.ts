@@ -496,17 +496,16 @@ const auth = {
     shop_name?: string;
     address?: string;
     province?: string;
-  }): Promise<LoginResponse & { user: User }> {
-    const data = await request<LoginResponse>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }, /*withAuth*/ false);
+  }): Promise<{ detail: string }> { // Return type is now a simple object with a detail string
+        // The function no longer logs the user in, sets tokens, or processes a user object.
+        // It just makes the API call and returns the success message from the backend.
+        const data = await request<{ detail: string }>('/auth/register', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }, /*withAuth*/ false);
 
-    setTokens(data.access, data.refresh);
-    const shaped = toUser(data.user);
-    sessionStorage.setItem('user', JSON.stringify(shaped));
-    return { ...data, user: shaped };
-  },
+        return data;
+    },
 
   async login(email: string, password: string): Promise<LoginResponse & { user: User }> {
     const data = await request<LoginResponse>('/auth/login', {
