@@ -132,7 +132,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class EmailVerificationConfirmView(generics.GenericAPIView):
-    permission_classes = [AllowAny]
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
         token_str = request.data.get('token')

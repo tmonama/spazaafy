@@ -1,6 +1,8 @@
 from django.contrib.auth.models import AbstractUser
 from datetime import timedelta
+from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from apps.core.models import Province
 import uuid
 
