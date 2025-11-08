@@ -573,6 +573,13 @@ const auth = {
     const shaped = toUser(data.user);
     return { user: shaped };
   },
+
+  async confirmEmailVerification(token: string): Promise<{ detail: string }> {
+        return request<{ detail: string }>('/auth/verify-email/confirm/', {
+            method: 'POST',
+            body: JSON.stringify({ token }),
+        }, false);
+  },
 };
 
 // ==================================================================

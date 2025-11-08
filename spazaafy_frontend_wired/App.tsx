@@ -31,6 +31,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 
 import AdminRegisterPage from './pages/admin/AdminRegisterPage';
+import EmailVerificationPage from './pages/EmailVerificationPage';
 
 
 
@@ -45,6 +46,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin-login" element={<AdminLoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
           {/* ✅ The Public Form Route is correctly defined here */}
           <Route path="/site-visits/:visitId/form" element={<PublicSiteVisitForm />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
