@@ -172,22 +172,15 @@ AWS_S3_OBJECT_PARAMETERS = {
     'CacheControl': 'max-age=86400', # Cache files for 1 day
 }
 AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+
 # This points to your S3 bucket for all media file uploads
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
 
-AWS_QUERYSTRING_AUTH = True
-# 2. This sets the expiry time for the pre-signed URLs (e.g., 1 hour in seconds).
-AWS_QUERYSTRING_EXPIRE = 1800
+DEFAULT_FILE_STORAGE = 'apps.core.storage_backends.PrivateMediaStorage'
 
 STORAGES = {
     "default": {
-        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
-        "OPTIONS": {
-            # This is the critical part that enables pre-signed URLs for the 'default' storage.
-            "querystring_auth": True,
-            "querystring_expire": 3600, # 1 hour
-        }
+        "BACKEND": "apps.core.storage_backends.PrivateMediaStorage",
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
