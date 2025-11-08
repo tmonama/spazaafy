@@ -176,11 +176,11 @@ AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazo
 # This points to your S3 bucket for all media file uploads
 MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
 
-DEFAULT_FILE_STORAGE = 'apps.core.storage_backends.PrivateMediaStorage'
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 STORAGES = {
     "default": {
-        "BACKEND": "apps.core.storage_backends.PrivateMediaStorage",
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
