@@ -183,6 +183,11 @@ AWS_QUERYSTRING_EXPIRE = 1800
 STORAGES = {
     "default": {
         "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            # This is the critical part that enables pre-signed URLs for the 'default' storage.
+            "querystring_auth": True,
+            "querystring_expire": 3600, # 1 hour
+        }
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
