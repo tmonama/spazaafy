@@ -16,6 +16,7 @@ import traceback, sys
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from datetime import timedelta
+from .models import User, AdminVerificationCode, EmailVerificationToken # Add EmailVerificationToken
 
 
 # --- NEW ADMIN REGISTRATION VIEWS ---
@@ -130,3 +131,32 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 
+class EmailVerificationConfirmView(generics.GenericAPIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        token_str = request.data.get('token')
+        if not token_str:
+            return Response({'detail': 'Token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            token_obj = EmailVerificationToken.objects.get(token=token_str)
+            
+            if token_obj.is_expired():
+                # For security, delete the expired token
+                token_obj.delete()
+                return Response({'detail': 'This verification link has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            user = token_obj.user
+            if user.is_active:
+                 return Response({'detail': 'Account already verified.'}, status=status.HTTP_200_OK)
+
+            user.is_active = True
+            user.save()
+            
+            # Delete the token so it cannot be used again
+            token_obj.delete()
+            
+            return Response({'detail': 'Your account has been successfully verified.'}, status=status.HTTP_200_OK)
+        except EmailVerificationToken.DoesNotExist:
+            return Response({'detail': 'Invalid verification link.'}, status=status.HTTP_400_BAD_REQUEST)

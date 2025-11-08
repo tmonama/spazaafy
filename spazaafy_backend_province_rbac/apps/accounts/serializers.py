@@ -9,6 +9,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from apps.shops.models import Province, SpazaShop
 from apps.accounts.models import AdminVerificationCode
 
+from .models import AdminVerificationCode, EmailVerificationToken
+from django.core.mail import send_mail
+from django.conf import settings
+
 User = get_user_model()
 
 # Keep these in sync with the frontend (it sends 'CONSUMER' / 'OWNER' / 'ADMIN')
@@ -159,6 +163,7 @@ class RegisterSerializer(serializers.Serializer):
             username=email,
             email=email,
             password=password,
+            is_active=False,  # <-- User is inactive until verified
             **validated_data  # first_name, last_name, phone, role
         )
 
@@ -172,21 +177,24 @@ class RegisterSerializer(serializers.Serializer):
                 verified=False,
             )
 
+        token_obj = EmailVerificationToken.objects.create(user=user)
+        frontend_url = settings.FRONTEND_URL.rstrip('/')
+        verification_url = f"{frontend_url}/#/verify-email/{token_obj.token}"
+        
+        send_mail(
+            subject='Verify Your Email for Spazaafy',
+            message=f'Hi {user.first_name or "there"},\n\nPlease click the link below to verify your email address:\n{verification_url}\n\nThis link will expire in 24 hours.\n\nThanks,\nThe Spazaafy Team',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+
         return user
 
     def to_representation(self, user):
-        refresh = RefreshToken.for_user(user)
         return {
-            "user": {
-                "id": str(user.id),
-                "email": user.email,
-                "first_name": getattr(user, "first_name", ""),
-                "last_name": getattr(user, "last_name", ""),
-                "phone": getattr(user, "phone", ""),
-                "role": getattr(user, "role", ""),
-            },
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
+            "detail": "Registration successful. Please check your email to verify your account."
         }
 
 
@@ -212,6 +220,9 @@ class LoginSerializer(serializers.Serializer):
             if not u or not u.check_password(password):
                 raise serializers.ValidationError({"non_field_errors": ["Invalid email or password."]})
             user = u
+
+        if not user.is_active:
+            raise serializers.ValidationError({"non_field_errors": ["Please verify your email address before logging in."]})
 
         attrs["user"] = user
         return attrs

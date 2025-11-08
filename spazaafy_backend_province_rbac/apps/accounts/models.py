@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractUser
+from datetime import timedelta
 from django.db import models
 from apps.core.models import Province
 import uuid
@@ -32,3 +33,16 @@ class AdminVerificationCode(models.Model):
 
     def __str__(self):
         return f"Code for {self.email}"
+    
+
+class EmailVerificationToken(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        """Checks if the token was created more than 24 hours ago."""
+        return self.created_at + timedelta(hours=24) < timezone.now()
+
+    def __str__(self):
+        return f"Email verification token for {self.user.email}"
