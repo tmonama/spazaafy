@@ -11,7 +11,8 @@ const Overlay: React.FC = () => {
     return (
         <div
             onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
+            // ✅ FIX: Overlay is now hidden on large screens (lg)
+            className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
             aria-hidden="true"
         />
     );
@@ -23,9 +24,8 @@ const AdminLayoutContent: React.FC = () => {
             <Header />
             <div className="relative flex">
                 <AdminSidebar />
-                {/* ✅ FIX: Added md:ml-64 to push content over on desktop screens */}
-                {/* Added transition for smooth resizing if you ever make the desktop sidebar collapsible */}
-                <main className="flex-1 p-4 sm:p-6 lg:p-8 md:ml-64 transition-all duration-300">
+                {/* ✅ FIX: Push content over ONLY on large screens (lg) */}
+                <main className="flex-1 p-4 sm:p-6 lg:p-8 lg:ml-64 transition-all duration-300">
                     <Outlet />
                 </main>
             </div>
