@@ -5,6 +5,7 @@ import Header from '../components/Header';
 import ConsumerView from './ConsumerView';
 import ShopOwnerView from './ShopOwnerView';
 import AdminLayout from './admin/AdminLayout';
+import { AlertsProvider } from '../components/AlertsContext'; // ✅ 1. Import the provider
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -12,7 +13,6 @@ const DashboardPage: React.FC = () => {
   const renderContent = () => {
     switch (user?.role) {
       case UserRole.ADMIN:
-        // The AdminLayout now handles its own providers and structure
         return <AdminLayout />;
       case UserRole.CONSUMER:
         return <ConsumerView />;
@@ -23,21 +23,23 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  // Only render the wrapper and Header for non-admin users
   if (user?.role !== UserRole.ADMIN) {
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
-        <Header />
-        <main>
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {renderContent()}
-          </div>
-        </main>
-      </div>
+      // ✅ 2. Wrap non-admin views with the AlertsProvider
+      <AlertsProvider>
+        <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
+          <Header />
+          <main>
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              {renderContent()}
+            </div>
+          </main>
+        </div>
+      </AlertsProvider>
     );
   }
 
-  // For admins, just render the content directly, as AdminLayout handles the structure.
+  // AdminLayout already provides its own AlertsProvider, so we render it directly.
   return renderContent();
 };
 
