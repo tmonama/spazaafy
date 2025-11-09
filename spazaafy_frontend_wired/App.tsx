@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'; // Add Outlet
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
@@ -25,14 +24,21 @@ import AdminTicketsPage from './pages/admin/AdminTicketsPage';
 import AdminTicketDetailPage from './pages/admin/AdminTicketDetailPage';
 import AdminSiteVisitsPage from './pages/admin/AdminSiteVisitsPage';
 import AdminSiteVisitDetailPage from './pages/admin/AdminSiteVisitDetailPage';
-// Import the new public component
 import PublicSiteVisitForm from './pages/PublicSiteVisitForm'; 
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 
 import AdminRegisterPage from './pages/admin/AdminRegisterPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
+import { AlertsProvider } from './components/AlertsContext';
 
+// ✅ 1. Create a new layout component specifically for non-admin authenticated users.
+// Its only job is to provide the AlertsContext to the pages it wraps.
+const UserLayout: React.FC = () => (
+  <AlertsProvider>
+    <Outlet /> {/* This will render the matched child route (e.g., DashboardPage) */}
+  </AlertsProvider>
+);
 
 
 function App() {
@@ -40,26 +46,34 @@ function App() {
     <AuthProvider>
       <HashRouter>
         <Routes>
-          <Route path="/admin/register" element={<AdminRegisterPage />} />
           {/* Public Routes */}
           <Route path="/" element={<WelcomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin-login" element={<AdminLoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/admin/register" element={<AdminRegisterPage />} />
           <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
-          {/* ✅ The Public Form Route is correctly defined here */}
           <Route path="/site-visits/:visitId/form" element={<PublicSiteVisitForm />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           
-          {/* User Routes */}
-          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
-          <Route path="/support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-          <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+          {/* ✅ 2. Group all authenticated non-admin routes under the new UserLayout */}
+          <Route 
+            element={
+              <ProtectedRoute>
+                <UserLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/support" element={<SupportPage />} />
+            <Route path="/support/:ticketId" element={<TicketDetailPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/account" element={<AccountPage />} />
+          </Route>
 
           {/* Admin Routes */}
+          {/* This remains unchanged, as AdminLayout provides its own contexts */}
           <Route 
             path="/admin"
             element={
