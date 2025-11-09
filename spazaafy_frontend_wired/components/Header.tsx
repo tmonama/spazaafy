@@ -4,12 +4,18 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import { UserRole } from '../types';
 import Button from './Button';
-import { useSidebar } from '../components/SidebarContext'; // ✅ 1. Import the new hook
+import { useSidebar } from '../components/SidebarContext'; // Import the sidebar hook
 
-// A simple Burger Icon component for the admin menu
-const AdminBurgerIcon: React.FC = () => (
+// Icon for the Admin Sidebar Toggle
+const AdminMenuIcon: React.FC<{ open: boolean }> = ({ open }) => (
     <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+        {open ? (
+            // X icon for "close"
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+        ) : (
+            // + icon for "open"
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+        )}
     </svg>
 );
 
@@ -17,10 +23,10 @@ const Header: React.FC = () => {
     const { t } = useTranslation();
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-    const [menuOpen, setMenuOpen] = useState(false); // This is for the non-admin mobile menu
+    const [menuOpen, setMenuOpen] = useState(false); // For the non-admin mobile menu on the right
 
-    // ✅ 2. Get the toggle function for the admin sidebar
-    const { toggleSidebar } = useSidebar();
+    // Get sidebar state and toggle function from our context
+    const { isSidebarOpen, toggleSidebar } = useSidebar();
 
     const dashboardPath = user?.role === UserRole.ADMIN ? '/admin/dashboard' : '/dashboard';
 
@@ -42,19 +48,19 @@ const Header: React.FC = () => {
         `${mobileNavLinkClasses} ${isActive ? activeNavLinkClasses : inactiveNavLinkClasses}`;
 
     return (
-        <header className="bg-white dark:bg-dark-surface shadow-md sticky top-0 z-10">
+        <header className="bg-white dark:bg-dark-surface shadow-md sticky top-0 z-40 h-16">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center">
-                        {/* ✅ 3. Show admin burger button ONLY for admins on mobile */}
+                        {/* Show admin menu toggle ONLY for admins on mobile */}
                         {user?.role === UserRole.ADMIN && (
                             <div className="flex items-center md:hidden">
                                 <button
                                     onClick={toggleSidebar}
                                     className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none"
+                                    aria-label="Toggle Admin Menu"
                                 >
-                                    <span className="sr-only">Open admin menu</span>
-                                    <AdminBurgerIcon />
+                                    <AdminMenuIcon open={isSidebarOpen} />
                                 </button>
                             </div>
                         )}
@@ -69,7 +75,7 @@ const Header: React.FC = () => {
                         </NavLink>
                     </div>
 
-                    {/* Desktop nav links - hide for admins, they have a sidebar */}
+                    {/* Desktop nav links - hide for admins, as they use the sidebar */}
                     {user?.role !== UserRole.ADMIN && (
                         <div className="hidden md:block">
                             <div className="ml-10 flex items-baseline space-x-4">
@@ -90,7 +96,7 @@ const Header: React.FC = () => {
                          <Button onClick={handleLogout} variant="secondary" size="sm">{t('header.logout')}</Button>
                     </div>
 
-                    {/* ✅ 4. Show original mobile menu button ONLY for non-admins */}
+                    {/* Original mobile menu button - hide for admins */}
                     {user?.role !== UserRole.ADMIN && (
                         <div className="-mr-2 flex md:hidden">
                             <button 
@@ -111,7 +117,7 @@ const Header: React.FC = () => {
                 </div>
             </div>
             
-            {/* ✅ 5. Show original mobile menu dropdown ONLY for non-admins */}
+            {/* Original mobile menu dropdown - hide for admins */}
             {menuOpen && user?.role !== UserRole.ADMIN && (
                 <div className="md:hidden" id="mobile-menu">
                     <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">

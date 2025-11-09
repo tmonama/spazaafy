@@ -3,7 +3,6 @@ import { NavLink } from 'react-router-dom';
 import { useSidebar } from '../components/SidebarContext';
 
 const AdminSidebar: React.FC = () => {
-    // ✅ FIX: Get state and setter from context
     const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
 
     const baseLinkClasses = "flex items-center px-4 py-2 text-gray-700 dark:text-gray-200 rounded-lg";
@@ -13,30 +12,28 @@ const AdminSidebar: React.FC = () => {
     const getNavLinkClass = ({ isActive }: { isActive: boolean }) => 
         `${baseLinkClasses} ${isActive ? activeLinkClasses : inactiveLinkClasses}`;
     
-    // ✅ FIX: Function to close sidebar on mobile after clicking a link
+    // Closes the sidebar on mobile after a link is clicked
     const handleLinkClick = () => {
-        if (window.innerWidth < 768) { // 768px is the 'md' breakpoint
-            setIsSidebarOpen(false);
-        }
+        setIsSidebarOpen(false);
     };
 
     return (
-        // ✅ FIX: Add classes for responsive behavior
         <aside 
             className={`
                 w-64 bg-white dark:bg-gray-800 shadow-md 
-                h-screen md:h-[calc(100vh-4rem)]  /* Full height on mobile, calculated on desktop */
-                fixed md:sticky top-0 md:top-16    /* Fixed on mobile, sticky on desktop */
-                z-30                             /* High z-index to appear over content */
+                h-screen                                  /* Full height for mobile overlay */
+                fixed md:relative                         /* Fixed overlay on mobile, relative in flexbox on desktop */
+                top-0 left-0                              /* Positioned top-left for the overlay */
+                z-30                                      /* High z-index to appear over content */
                 transition-transform duration-300 ease-in-out
-                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-                md:translate-x-0                 /* Always visible on medium screens and up */
+                md:translate-x-0                          /* Always visible and in position on desktop */
+                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} /* Slides in/out on mobile */
             `}
         >
-            <div className="p-4">
-                <h2 className="text-lg font-bold text-gray-800 dark:text-white mt-16 md:mt-0">Admin Menu</h2>
+            {/* Add padding-top to push content below the sticky header on mobile */}
+            <div className="p-4 pt-20 md:pt-4">
+                <h2 className="text-lg font-bold text-gray-800 dark:text-white">Admin Menu</h2>
                 <nav className="mt-6 space-y-2">
-                    {/* ✅ FIX: Added onClick to all links */}
                     <NavLink to="/admin/dashboard" className={getNavLinkClass} onClick={handleLinkClick}>
                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
