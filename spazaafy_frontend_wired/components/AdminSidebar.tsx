@@ -12,28 +12,24 @@ const AdminSidebar: React.FC = () => {
     const getNavLinkClass = ({ isActive }: { isActive: boolean }) => 
         `${baseLinkClasses} ${isActive ? activeLinkClasses : inactiveLinkClasses}`;
     
-    // Closes the sidebar on screens smaller than the 'lg' breakpoint
     const handleLinkClick = () => {
-        if (window.innerWidth < 1024) {
+        if (window.innerWidth < 1024) { // lg breakpoint
             setIsSidebarOpen(false);
         }
     };
 
     return (
+        // ✅ FIX: Simplified classes. It's now always a fixed-position element.
         <aside 
             className={`
                 w-64 bg-white dark:bg-gray-800 shadow-md 
-                h-screen                                  
-                fixed lg:relative                         /* ✅ FIX: Use lg for breakpoint */
-                top-0 left-0                              
-                z-30                                      
+                h-screen fixed top-0 left-0 z-30
                 transition-transform duration-300 ease-in-out
-                lg:translate-x-0                          /* ✅ FIX: Use lg for breakpoint */
-                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+                lg:translate-x-0
+                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
             `}
         >
-            {/* ✅ FIX: Use lg for breakpoint */ }
-            <div className="p-4 pt-20 lg:pt-4">
+            <div className="p-4 pt-20 lg:pt-4"> {/* Padding top for mobile to clear header */}
                 <h2 className="text-lg font-bold text-gray-800 dark:text-white">Admin Menu</h2>
                 <nav className="mt-6 space-y-2">
                     <NavLink to="/admin/dashboard" className={getNavLinkClass} onClick={handleLinkClick}>

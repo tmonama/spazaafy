@@ -20,14 +20,19 @@ const Overlay: React.FC = () => {
 const AdminLayoutContent: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-            <Header />
-            {/* ✅ FIX: Removed 'relative' which is no longer needed */}
-            <div className="flex">
-                <AdminSidebar />
-                <main className="flex-1 p-4 sm:p-6 lg:p-8 lg:ml-64 transition-all duration-300">
+            {/* The Header is now inside the main content wrapper */}
+            
+            {/* The AdminSidebar is a sibling, positioned independently */}
+            <AdminSidebar />
+            
+            {/* ✅ FIX: This wrapper now has responsive left-padding */}
+            <div className="lg:pl-64 transition-all duration-300 ease-in-out">
+                <Header />
+                <main className="p-4 sm:p-6 lg:p-8">
                     <Outlet />
                 </main>
             </div>
+
             <Overlay />
         </div>
     );
