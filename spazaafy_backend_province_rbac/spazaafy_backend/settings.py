@@ -31,7 +31,7 @@ INSTALLED_APPS = [
     'rest_framework','corsheaders','drf_spectacular',
     'django.contrib.gis',            # GIS support (PostGIS)
     'django_filters',
-    'apps.core','apps.accounts','apps.shops','apps.compliance','apps.support','apps.visits','apps.reports',
+    'apps.core','apps.accounts','apps.shops','apps.compliance','apps.support.apps.SupportConfig','apps.visits','apps.reports',
     'apps.password_reset',
     'storages'
 ]

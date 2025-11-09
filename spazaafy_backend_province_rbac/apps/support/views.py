@@ -1,7 +1,9 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
+from rest_framework.response import Response
 from .models import Ticket, Message
 from .serializers import TicketSerializer, MessageSerializer
 from apps.core.permissions import ProvinceScopedMixin
+from .models import mark_ticket_as_read # ✅ 1. Import the new function
 
 class TicketViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
@@ -20,6 +22,19 @@ class TicketViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user_province = getattr(self.request.user, 'province', None)
         serializer.save(user=self.request.user, province=user_province)
+
+    # ✅ 2. Add this custom retrieve method
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Custom retrieve action that marks the ticket as read for the user viewing it.
+        """
+        instance = self.get_object()
+        
+        # Call our new function to mark the ticket as read
+        mark_ticket_as_read(instance, request.user)
+        
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer

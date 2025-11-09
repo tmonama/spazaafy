@@ -1,25 +1,21 @@
 from rest_framework import serializers
 from django.conf import settings
-# ✅ 1. Import the correct function
 from django.contrib.auth import get_user_model
 from .models import Ticket, Message
 
-# ✅ 2. Call the function to get the actual User model class
 User = get_user_model()
 
 class SimpleUserSerializer(serializers.ModelSerializer):
     class Meta:
-        # ✅ 3. Now, 'User' is a proper model class, and this will work
         model = User
         fields = ['id', 'first_name', 'last_name', 'email', 'role']
 
 class TicketSerializer(serializers.ModelSerializer):
-    # This field name must match the field on the Ticket model
     user = SimpleUserSerializer(read_only=True)
 
     class Meta:
         model = Ticket
-        # Ensure the fields list matches the model and the custom field above
+        # ✅ Add the new fields to the serializer's output
         fields = [
             'id', 
             'user', 
@@ -29,6 +25,8 @@ class TicketSerializer(serializers.ModelSerializer):
             'priority',  
             'created_at', 
             'updated_at',
+            'unread_for_creator',   # <-- ADD THIS
+            'unread_for_assignee',  # <-- ADD THIS
         ]
 
 class MessageSerializer(serializers.ModelSerializer):
