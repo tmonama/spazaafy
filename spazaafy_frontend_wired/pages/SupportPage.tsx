@@ -114,16 +114,14 @@ const SupportPageContent: React.FC = () => {
     );
 };
 
-// The main export wraps the content in the provider.
+// ✅ No AlertsProvider here anymore
 const SupportPage: React.FC = () => {
-    return (
-        <AlertsProvider>
-            <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
-                <Header />
-                <SupportPageContent />
-            </div>
-        </AlertsProvider>
-    );
+  return (
+    <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
+      <Header />
+      <SupportPageContent />
+    </div>
+  );
 };
 
 

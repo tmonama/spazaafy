@@ -1,4 +1,5 @@
 import React from 'react';
+import { AlertsProvider } from './components/AlertsContext';
 import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'; // Add Outlet
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -31,58 +32,57 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 
 import AdminRegisterPage from './pages/admin/AdminRegisterPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
-import { AlertsProvider } from './components/AlertsContext';
+
 
 
 function App() {
   return (
     <AuthProvider>
       <HashRouter>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<WelcomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/admin-login" element={<AdminLoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/admin/register" element={<AdminRegisterPage />} />
-          <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
-          <Route path="/site-visits/:visitId/form" element={<PublicSiteVisitForm />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-          
-          {/* ✅ 2. Group all authenticated non-admin routes under the new UserLayout */}
-          <Route>
+        {/* ✅ Global provider so Header always sees alerts */}
+        <AlertsProvider>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<WelcomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/admin-login" element={<AdminLoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/admin/register" element={<AdminRegisterPage />} />
+            <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
+            <Route path="/site-visits/:visitId/form" element={<PublicSiteVisitForm />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+
+            {/* User Routes */}
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/support" element={<SupportPage />} />
             <Route path="/support/:ticketId" element={<TicketDetailPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/account" element={<AccountPage />} />
-          </Route>
 
-          {/* Admin Routes */}
-          {/* This remains unchanged, as AdminLayout provides its own contexts */}
-          <Route 
-            path="/admin"
-            element={
-              <AdminProtectedRoute>
-                <AdminLayout />
-              </AdminProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<AdminDashboardPage />} />
-            <Route path="documents" element={<DocumentVerificationPage />} />
-            <Route path="shops" element={<SpazaShopsPage />} />
-            <Route path="shops/:shopId" element={<AdminShopDetailPage />} />
-            <Route path="tickets" element={<AdminTicketsPage />} />
-            <Route path="tickets/:ticketId" element={<AdminTicketDetailPage />} />
-            <Route path="site-visits" element={<AdminSiteVisitsPage />} />
-            <Route path="site-visits/:visitId" element={<AdminSiteVisitDetailPage />} />
-          </Route>
+            {/* Admin Routes */}
+            <Route
+              path="/admin"
+              element={
+                <AdminProtectedRoute>
+                  <AdminLayout />
+                </AdminProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<AdminDashboardPage />} />
+              <Route path="documents" element={<DocumentVerificationPage />} />
+              <Route path="shops" element={<SpazaShopsPage />} />
+              <Route path="shops/:shopId" element={<AdminShopDetailPage />} />
+              <Route path="tickets" element={<AdminTicketsPage />} />
+              <Route path="tickets/:ticketId" element={<AdminTicketDetailPage />} />
+              <Route path="site-visits" element={<AdminSiteVisitsPage />} />
+              <Route path="site-visits/:visitId" element={<AdminSiteVisitDetailPage />} />
+            </Route>
 
-          {/* Not Found */}
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </AlertsProvider>
       </HashRouter>
     </AuthProvider>
   );
