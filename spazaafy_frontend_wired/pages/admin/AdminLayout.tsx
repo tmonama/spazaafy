@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import AdminSidebar from '../../components/AdminSidebar';
 import Header from '../../components/Header';
 import { SidebarProvider, useSidebar } from '../../components/SidebarContext';
-import { AlertsProvider } from '../../components/AlertsContext'; // ✅ 1. Import AlertsProvider
+import { AlertsProvider } from '../../components/AlertsContext';
 
 const Overlay: React.FC = () => {
     const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
@@ -33,8 +33,8 @@ const AdminLayoutContent: React.FC = () => {
     );
 };
 
+// ✅ FIX: The providers now correctly wrap ONLY the admin layout.
 const AdminLayout: React.FC = () => (
-    // ✅ 2. Wrap the layout with both providers
     <SidebarProvider>
         <AlertsProvider>
             <AdminLayoutContent />

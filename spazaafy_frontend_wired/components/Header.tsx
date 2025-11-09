@@ -4,30 +4,15 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import { UserRole } from '../types';
 import Button from './Button';
-import { useSidebar } from './SidebarContext'; 
-import { useAlerts } from '../components/AlertsContext';
-import NotificationDot from './NotificationDot';
-
-const AdminMenuIcon: React.FC<{ open: boolean }> = ({ open }) => (
-    <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-        {open ? (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-        ) : (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-        )}
-    </svg>
-);
+import AdminMenuToggle from './AdminMenuToggle'; // We now import the self-contained admin button
 
 const Header: React.FC = () => {
     const { t } = useTranslation();
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
-    const { isSidebarOpen, toggleSidebar } = useSidebar();
-    const { alerts } = useAlerts();
 
-    // Calculate the total number of alerts for the header icon dot
-    const totalAlerts = alerts.pendingDocuments + alerts.pendingVisits + alerts.unverifiedShops + alerts.openTickets;
+    // This component no longer uses useSidebar() or useAlerts(), making it safe for all users.
 
     const dashboardPath = user?.role === UserRole.ADMIN ? '/admin/dashboard' : '/dashboard';
 
@@ -52,32 +37,20 @@ const Header: React.FC = () => {
         <header className="bg-white dark:bg-dark-surface shadow-md sticky top-0 z-40 h-16">
             <div className="flex items-center justify-between h-16 px-4 sm:px-6">
                 
+                {/* --- LEFT SIDE: Admin Toggle and Logo --- */}
                 <div className="flex items-center">
-                    {user?.role === UserRole.ADMIN && (
-                        <div className="flex items-center lg:hidden">
-                            <div className="relative">
-                                <button
-                                    onClick={toggleSidebar}
-                                    className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none"
-                                    aria-label="Toggle Admin Menu"
-                                >
-                                    <AdminMenuIcon open={isSidebarOpen} />
-                                </button>
-                                <NotificationDot count={totalAlerts} showCount={false} />
-                            </div>
-                        </div>
-                    )}
+                    {/* Conditionally render the new toggle component ONLY for admins */}
+                    {user?.role === UserRole.ADMIN && <AdminMenuToggle />}
 
                     <NavLink to={dashboardPath} className="flex-shrink-0 flex items-center space-x-2 ml-2 lg:ml-0">
                          <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-                            <svg className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm-2.25 7.082a.75.75 0 00.22 1.03l3.25 2.5a.75.75 0 001.03-.22l4.5-6.5a.75.75 0 00-1.03-1.03l-3.97 5.75-2.72-2.176a.75.75 0 00-1.03.22z" clipRule="evenodd" />
-                            </svg>
+                            <svg className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm-2.25 7.082a.75.75 0 00.22 1.03l3.25 2.5a.75.75 0 001.03-.22l4.5-6.5a.75.75 0 00-1.03-1.03l-3.97 5.75-2.72-2.176a.75.75 0 00-1.03.22z" clipRule="evenodd" /></svg>
                         </div>
                         <span className="text-xl font-bold text-gray-800 dark:text-white">Spazaafy</span>
                     </NavLink>
                 </div>
 
+                {/* --- CENTER & RIGHT SIDE: Desktop Nav and Account --- */}
                 <div className="hidden lg:flex items-center space-x-4">
                      {user?.role !== UserRole.ADMIN && (
                         <div className="flex items-baseline space-x-4">
@@ -93,6 +66,8 @@ const Header: React.FC = () => {
                      <Button onClick={handleLogout} variant="secondary" size="sm">{t('header.logout')}</Button>
                 </div>
                 
+                {/* --- FAR RIGHT: Mobile Menu Toggle (for account/logout) --- */}
+                {/* ✅ FIX: This is now visible for ALL users on mobile, including admins */}
                 <div className="-mr-2 flex lg:hidden">
                     <button 
                         onClick={() => setMenuOpen(!menuOpen)}
@@ -110,9 +85,11 @@ const Header: React.FC = () => {
                 </div>
             </div>
             
+            {/* --- MOBILE DROPDOWN MENU --- */}
             {menuOpen && (
                 <div className="lg:hidden" id="mobile-menu">
                     <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                        {/* Nav links only show for non-admins */}
                         {user?.role !== UserRole.ADMIN && (
                             <>
                                 <NavLink to={dashboardPath} className={getMobileNavLinkClass} onClick={() => setMenuOpen(false)}>{t('header.dashboard')}</NavLink>
@@ -121,6 +98,7 @@ const Header: React.FC = () => {
                             </>
                         )}
                     </div>
+                    {/* Account/logout section shows for ALL users */}
                     <div className="pt-4 pb-3 border-t border-gray-700">
                         <div className="flex items-center px-5">
                             <NavLink to="/account" onClick={() => setMenuOpen(false)} className="flex-shrink-0">
