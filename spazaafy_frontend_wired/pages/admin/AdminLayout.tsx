@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import AdminSidebar from '../../components/AdminSidebar';
 import Header from '../../components/Header';
 import { SidebarProvider, useSidebar } from '../../components/SidebarContext';
+import { AlertsProvider } from '../../components/AlertsContext'; // ✅ 1. Import AlertsProvider
 
 const Overlay: React.FC = () => {
     const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
@@ -20,27 +21,24 @@ const Overlay: React.FC = () => {
 const AdminLayoutContent: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-            {/* The Header is now inside the main content wrapper */}
-            
-            {/* The AdminSidebar is a sibling, positioned independently */}
             <AdminSidebar />
-            
-            {/* ✅ FIX: This wrapper now has responsive left-padding */}
             <div className="lg:pl-64 transition-all duration-300 ease-in-out">
                 <Header />
                 <main className="p-4 sm:p-6 lg:p-8">
                     <Outlet />
                 </main>
             </div>
-
             <Overlay />
         </div>
     );
 };
 
 const AdminLayout: React.FC = () => (
+    // ✅ 2. Wrap the layout with both providers
     <SidebarProvider>
-        <AdminLayoutContent />
+        <AlertsProvider>
+            <AdminLayoutContent />
+        </AlertsProvider>
     </SidebarProvider>
 );
 

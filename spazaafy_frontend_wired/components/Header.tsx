@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import { UserRole } from '../types';
 import Button from './Button';
-import { useSidebar } from '../components/SidebarContext'; 
+import { useSidebar } from './SidebarContext'; 
+import { useAlerts } from '../components/AlertsContext';
+import NotificationDot from './NotificationDot';
 
 const AdminMenuIcon: React.FC<{ open: boolean }> = ({ open }) => (
     <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
@@ -22,6 +24,10 @@ const Header: React.FC = () => {
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
     const { isSidebarOpen, toggleSidebar } = useSidebar();
+    const { alerts } = useAlerts();
+
+    // Calculate the total number of alerts for the header icon dot
+    const totalAlerts = alerts.pendingDocuments + alerts.pendingVisits + alerts.unverifiedShops + alerts.openTickets;
 
     const dashboardPath = user?.role === UserRole.ADMIN ? '/admin/dashboard' : '/dashboard';
 
@@ -44,20 +50,21 @@ const Header: React.FC = () => {
 
     return (
         <header className="bg-white dark:bg-dark-surface shadow-md sticky top-0 z-40 h-16">
-            {/* ✅ FIX: Main flex container is now full-width with padding */}
             <div className="flex items-center justify-between h-16 px-4 sm:px-6">
                 
-                {/* --- LEFT SIDE: Admin Toggle and Logo --- */}
                 <div className="flex items-center">
                     {user?.role === UserRole.ADMIN && (
                         <div className="flex items-center lg:hidden">
-                            <button
-                                onClick={toggleSidebar}
-                                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none"
-                                aria-label="Toggle Admin Menu"
-                            >
-                                <AdminMenuIcon open={isSidebarOpen} />
-                            </button>
+                            <div className="relative">
+                                <button
+                                    onClick={toggleSidebar}
+                                    className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none"
+                                    aria-label="Toggle Admin Menu"
+                                >
+                                    <AdminMenuIcon open={isSidebarOpen} />
+                                </button>
+                                <NotificationDot count={totalAlerts} showCount={false} />
+                            </div>
                         </div>
                     )}
 
@@ -71,7 +78,6 @@ const Header: React.FC = () => {
                     </NavLink>
                 </div>
 
-                {/* --- CENTER & RIGHT SIDE: Desktop Nav and Account --- */}
                 <div className="hidden lg:flex items-center space-x-4">
                      {user?.role !== UserRole.ADMIN && (
                         <div className="flex items-baseline space-x-4">
@@ -87,7 +93,6 @@ const Header: React.FC = () => {
                      <Button onClick={handleLogout} variant="secondary" size="sm">{t('header.logout')}</Button>
                 </div>
                 
-                {/* --- FAR RIGHT: Mobile Menu Toggle --- */}
                 <div className="-mr-2 flex lg:hidden">
                     <button 
                         onClick={() => setMenuOpen(!menuOpen)}
@@ -105,7 +110,6 @@ const Header: React.FC = () => {
                 </div>
             </div>
             
-            {/* --- MOBILE DROPDOWN MENU --- */}
             {menuOpen && (
                 <div className="lg:hidden" id="mobile-menu">
                     <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
