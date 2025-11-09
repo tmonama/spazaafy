@@ -4,6 +4,7 @@ from .models import Ticket, Message
 from .serializers import TicketSerializer, MessageSerializer
 from apps.core.permissions import ProvinceScopedMixin
 from .models import mark_ticket_as_read # ✅ 1. Import the new function
+from apps.shops.models import SpazaShop
 
 class TicketViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
@@ -20,8 +21,13 @@ class TicketViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
         return Ticket.objects.filter(user=u)
 
     def perform_create(self, serializer):
-        user_province = getattr(self.request.user, 'province', None)
-        serializer.save(user=self.request.user, province=user_province)
+        user = self.request.user
+        user_province = getattr(user, 'province', None)
+        
+        # Find the user's shop, if they are a shop owner
+        user_shop = SpazaShop.objects.filter(owner=user).first()
+        
+        serializer.save(user=user, province=user_province, shop=user_shop)
 
     # ✅ 2. Add this custom retrieve method
     def retrieve(self, request, *args, **kwargs):

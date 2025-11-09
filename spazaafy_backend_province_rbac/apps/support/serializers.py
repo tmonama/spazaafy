@@ -12,6 +12,7 @@ class SimpleUserSerializer(serializers.ModelSerializer):
 
 class TicketSerializer(serializers.ModelSerializer):
     user = SimpleUserSerializer(read_only=True)
+    shopName = serializers.CharField(source='shop.name', read_only=True, allow_null=True)
 
     class Meta:
         model = Ticket
@@ -27,8 +28,13 @@ class TicketSerializer(serializers.ModelSerializer):
             'updated_at',
             'unread_for_creator',   # <-- ADD THIS
             'unread_for_assignee',  # <-- ADD THIS
+            'shop',
             'shopName'
         ]
+
+        extra_kwargs = {
+            'shop': {'write_only': True}
+        }
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:

@@ -4,6 +4,7 @@ from uuid import uuid4
 from apps.core.models import Province
 from django.db.models.signals import post_save # ✅ 1. Import signals
 from django.dispatch import receiver          # ✅ 2. Import receiver decorator
+from apps.shops.models import SpazaShop
 
 class TicketPriority(models.TextChoices):
     LOW = "LOW", "Low"
@@ -15,6 +16,7 @@ class TicketStatus(models.TextChoices):
     OPEN="OPEN","Open"; IN_PROGRESS="IN_PROGRESS","In Progress"; RESOLVED="RESOLVED","Resolved"; CLOSED="CLOSED","Closed"
 
 class Ticket(models.Model):
+    shop = models.ForeignKey(SpazaShop, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tickets')
     title = models.CharField(max_length=255)
     province = models.ForeignKey(Province, on_delete=models.SET_NULL, null=True, blank=True)
