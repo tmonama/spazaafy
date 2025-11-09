@@ -1,5 +1,3 @@
-// src/pages/SupportPage.tsx
-
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Ticket } from '../types';
@@ -79,10 +77,16 @@ const SupportPage: React.FC = () => {
                                     ) : (
                                         tickets.map(ticket => (
                                             <Link to={`/support/${ticket.id}`} key={ticket.id} className="block p-4 rounded-md bg-gray-50 dark:bg-dark-input/70 hover:bg-gray-100 dark:hover:bg-dark-input transition-colors">
-                                                <div className="flex justify-between items-center">
-                                                    <h4 className="font-bold text-gray-800 dark:text-white">{ticket.title}</h4>
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex items-center space-x-2">
+                                                        {/* ✅ NOTIFICATION DOT FOR UNREAD TICKET */}
+                                                        {ticket.unreadForCreator && (
+                                                            <span className="w-2.5 h-2.5 bg-red-500 rounded-full flex-shrink-0" title="New message"></span>
+                                                        )}
+                                                        <h4 className="font-bold text-gray-800 dark:text-white">{ticket.title}</h4>
+                                                    </div>
                                                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${ticket.status === 'OPEN' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
-                                                        {t('supportPage.status.open')}
+                                                        {ticket.status}
                                                     </span>
                                                 </div>
                                                 <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 truncate">{ticket.description}</p>
