@@ -33,21 +33,6 @@ import AdminRegisterPage from './pages/admin/AdminRegisterPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
 import { AlertsProvider } from './components/AlertsContext';
 
-// ✅ 1. This is the new layout component for non-admin users.
-// It provides the context AND renders the shared Header and page content.
-const UserLayout: React.FC = () => (
-  <AlertsProvider>
-    <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
-      <Header />
-      <main>
-        {/* The Outlet will render the specific page component (DashboardPage, SupportPage, etc.) */}
-        <Outlet />
-      </main>
-    </div>
-  </AlertsProvider>
-);
-
-
 
 function App() {
   return (
@@ -66,13 +51,7 @@ function App() {
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           
           {/* ✅ 2. Group all authenticated non-admin routes under the new UserLayout */}
-          <Route 
-            element={
-              <ProtectedRoute>
-                <UserLayout />
-              </ProtectedRoute>
-            }
-          >
+          <Route>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/support" element={<SupportPage />} />
             <Route path="/support/:ticketId" element={<TicketDetailPage />} />

@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Ticket } from '../types';
-// Header and AlertsProvider are no longer imported here
+import Header from '../components/Header';
 import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { Link } from 'react-router-dom';
 import mockApi from '../api/mockApi';
+import { AlertsProvider } from '../components/AlertsContext';
 
-const SupportPage: React.FC = () => {
+// This is the main page content component.
+const SupportPageContent: React.FC = () => {
     const { t } = useTranslation();
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [loading, setLoading] = useState(true);
@@ -60,16 +62,13 @@ const SupportPage: React.FC = () => {
     };
     
     return (
-        // The Header and main layout tags are handled by UserLayout in App.tsx
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-2">
                     <Card title={t('supportPage.yourTickets')}>
-                        {loading ? (
-                            <p>{t('supportPage.loading')}</p>
-                        ) : error ? (
-                            <p className="text-red-500">{error}</p>
-                        ) : (
+                        {loading ? ( <p>{t('supportPage.loading')}</p> ) 
+                        : error ? ( <p className="text-red-500">{error}</p> ) 
+                        : (
                             <div className="space-y-4">
                                 {tickets.length === 0 ? (
                                     <p className="text-gray-500">{t('supportPage.noTickets')}</p>
@@ -111,8 +110,21 @@ const SupportPage: React.FC = () => {
                     </Card>
                 </div>
             </div>
-        </div>
+        </main>
     );
 };
+
+// The main export wraps the content in the provider.
+const SupportPage: React.FC = () => {
+    return (
+        <AlertsProvider>
+            <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
+                <Header />
+                <SupportPageContent />
+            </div>
+        </AlertsProvider>
+    );
+};
+
 
 export default SupportPage;
