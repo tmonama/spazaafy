@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import StatCard from '../../components/StatCard';
 import mockApi from '../../api/mockApi';
-import { DocumentStatus, UserRole, User, SpazaShop, Province } from '../../types';
-import Button from '../../components/Button'; // <-- Import Button
+import { DocumentStatus, UserRole, User } from '../../types';
+import Button from '../../components/Button';
 
 const AdminDashboardPage: React.FC = () => {
     const [stats, setStats] = useState({
@@ -17,7 +17,6 @@ const AdminDashboardPage: React.FC = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                // Fetch all necessary data in parallel
                 const [shops, documents, users, provinces] = await Promise.all([
                     mockApi.shops.getAll(),
                     mockApi.documents.list(),
@@ -25,20 +24,13 @@ const AdminDashboardPage: React.FC = () => {
                     mockApi.core.getProvinces(),
                 ]);
 
-                // ✅ THIS IS THE CORRECTED LOGIC
-                
-                // 1. Create a map of province IDs to names for easy lookup
                 const provinceIdToNameMap = new Map(provinces.map(p => [p.id, p.name]));
-
-                // 2. Initialize a counts object with ALL provinces set to 0
                 const initialCounts = provinces.reduce((acc, province) => {
                     acc[province.name] = 0;
                     return acc;
                 }, {} as Record<string, number>);
 
-                // 3. Iterate through the shops and increment the count for each province
                 const provinceCounts = shops.reduce((acc, shop) => {
-                    // The SpazaShop object has a nested province object
                     const provinceId = (shop as any).province?.id;
                     if (provinceId) {
                         const provinceName = provinceIdToNameMap.get(provinceId);
@@ -47,7 +39,7 @@ const AdminDashboardPage: React.FC = () => {
                         }
                     }
                     return acc;
-                }, initialCounts); // Start with the initialized counts object
+                }, initialCounts);
 
                 setStats({
                     totalShops: shops.length,
@@ -86,27 +78,26 @@ const AdminDashboardPage: React.FC = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
+            {/* ✅ FIX: Header stacks on small screens, space added for stacking */}
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-                <Button onClick={handleExport}>Export to CSV</Button>
+                <Button onClick={handleExport} className="w-full sm:w-auto">Export to CSV</Button>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Admin Dashboard</h1>
+            
+            {/* The grid is already responsive, no changes needed here */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard title="Total Spaza Shops" value={stats.totalShops} />
                 <StatCard title="Pending Documents" value={stats.pendingDocs} />
                 <StatCard title="Total Consumers" value={stats.totalConsumers} />
                 
-                {/* This rendering logic will now work correctly for all provinces */}
                 {Object.entries(stats.provinceCounts)
-                    .sort(([a], [b]) => a.localeCompare(b)) // Sort provinces alphabetically
+                    .sort(([a], [b]) => a.localeCompare(b))
                     .map(([provinceName, count]) => (
                         <StatCard key={provinceName} title={provinceName} value={count} />
                 ))}
             </div>
         </div>
     );
-
-    
 };
 
 export default AdminDashboardPage;

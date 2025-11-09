@@ -34,7 +34,6 @@ const AdminTicketsPage: React.FC = () => {
     }, []);
     
     useEffect(() => {
-        // Reset priority filter if status is not 'OPEN'
         if (filter !== TicketStatus.OPEN) {
             setPriorityFilter('All');
         }
@@ -43,14 +42,11 @@ const AdminTicketsPage: React.FC = () => {
     const filteredTickets = useMemo(() => {
         let tickets = allTickets;
 
-        // Apply status filter first
         if (filter !== 'All') {
             tickets = tickets.filter(ticket => ticket.status === filter);
         }
 
-        // If status is OPEN, then apply priority filter
         if (filter === TicketStatus.OPEN && priorityFilter !== 'All') {
-            // A ticket's priority can be undefined; default to 'LOW' for filtering
             tickets = tickets.filter(ticket => (ticket.priority || 'LOW') === priorityFilter);
         }
 
@@ -68,9 +64,10 @@ const AdminTicketsPage: React.FC = () => {
          <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Support Tickets</h1>
             <Card>
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by status:</span>
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700 space-y-4">
+                    {/* ✅ FIX: Filter buttons wrap on small screens */}
+                    <div className="flex items-center flex-wrap gap-2">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Filter by status:</span>
                         {([TicketStatus.OPEN, TicketStatus.CLOSED, 'All'] as FilterStatus[]).map(option => (
                             <button
                                 key={option}
@@ -86,10 +83,9 @@ const AdminTicketsPage: React.FC = () => {
                         ))}
                     </div>
 
-                    {/* Conditionally render the priority filter section */}
                     {filter === TicketStatus.OPEN && (
-                        <div className="flex items-center space-x-2 mt-4">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by priority:</span>
+                        <div className="flex items-center flex-wrap gap-2">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Filter by priority:</span>
                             {PRIORITY_FILTERS.map(p => (
                                 <button
                                     key={p}

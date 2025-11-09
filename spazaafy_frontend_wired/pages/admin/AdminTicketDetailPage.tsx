@@ -5,12 +5,11 @@ import mockApi from '../../api/mockApi';
 import { useAuth } from '../../hooks/useAuth';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
-import { Paperclip, XCircle } from 'lucide-react'; // For better UI icons
+import { Paperclip, XCircle } from 'lucide-react';
 
 type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 const PRIORITIES: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
 
-// 1. UPDATED CHAT INPUT COMPONENT
 const ChatInput: React.FC<{
   onSendMessage: (content: string, attachment: File | null) => void;
   isSending: boolean;
@@ -26,7 +25,7 @@ const ChatInput: React.FC<{
     setContent('');
     setAttachment(null);
     if (fileInputRef.current) {
-        fileInputRef.current.value = ""; // Clear the file input's internal state
+        fileInputRef.current.value = "";
     }
   };
   
@@ -38,22 +37,26 @@ const ChatInput: React.FC<{
 
   return (
     <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200 dark:border-gray-700">
-      <div className="flex items-start space-x-2">
+      {/* ✅ FIX: Main input area now wraps */}
+      <div className="flex flex-wrap items-start gap-2">
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Type your reply..."
-          className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white flex-1"
+          className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white flex-1 min-w-[100px]"
           rows={2}
           disabled={isSending}
         />
-        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-        <Button variant="secondary" type="button" onClick={() => fileInputRef.current?.click()} disabled={isSending}>
-            <Paperclip size={20} />
-        </Button>
-        <Button type="submit" disabled={isSending || (!content.trim() && !attachment)}>
-          {isSending ? 'Sending...' : 'Send Reply'}
-        </Button>
+        {/* ✅ FIX: Buttons group together on the right and stack on small screens */}
+        <div className="flex w-full sm:w-auto sm:flex-col gap-2">
+          <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+          <Button variant="secondary" type="button" onClick={() => fileInputRef.current?.click()} disabled={isSending} className="w-full justify-center">
+              <Paperclip size={20} />
+          </Button>
+          <Button type="submit" disabled={isSending || (!content.trim() && !attachment)} className="w-full justify-center">
+            {isSending ? '...' : 'Send'}
+          </Button>
+        </div>
       </div>
       {attachment && (
         <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-700 rounded-md flex justify-between items-center text-sm">
@@ -67,7 +70,6 @@ const ChatInput: React.FC<{
   );
 };
 
-// 2. NEW REUSABLE MESSAGE BUBBLE COMPONENT
 const MessageBubble: React.FC<{ message: ChatMessage; isFromAdmin: boolean; }> = ({ message, isFromAdmin }) => {
     const apiBaseUrl = (import.meta as any).env.VITE_API_BASE || 'http://localhost:8000';
 
@@ -221,13 +223,16 @@ const AdminTicketDetailPage: React.FC = () => {
             </div>
             <Card>
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{ticket.title}</h2>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Submitted on {new Date(ticket.createdAt).toLocaleDateString()}
-                            </p>
-                            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-md border border-gray-200 dark:border-gray-600 block max-w-xs">
+                    {/* ✅ FIX: Header stacks on small screens */}
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
+                        <div className="space-y-4">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{ticket.title}</h2>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    Submitted on {new Date(ticket.createdAt).toLocaleDateString()}
+                                </p>
+                            </div>
+                            <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-md border border-gray-200 dark:border-gray-600 block max-w-xs">
                                 <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Submitted By:</p>
                                 <p className="text-sm font-bold text-gray-900 dark:text-white">{ticket.submitterName}</p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">{ticket.submitterEmail}</p>
@@ -242,7 +247,8 @@ const AdminTicketDetailPage: React.FC = () => {
                                     </span>
                                 )}
                             </div>
-                            <div className="flex items-center space-x-2 mt-4">
+                            {/* ✅ FIX: Priority buttons wrap */}
+                            <div className="flex items-center flex-wrap gap-2">
                                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Priority:</span>
                                 {PRIORITIES.map(p => (
                                     <button
@@ -259,12 +265,12 @@ const AdminTicketDetailPage: React.FC = () => {
                                 ))}
                             </div>
                         </div>
-                        <div className="flex items-center space-x-4 flex-shrink-0">
+                        <div className="flex items-center space-x-4 flex-shrink-0 w-full sm:w-auto">
                             <span className={`px-3 py-1 text-sm font-semibold rounded-full ${ticket.status === 'OPEN' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
                                 {ticket.status}
                             </span>
                              {ticket.status === 'OPEN' && (
-                                <Button onClick={handleCloseTicket} variant="danger" size="sm">Close Ticket</Button>
+                                <Button onClick={handleCloseTicket} variant="danger" size="sm" className="flex-grow sm:flex-grow-0 justify-center">Close Ticket</Button>
                              )}
                         </div>
                     </div>

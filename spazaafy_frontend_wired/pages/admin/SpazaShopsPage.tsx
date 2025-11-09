@@ -46,10 +46,8 @@ const SpazaShopsPage: React.FC = () => {
         return <p>Loading shop list...</p>;
     }
 
-    // ✅ THIS IS THE FIX
     const handleExport = async () => {
         try {
-            // It now calls the correct export function for shops
             await mockApi.shops.exportCsv();
         } catch (error) {
             console.error("Failed to export spaza shops:", error);
@@ -59,13 +57,14 @@ const SpazaShopsPage: React.FC = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-                <Button onClick={handleExport}>Export to CSV</Button>
+            {/* ✅ FIX: Header stacks on small screens */}
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Spaza Shops</h1>
+                <Button onClick={handleExport} className="w-full sm:w-auto">Export to CSV</Button>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Spaza Shops</h1>
             
             <Card>
+                {/* ✅ FIX: Search and filter stack vertically on small screens */}
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700 space-y-4 md:space-y-0 md:flex md:justify-between md:items-center">
                     <input
                         type="text"
@@ -74,7 +73,7 @@ const SpazaShopsPage: React.FC = () => {
                         onChange={e => setSearchTerm(e.target.value)}
                         className="block w-full md:w-72 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                     />
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center flex-wrap gap-2">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter:</span>
                         {(['All', 'Verified', 'Unverified'] as FilterStatus[]).map(option => (
                             <button

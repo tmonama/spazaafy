@@ -1,37 +1,31 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { SiteVisit, SiteVisitStatus, SpazaShop } from '../../types';
+import { SiteVisit, SiteVisitStatus } from '../../types';
 import mockApi from '../../api/mockApi';
 import Card from '../../components/Card';
 import SiteVisitListItemAdmin from '../../components/SiteVisitListItemAdmin';
-import Button from '../../components/Button'; // <-- Import Button
-
+import Button from '../../components/Button';
 
 type FilterStatus = SiteVisitStatus | 'All';
 
 const AdminSiteVisitsPage: React.FC = () => {
     const [allVisits, setAllVisits] = useState<SiteVisit[]>([]);
     const [loading, setLoading] = useState(true);
-    // ✅ FIX: Set default filter to SCHEDULED
     const [filter, setFilter] = useState<FilterStatus>(SiteVisitStatus.PENDING); 
 
     useEffect(() => {
         const fetchVisits = async () => {
             try {
                 setLoading(true);
-                // ✅ FIX 2: Fetch both visits and shops concurrently
                 const [visitsRaw, allShops] = await Promise.all([
                     mockApi.visits.list(),
                     mockApi.shops.getAll()
                 ]);
 
-                // Create a map for quick shop name lookup: { 'shopId': 'shopName' }
                 const shopMap = new Map<string, string>();
                 allShops.forEach(shop => {
                     shopMap.set(shop.id, shop.shopName);
                 });
 
-                // ✅ FIX 3: Stitch the shopName onto each visit object
                 const visitsWithNames = visitsRaw.map(visit => ({
                     ...visit,
                     shopName: shopMap.get(visit.shopId) || `Shop ID: ${visit.shopId}`
@@ -45,11 +39,10 @@ const AdminSiteVisitsPage: React.FC = () => {
             }
         };
         fetchVisits();
-    }, []); // Runs once on mount
+    }, []);
     
     const filteredVisits = useMemo(() => {
         if (filter === 'All') return allVisits;
-        // This filter is correct. It uses the converted status from mockApi.ts
         return allVisits.filter(visit => visit.status === filter);
     }, [allVisits, filter]);
     
@@ -65,10 +58,8 @@ const AdminSiteVisitsPage: React.FC = () => {
         return <p>Loading site visits...</p>;
     }
 
-    // ✅ THIS IS THE FIX
     const handleExport = async () => {
         try {
-            // It now calls the correct export function for visits
             await mockApi.visits.exportCsv();
         } catch (error) {
             console.error("Failed to export site visits:", error);
@@ -78,14 +69,15 @@ const AdminSiteVisitsPage: React.FC = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-                <Button onClick={handleExport}>Export to CSV</Button>
+            {/* ✅ FIX: Header stacks on small screens */}
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Site Visits</h1>
+                <Button onClick={handleExport} className="w-full sm:w-auto">Export to CSV</Button>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Site Visits</h1>
             <Card>
-                <div className="flex items-center space-x-2 p-4 border-b border-gray-200 dark:border-gray-700">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by status:</span>
+                {/* ✅ FIX: Filter buttons wrap on small screens */}
+                <div className="flex items-center flex-wrap gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Filter by status:</span>
                      {filterOptions.map(option => (
                         <button
                             key={option}

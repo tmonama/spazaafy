@@ -59,10 +59,8 @@ const DocumentVerificationPage: React.FC = () => {
 
     if (loading) { return <p>Loading documents for verification...</p>; }
 
-    // ✅ THIS IS THE FIX
     const handleExport = async () => {
         try {
-            // It now calls the correct export function for documents
             await mockApi.documents.exportCsv();
         } catch (error) {
             console.error("Failed to export documents:", error);
@@ -72,14 +70,16 @@ const DocumentVerificationPage: React.FC = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-                <Button onClick={handleExport}>Export to CSV</Button>
+            {/* ✅ FIX: Header stacks on small screens */}
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Document Verification</h1>
+                <Button onClick={handleExport} className="w-full sm:w-auto">Export to CSV</Button>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Document Verification</h1>
+            
             <Card>
-                 <div className="flex items-center space-x-2 p-4 border-b border-gray-200 dark:border-gray-700">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by status:</span>
+                 {/* ✅ FIX: Filter buttons wrap on small screens */}
+                 <div className="flex flex-wrap items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Filter by status:</span>
                     {filterOptions.map(option => (
                         <button
                             key={option}

@@ -505,7 +505,7 @@ const auth = {
         }, /*withAuth*/ false);
 
         return data;
-    },
+  },
 
   async login(email: string, password: string): Promise<LoginResponse & { user: User }> {
     const data = await request<LoginResponse>('/auth/login', {
