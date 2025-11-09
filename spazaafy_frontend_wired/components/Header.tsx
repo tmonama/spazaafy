@@ -4,12 +4,23 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import { UserRole } from '../types';
 import Button from './Button';
+import { useSidebar } from '../components/SidebarContext'; // ✅ 1. Import the new hook
+
+// A simple Burger Icon component for the admin menu
+const AdminBurgerIcon: React.FC = () => (
+    <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+);
 
 const Header: React.FC = () => {
     const { t } = useTranslation();
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-    const [menuOpen, setMenuOpen] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false); // This is for the non-admin mobile menu
+
+    // ✅ 2. Get the toggle function for the admin sidebar
+    const { toggleSidebar } = useSidebar();
 
     const dashboardPath = user?.role === UserRole.ADMIN ? '/admin/dashboard' : '/dashboard';
 
@@ -35,7 +46,20 @@ const Header: React.FC = () => {
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center">
-                        <NavLink to={dashboardPath} className="flex-shrink-0 flex items-center space-x-2">
+                        {/* ✅ 3. Show admin burger button ONLY for admins on mobile */}
+                        {user?.role === UserRole.ADMIN && (
+                            <div className="flex items-center md:hidden">
+                                <button
+                                    onClick={toggleSidebar}
+                                    className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none"
+                                >
+                                    <span className="sr-only">Open admin menu</span>
+                                    <AdminBurgerIcon />
+                                </button>
+                            </div>
+                        )}
+
+                        <NavLink to={dashboardPath} className="flex-shrink-0 flex items-center space-x-2 ml-2 md:ml-0">
                              <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
                                 <svg className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
                                     <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm-2.25 7.082a.75.75 0 00.22 1.03l3.25 2.5a.75.75 0 001.03-.22l4.5-6.5a.75.75 0 00-1.03-1.03l-3.97 5.75-2.72-2.176a.75.75 0 00-1.03.22z" clipRule="evenodd" />
@@ -44,13 +68,18 @@ const Header: React.FC = () => {
                             <span className="text-xl font-bold text-gray-800 dark:text-white">Spazaafy</span>
                         </NavLink>
                     </div>
-                    <div className="hidden md:block">
-                        <div className="ml-10 flex items-baseline space-x-4">
-                            <NavLink to={dashboardPath} className={getNavLinkClass}>{t('header.dashboard')}</NavLink>
-                            <NavLink to="/support" className={getNavLinkClass}>{t('header.support')}</NavLink>
-                            <NavLink to="/settings" className={getNavLinkClass}>{t('header.settings')}</NavLink>
+
+                    {/* Desktop nav links - hide for admins, they have a sidebar */}
+                    {user?.role !== UserRole.ADMIN && (
+                        <div className="hidden md:block">
+                            <div className="ml-10 flex items-baseline space-x-4">
+                                <NavLink to={dashboardPath} className={getNavLinkClass}>{t('header.dashboard')}</NavLink>
+                                <NavLink to="/support" className={getNavLinkClass}>{t('header.support')}</NavLink>
+                                <NavLink to="/settings" className={getNavLinkClass}>{t('header.settings')}</NavLink>
+                            </div>
                         </div>
-                    </div>
+                    )}
+                    
                     <div className="hidden md:flex items-center space-x-4">
                          <span className="text-gray-600 dark:text-gray-300 text-sm">{t('header.welcome', { name: user?.firstName })}</span>
                          <NavLink to="/account" className="text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary-light p-2 rounded-full">
@@ -60,25 +89,30 @@ const Header: React.FC = () => {
                          </NavLink>
                          <Button onClick={handleLogout} variant="secondary" size="sm">{t('header.logout')}</Button>
                     </div>
-                    <div className="-mr-2 flex md:hidden">
-                        <button 
-                            onClick={() => setMenuOpen(!menuOpen)}
-                            className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:bg-gray-700 focus:text-white"
-                        >
-                            <span className="sr-only">Open main menu</span>
-                            <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                                {menuOpen ? (
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                ) : (
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
-                                )}
-                            </svg>
-                        </button>
-                    </div>
+
+                    {/* ✅ 4. Show original mobile menu button ONLY for non-admins */}
+                    {user?.role !== UserRole.ADMIN && (
+                        <div className="-mr-2 flex md:hidden">
+                            <button 
+                                onClick={() => setMenuOpen(!menuOpen)}
+                                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:bg-gray-700 focus:text-white"
+                            >
+                                <span className="sr-only">Open main menu</span>
+                                <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                    {menuOpen ? (
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                    ) : (
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
+                                    )}
+                                </svg>
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
             
-            {menuOpen && (
+            {/* ✅ 5. Show original mobile menu dropdown ONLY for non-admins */}
+            {menuOpen && user?.role !== UserRole.ADMIN && (
                 <div className="md:hidden" id="mobile-menu">
                     <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
                         <NavLink to={dashboardPath} className={getMobileNavLinkClass} onClick={() => setMenuOpen(false)}>{t('header.dashboard')}</NavLink>
