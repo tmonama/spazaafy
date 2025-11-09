@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'; 
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
+import Header from './components/Header';
 
 import WelcomePage from './pages/WelcomePage';
 import LoginPage from './pages/LoginPage';
@@ -32,13 +33,20 @@ import AdminRegisterPage from './pages/admin/AdminRegisterPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
 import { AlertsProvider } from './components/AlertsContext';
 
-// ✅ 1. Create a new layout component specifically for non-admin authenticated users.
-// Its only job is to provide the AlertsContext to the pages it wraps.
+// ✅ 1. This is the new layout component for non-admin users.
+// It provides the context AND renders the shared Header and page content.
 const UserLayout: React.FC = () => (
   <AlertsProvider>
-    <Outlet /> {/* This will render the matched child route (e.g., DashboardPage) */}
+    <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
+      <Header />
+      <main>
+        {/* The Outlet will render the specific page component (DashboardPage, SupportPage, etc.) */}
+        <Outlet />
+      </main>
+    </div>
   </AlertsProvider>
 );
+
 
 
 function App() {
