@@ -27,6 +27,7 @@ class TicketSerializer(serializers.ModelSerializer):
             'updated_at',
             'unread_for_creator',   # <-- ADD THIS
             'unread_for_assignee',  # <-- ADD THIS
+            'shopName'
         ]
 
 class MessageSerializer(serializers.ModelSerializer):
