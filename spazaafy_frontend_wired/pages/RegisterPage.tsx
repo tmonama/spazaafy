@@ -87,7 +87,7 @@ const RegisterPage: React.FC = () => {
     const saPhoneRegex = /^0[0-9]{9}$/;
     
     if (!saPhoneRegex.test(phone)) {
-      return 'Please enter a valid 10-digit South African phone number starting with 0.';
+      return 'Please enter a valid South African phone number.';
     }
     
     return ''; // No error

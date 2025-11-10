@@ -23,49 +23,81 @@ const AccountPage: React.FC = () => {
         longitude: 0,
     });
     const [loading, setLoading] = useState(true);
+    const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({}); // ✅ 1. Add state for field errors
+    const [successMessage, setSuccessMessage] = useState('');
 
     useEffect(() => {
         const fetchInitialData = async () => {
             if (!user) return;
             setLoading(true);
+            // Always set user data first
+            setFormData(prev => ({
+                ...prev,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                phone: user.phone || '',
+            }));
+            
             if (user.role === UserRole.SHOP_OWNER) {
                 try {
+                    // Fetch the specific shop for this owner
                     const allShops = await mockApi.shops.getAll();
                     const ownerShop = allShops.find(s => s.ownerId === user.id);
                     if (ownerShop) {
                         setShop(ownerShop);
-                        setFormData({
-                            firstName: ownerShop.firstName,
-                            lastName: ownerShop.lastName,
-                            phone: ownerShop.phone || '',
+                        setFormData(prev => ({
+                            ...prev,
                             shopName: ownerShop.shopName,
                             address: ownerShop.location.address,
                             latitude: ownerShop.location.lat,
                             longitude: ownerShop.location.lng,
-                        });
+                        }));
                     }
                 } catch (err) {
                     console.error("Failed to fetch shop data", err);
                 }
-            } else {
-                setFormData(prev => ({
-                    ...prev,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    phone: user.phone || '',
-                }));
             }
             setLoading(false);
         };
         fetchInitialData();
     }, [user]);
 
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { id, value } = e.target;
+        setFormData({ ...formData, [id]: value });
+        // Clear error when user types
+        if (fieldErrors[id]) {
+            setFieldErrors(prev => ({ ...prev, [id]: '' }));
+        }
+    };
+
     const handlePlaceSelect = (address: string, lat: number, lng: number) => {
         setFormData(prev => ({ ...prev, address, latitude: lat, longitude: lng }));
     };
 
+    // ✅ 2. Add the phone number validation function
+    const validatePhoneNumber = (phone: string): string => {
+        if (!phone) return ''; // Phone is optional in some cases, so empty is fine
+        const saPhoneRegex = /^0[0-9]{9}$/;
+        if (!saPhoneRegex.test(phone)) {
+            return 'Please enter a valid 10-digit South African phone number starting with 0.';
+        }
+        return '';
+    };
+
     const handleSave = async () => {
         if (!user) return;
+        
+        setFieldErrors({});
+        setSuccessMessage('');
+
+        // ✅ 3. Run validation before saving
+        const phoneError = validatePhoneNumber(formData.phone);
+        if (phoneError) {
+            setFieldErrors({ phone: phoneError });
+            return; // Stop the save process
+        }
+
         setLoading(true);
         try {
             if (user.role === UserRole.SHOP_OWNER && shop) {
@@ -95,7 +127,8 @@ const AccountPage: React.FC = () => {
                 const updatedUser = await mockApi.users.update(user.id, userPayload);
                 updateUser(updatedUser);
             }
-            alert(t('accountPage.alerts.updateSuccess'));
+            setSuccessMessage(t('accountPage.alerts.updateSuccess'));
+            setTimeout(() => setSuccessMessage(''), 3000);
         } catch (err) {
             console.error("Failed to save changes:", err);
             alert(t('accountPage.alerts.updateError'));
@@ -138,9 +171,17 @@ const AccountPage: React.FC = () => {
                     <Card title={isShopOwner ? t('accountPage.shopOwnerInfo') : t('accountPage.profileInfo')}>
                         <div className="space-y-4">
                             <Input id="email" label={t('accountPage.emailLabel')} value={user.email} disabled />
-                            <Input id="firstName" label={isShopOwner ? t('accountPage.ownerFirstNameLabel') : t('accountPage.firstNameLabel')} value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} />
-                            <Input id="lastName" label={isShopOwner ? t('accountPage.ownerLastNameLabel') : t('accountPage.lastNameLabel')} value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} />
-                            <Input id="phone" label={isShopOwner ? t('accountPage.ownerPhoneLabel') : t('accountPage.phoneLabel')} value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                            <Input id="firstName" label={isShopOwner ? t('accountPage.ownerFirstNameLabel') : t('accountPage.firstNameLabel')} value={formData.firstName} onChange={handleChange} />
+                            <Input id="lastName" label={isShopOwner ? t('accountPage.ownerLastNameLabel') : t('accountPage.lastNameLabel')} value={formData.lastName} onChange={handleChange} />
+                            
+                            {/* ✅ 4. Pass the phone error to the Input component */}
+                            <Input 
+                                id="phone" 
+                                label={isShopOwner ? t('accountPage.ownerPhoneLabel') : t('accountPage.phoneLabel')} 
+                                value={formData.phone} 
+                                onChange={handleChange}
+                                error={fieldErrors.phone} 
+                            />
                             
                             {isShopOwner && (
                                 <>
@@ -156,7 +197,8 @@ const AccountPage: React.FC = () => {
                                 </>
                             )}
                             
-                            <div className="text-right pt-4">
+                            <div className="flex justify-end items-center pt-4">
+                                {successMessage && <p className="text-sm text-green-600 mr-4">{successMessage}</p>}
                                 <Button onClick={handleSave} disabled={loading}>{loading ? t('accountPage.savingButton') : t('accountPage.saveButton')}</Button>
                             </div>
                         </div>
