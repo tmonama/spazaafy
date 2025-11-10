@@ -1,7 +1,5 @@
-// src/pages/ResetPasswordPage.tsx
-
 import React, { useState } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
@@ -41,10 +39,10 @@ const ResetPasswordPage: React.FC = () => {
                 password_confirm: passwordConfirm,
             });
             setSuccessMessage(response.detail);
-            // Redirect to login after a short delay
             setTimeout(() => navigate('/login'), 3000);
         } catch (err: any) {
-            setError(err.message || 'An unknown error occurred. The link may be invalid or expired.');
+            // ✅ The error message is now clean from mockApi.ts
+            setError(err.message || 'The link may be invalid or expired.');
         } finally {
             setLoading(false);
         }

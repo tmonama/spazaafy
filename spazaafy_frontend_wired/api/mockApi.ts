@@ -1,35 +1,50 @@
 /// <reference types="vite/client" />
-// api/mockApi.ts — FULL FILE (wired to live backend) - CORRECTED
+// api/mockApi.ts — FULL FILE
 
 import {
-  User,
-  UserRole,
-  SpazaShop,
-  ShopDocument,
-  DocumentStatus,
-  Ticket,
-  TicketStatus,
-  ChatMessage,
-  SiteVisit,
-  SiteVisitStatus,
-  Province,
-  SiteVisitForm 
+  User, UserRole, SpazaShop, ShopDocument, DocumentStatus, Ticket,
+  TicketStatus, ChatMessage, SiteVisit, SiteVisitStatus, Province, SiteVisitForm 
 } from '../types';
 
 const RAW_BASE = (import.meta as any)?.env?.VITE_API_BASE;
 
-// ✅ THIS IS THE CORRECTED LOGIC
-// This block ensures the correct API base URL is used for production vs. development.
 let apiBase;
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    // In local development, use the environment variable or a hardcoded default.
     apiBase = RAW_BASE || 'http://localhost:8000/api';
 } else {
-    // In production, ALWAYS use the relative path '/api' to go through the proxy.
     apiBase = '/api';
 }
-export const API_BASE = apiBase.replace(/\/+$/, ''); // Ensure no trailing slash
+export const API_BASE = apiBase.replace(/\/+$/, '');
 
+function parseApiError(errorText: string): string {
+    const genericMessage = "An unexpected error occurred. Please check your connection and try again.";
+
+    try {
+        const parsed = JSON.parse(errorText);
+        
+        if (typeof parsed.detail === 'string') {
+            return parsed.detail;
+        }
+        if (Array.isArray(parsed.non_field_errors) && parsed.non_field_errors.length > 0) {
+            return parsed.non_field_errors[0];
+        }
+        if (typeof parsed === 'object' && parsed !== null) {
+            const firstErrorKey = Object.keys(parsed)[0];
+            if (firstErrorKey && Array.isArray(parsed[firstErrorKey]) && parsed[firstErrorKey].length > 0) {
+                return parsed[firstErrorKey][0];
+            }
+        }
+    } catch (e) {
+        if (errorText.includes("Not Found")) {
+            return "The requested resource could not be found.";
+        }
+        if (errorText.includes("Server Error")) {
+            return "The server encountered an error. Please try again later.";
+        }
+    }
+
+    return genericMessage;
+}
 
 type LoginResponse = {
   user: any;
@@ -37,23 +52,18 @@ type LoginResponse = {
   refresh: string;
 };
 
-// ==================================================================
-// ✅ NEW HELPER FUNCTION FOR CSV DOWNLOADS
-// ==================================================================
 async function requestAndDownloadCsv(url: string, filename: string) {
   let token = getAccess();
   let headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
-
   let response = await fetch(`${API_BASE}${url}`, { headers });
 
-  // If the first attempt fails with an expired token, try to refresh and retry
   if (response.status === 401) {
     console.log("Token expired for CSV download, attempting refresh...");
     try {
-      await auth.refresh(); // Use the existing refresh logic
-      token = getAccess(); // Get the new token
+      await auth.refresh();
+      token = getAccess();
       headers['Authorization'] = `Bearer ${token}`;
-      response = await fetch(`${API_BASE}${url}`, { headers }); // Retry the request
+      response = await fetch(`${API_BASE}${url}`, { headers });
     } catch (error) {
       console.error("Failed to refresh token for CSV download", error);
       throw new Error("Session expired. Please log in again.");
@@ -76,20 +86,12 @@ async function requestAndDownloadCsv(url: string, filename: string) {
   a.remove();
 }
 
-// --- (All functions from toUserRole to the end of the file remain the same) ---
-
 function toUserRole(apiRole?: string): UserRole {
   const r = String(apiRole || '').toLowerCase();
   if (r === 'owner') return UserRole.SHOP_OWNER;
   if (r === 'consumer') return UserRole.CONSUMER;
   if (r === 'admin') return UserRole.ADMIN;
   return UserRole.CONSUMER;
-}
-
-function fromUserRole(role: UserRole): 'OWNER' | 'CONSUMER' | 'ADMIN' {
-  if (role === UserRole.SHOP_OWNER) return 'OWNER';
-  if (role === UserRole.ADMIN) return 'ADMIN';
-  return 'CONSUMER';
 }
 
 function toUser(u: any): User {
@@ -105,43 +107,25 @@ function toUser(u: any): User {
 
 function toDocStatus(s?: string): DocumentStatus {
   switch (String(s || '').toUpperCase()) {
-    case 'VERIFIED':
-      return DocumentStatus.VERIFIED;
-    case 'REJECTED':
-      return DocumentStatus.REJECTED;
-    default:
-      return DocumentStatus.PENDING;
+    case 'VERIFIED': return DocumentStatus.VERIFIED;
+    case 'REJECTED': return DocumentStatus.REJECTED;
+    default: return DocumentStatus.PENDING;
   }
 }
 
 function toVisitStatus(s?: string): SiteVisitStatus {
   switch (String(s || '').toUpperCase()) {
-    // ✅ FIX: Map the official backend statuses to frontend enum values
-    case 'COMPLETED': // Backend success -> Frontend success
-      return SiteVisitStatus.APPROVED;
-
-      case 'SCHEDULED':
-      return SiteVisitStatus.SCHEDULED;
-
-    case 'CANCELLED': // Backend failure -> Frontend failure
-    case 'REJECTED': // ✅ CRITICAL FIX: Add 'REJECTED' to correctly map the string status
-      return SiteVisitStatus.REJECTED;
-
-    case 'EXPIRED':
-        return SiteVisitStatus.EXPIRED;
-      
-    // Map all in-progress/waiting statuses to frontend PENDING
+    case 'COMPLETED': return SiteVisitStatus.APPROVED;
+    case 'SCHEDULED': return SiteVisitStatus.SCHEDULED;
+    case 'CANCELLED': 
+    case 'REJECTED': return SiteVisitStatus.REJECTED;
+    case 'EXPIRED': return SiteVisitStatus.EXPIRED;
     case 'PENDING':
-    case 'IN_PROGRESS':
-      return SiteVisitStatus.PENDING;
-
-    default:
-      // Fallback for any unknown status
-      return SiteVisitStatus.PENDING;
+    case 'IN_PROGRESS': return SiteVisitStatus.PENDING;
+    default: return SiteVisitStatus.PENDING;
   }
 }
 
-// Helper function to shape the visit data
 function toVisit(v: any): SiteVisit {
     return {
         id: String(v.id),
@@ -149,7 +133,6 @@ function toVisit(v: any): SiteVisit {
         shopName: String(v.shop_name ?? v.shopName ?? v.shop?.name ?? v.shop ?? ''),
         requestedDateTime: String(v.requested_datetime ?? v.requestedDateTime ?? ''),
         status: toVisitStatus(v.status),
-        // ✅ FIX: Add updatedAt from the backend's updated_at field.
         updatedAt: String(v.updated_at ?? v.updatedAt ?? v.requested_datetime ?? new Date().toISOString()), 
         applicationForm: v.application_form ? { name: v.application_form.name, url: v.application_form.url, type: v.application_form.type, size: v.application_form.size } : undefined,
         shareCode: String(v.share_code ?? v.shareCode ?? ''),
@@ -157,38 +140,22 @@ function toVisit(v: any): SiteVisit {
     };
 }
 
-
-
-// ✅ THIS IS THE CORRECT, ROBUST toShop FUNCTION WITH LOGGING
 function toShop(s: any): SpazaShop {
-  // LOG 1: See the raw data from the Django API for a single shop.
-  console.log("[mockApi.ts -> toShop] Raw input from backend:", s);
-
-  let latitude = 0;
-  let longitude = 0;
-
-  // ✅ FIX: Add logic to parse the "SRID=...;POINT(lng lat)" string format
+  let latitude = 0, longitude = 0;
   if (typeof s.location === 'string') {
     const match = s.location.match(/POINT \(([-\d.]+) ([-\d.]+)\)/);
-    if (match && match.length === 3) {
-      // The POINT format from PostGIS is (longitude latitude)
+    if (match?.length === 3) {
       longitude = parseFloat(match[1]);
       latitude = parseFloat(match[2]);
     }
-  }
-  // This logic robustly finds the coordinates from the GeoJSON format.
-  else if (s.location && Array.isArray(s.location.coordinates) && s.location.coordinates.length === 2) {
-    // GeoJSON format is [longitude, latitude]
+  } else if (s.location?.coordinates?.length === 2) {
     longitude = Number(s.location.coordinates[0]);
     latitude = Number(s.location.coordinates[1]);
-  }
-  // Fallback for any other potential format, just in case.
-  else if (typeof s.latitude === 'number' && typeof s.longitude === 'number') {
+  } else if (typeof s.latitude === 'number' && typeof s.longitude === 'number') {
     latitude = s.latitude;
     longitude = s.longitude;
   }
-
-  const finalShopObject: SpazaShop = {
+  return {
     id: String(s.id ?? ''), 
     ownerId: String(s.owner ?? s.owner_id ?? ''),
     email: String(s.email ?? ''),
@@ -198,25 +165,12 @@ function toShop(s: any): SpazaShop {
     role: UserRole.SHOP_OWNER,
     shopName: String(s.name ?? s.shop_name ?? s.shopName ?? ''),
     isVerified: Boolean(s.verified ?? s.is_verified ?? false),
-    location: {
-      lat: latitude,
-      lng: longitude,
-      address: String(s.address ?? ''),
-    },
+    location: { lat: latitude, lng: longitude, address: String(s.address ?? '') },
     distance: Number(s.distance ?? 0),
     registeredAt: String(s.registered_at ?? s.created_at ?? new Date().toISOString()),
-    province: s.province ? {
-        id: s.province.id,
-        name: s.province.name
-    } : { id: 0, name: 'N/A' }
+    province: s.province ? { id: s.province.id, name: s.province.name } : { id: 0, name: 'N/A' }
   };
-
-  // LOG 2: See the final, transformed object. Check if lat/lng are correct here.
-  console.log("[mockApi.ts -> toShop] Final transformed SpazaShop object:", finalShopObject);
-
-  return finalShopObject;
 }
-
 
 function toDocument(d: any): ShopDocument {
   const submissionDate = d.created_at || d.submitted_at || d.uploaded_at || null;
@@ -229,51 +183,33 @@ function toDocument(d: any): ShopDocument {
     status: toDocStatus(d.status),
     submittedAt: submissionDate ? String(submissionDate) : null,
     expiryDate: d.expiry_date ? String(d.expiry_date) : null,
-    
-    // ✅ THIS IS THE FIX: Only look for the 'fileUrl' field from the backend.
-    // We are removing the fallback to 'd.file' to prevent it from ever using the broken URL.
     fileUrl: d.fileUrl || undefined, 
   };
 }
 
 function toTicket(t: any): Ticket {
-  // A helper to map any string status to our strict enum
   const toTicketStatus = (s?: string): TicketStatus => {
     const status = String(s || 'OPEN').toUpperCase();
-    // Check if the status is a valid key in our enum
-    if (Object.values(TicketStatus).includes(status as TicketStatus)) {
-      return status as TicketStatus;
-    }
-    // Fallback for unexpected statuses from the API
-    return TicketStatus.OPEN;
+    return Object.values(TicketStatus).includes(status as TicketStatus) ? status as TicketStatus : TicketStatus.OPEN;
   };
-
   return {
     id: String(t.id),
     shopId: t.shop_id ? String(t.shop_id) : t.shopId ?? undefined,
-    shopName: String(t.shop_name ?? t.shopName ?? ''),
-    // ✅ FIX: Extract the user ID and name from the new nested object
-    // ✅ FIX: Source all user details from the 't.user' object now.
+    shopName: String(t.shop_name ?? t.shopName ?? t.user?.spazashop?.name ?? ''),
     createdByUserId: String(t.user?.id ?? ''),
     submitterName: `${t.user?.first_name || ''} ${t.user?.last_name || 'Unknown User'}`.trim(),
     submitterRole: toUserRole(t.user?.role),
     submitterEmail: String(t.user?.email ?? ''),
-
     assignedToUserId: t.assigned_to ? String(t.assigned_to) : t.assignedToUserId ?? null,
     title: String(t.title ?? ''),
     subject: String(t.subject ?? ''),
     description: String(t.description ?? ''),
-    status: toTicketStatus(t.status), // ✅ Use the new robust helper
+    status: toTicketStatus(t.status), 
     priority: t.priority ?? undefined,
     createdAt: String(t.created_at ?? t.createdAt ?? new Date().toISOString()),
     updatedAt: String(t.updated_at ?? t.updatedAt ?? new Date().toISOString()),
     lastReplyAt: t.last_reply_at ? String(t.last_reply_at) : t.lastReplyAt ?? null,
-    // ✅ Fix attachment shape to match TicketAttachment in types.ts
-    attachments: (t.attachments || []).map((a: any) => ({
-      id: String(a.id ?? ''),
-      filename: String(a.filename ?? a.name ?? ''),
-      fileUrl: String(a.fileUrl ?? a.url ?? ''),
-    })),
+    attachments: (t.attachments || []).map((a: any) => ({ id: String(a.id ?? ''), filename: String(a.filename ?? a.name ?? ''), fileUrl: String(a.fileUrl ?? a.url ?? '') })),
     unreadForAssignee: Boolean(t.unread_for_assignee ?? false),
     unreadForCreator: Boolean(t.unread_for_creator ?? false),
   };
@@ -283,35 +219,23 @@ function toMessage(m: any): ChatMessage {
   return {
     id: String(m.id ?? ''),
     ticketId: String(m.ticket_id ?? m.ticketId ?? ''),
-    senderId: String(m.sender ?? m.sender_id ?? m.senderId ?? ''), // <-- THE FIX
+    senderId: String(m.sender ?? m.sender_id ?? m.senderId ?? ''),
     content: String(m.content ?? ''),
     createdAt: String(m.created_at ?? m.createdAt ?? new Date().toISOString()),
-    attachment: m.attachment
-      ? {
-          name: m.attachment.name,
-          url: m.attachment.url,
-          type: m.attachment.type,
-          size: m.attachment.size,
-        }
-      : undefined,
+    attachment: m.attachment ? { name: m.attachment.name, url: m.attachment.url, type: m.attachment.type, size: m.attachment.size } : undefined,
   };
 }
 
-// ✅ NEW HELPER: Map snake_case server response to camelCase client type
 function toSiteVisitForm(f: any): SiteVisitForm {
   return {
     id: f.id,
     visitId: String(f.visit ?? f.visitId ?? ''), 
     submittedAt: String(f.submitted_at ?? f.submittedAt ?? new Date().toISOString()), 
-
     inspectorName: String(f.inspector_name ?? ''),
     inspectorSurname: String(f.inspector_surname ?? ''),
     contractorCompany: String(f.contractor_company ?? ''),
-    
     cleanliness: f.cleanliness,
     inspectorNotes: String(f.inspector_notes ?? f.inspectorNotes ?? ''),
-    
-    // Boolean fields mapping
     stockRotationObserved: Boolean(f.stock_rotation_observed),
     fireExtinguisherValid: Boolean(f.fire_extinguisher_valid),
     businessLicenceDisplayed: Boolean(f.business_licence_displayed),
@@ -329,14 +253,8 @@ function toSiteVisitForm(f: any): SiteVisitForm {
   };
 }
 
-// ---------- token helpers ----------
-function getAccess() {
-  return sessionStorage.getItem('access') || localStorage.getItem('access') || '';
-}
-
-// ✅ THIS IS THE MISSING FUNCTION
+function getAccess() { return sessionStorage.getItem('access') || localStorage.getItem('access') || ''; }
 function getRefresh() { return sessionStorage.getItem('refresh'); }
-
 function setTokens(access: string, refresh: string) {
   sessionStorage.setItem('access', access);
   sessionStorage.setItem('refresh', refresh);
@@ -346,37 +264,24 @@ function clearTokens() {
   sessionStorage.removeItem('refresh');
 }
 
-// --- Global variables for handling concurrent refresh requests ---
 let isRefreshing = false;
 let failedQueue: { resolve: (value?: any) => void; reject: (reason?: any) => void; }[] = [];
-
 const processQueue = (error: Error | null, token: string | null = null) => {
   failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
+    if (error) { prom.reject(error); } else { prom.resolve(token); }
   });
   failedQueue = [];
 };
 
-// --- Smart Generic Request Function with Token Refresh Logic ---
 async function request<T = any>(url: string, options: RequestInit = {}, withAuth = true): Promise<T> {
   let headers: Record<string, string> = { 'Content-Type': 'application/json', ...(options.headers as Record<string, string> | undefined) };
-
   if (withAuth) {
     const token = getAccess();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+    if (token) { headers['Authorization'] = `Bearer ${token}`; }
   }
-
   let res = await fetch(`${API_BASE}${url}`, { ...options, headers });
-
   const errorText = res.status === 401 ? await res.text().catch(() => '') : '';
 
-  // ✅ FIX 1: Ensure the refresh/redirect block runs ONLY if withAuth is true
   if (!res.ok && res.status === 401 && withAuth && errorText.includes('token_not_valid')) {
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
@@ -386,7 +291,6 @@ async function request<T = any>(url: string, options: RequestInit = {}, withAuth
         return fetch(`${API_BASE}${url}`, { ...options, headers });
       }).then(res => res.json());
     }
-
     isRefreshing = true;
     const refreshToken = getRefresh();
     if (!refreshToken) {
@@ -394,24 +298,18 @@ async function request<T = any>(url: string, options: RequestInit = {}, withAuth
       window.location.href = '/#/login';
       return Promise.reject(new Error('Session expired.'));
     }
-
     try {
       const refreshRes = await fetch(`${API_BASE}/auth/jwt/refresh/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh: refreshToken }),
       });
-
       if (!refreshRes.ok) { throw new Error('Refresh token is invalid or expired.'); }
-
       const { access, refresh: newRefresh } = await refreshRes.json();
       setTokens(access, newRefresh || refreshToken);
       headers['Authorization'] = `Bearer ${access}`;
       processQueue(null, access);
-      
-      // Retry the original request
       res = await fetch(`${API_BASE}${url}`, { ...options, headers });
-
     } catch (e) {
       processQueue(e as Error, null);
       clearTokens();
@@ -422,21 +320,15 @@ async function request<T = any>(url: string, options: RequestInit = {}, withAuth
     }
   }
   
-  // ✅ CRITICAL FIX: Simplify the final error block to prevent global redirect on public 401
   if (!res.ok) {
     const finalErrorText = await res.text().catch(() => 'Request failed');
-    
-    // Check if the error is a 401 on an authenticated route
     if (res.status === 401 && withAuth) {
-        // This is a protected route with an expired token, force login
         clearTokens();
         window.location.href = '/#/login'; 
-        return Promise.reject(new Error('Session expired.'));
+        return Promise.reject(new Error('Session expired. Please log in again.'));
     }
-
-    // For all other errors (including the controlled public 401), throw a standard error
-    // This allows PublicSiteVisitForm's catch block to handle the error message locally.
-    throw new Error(`HTTP ${res.status} ${res.statusText}: ${finalErrorText || 'Request failed'}`);
+    const cleanMessage = parseApiError(finalErrorText);
+    throw new Error(cleanMessage);
   }
 
   const contentType = res.headers.get('content-type') || '';
@@ -444,26 +336,18 @@ async function request<T = any>(url: string, options: RequestInit = {}, withAuth
   return undefined as T;
 }
 
-// --- ✅ NEW HELPER FOR FILE UPLOADS ---
 async function requestWithFile<T = any>(url: string, options: Omit<RequestInit, 'headers' | 'body'> & { body: FormData }): Promise<T> {
-  let headers: Record<string, string> = {}; // No 'Content-Type' for FormData, browser sets it
+  let headers: Record<string, string> = {};
   const token = getAccess();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
+  if (token) { headers['Authorization'] = `Bearer ${token}`; }
   let res = await fetch(`${API_BASE}${url}`, { ...options, headers });
-  
   const errorText = res.status === 401 ? await res.text().catch(() => '') : '';
-
   if (!res.ok && res.status === 401 && errorText.includes('token_not_valid')) {
-    // This is a simplified version of the token refresh logic from the main `request` function
     console.log('Token expired on file upload, attempting refresh...');
     try {
       await auth.refresh();
       const newToken = getAccess();
       headers['Authorization'] = `Bearer ${newToken}`;
-      // Retry the request
       res = await fetch(`${API_BASE}${url}`, { ...options, headers });
     } catch (e) {
       clearTokens();
@@ -471,12 +355,11 @@ async function requestWithFile<T = any>(url: string, options: Omit<RequestInit, 
       return Promise.reject(new Error('Session expired.'));
     }
   }
-
   if (!res.ok) {
     const finalErrorText = await res.text().catch(() => 'Request failed');
-    throw new Error(`HTTP ${res.status} ${res.statusText}: ${finalErrorText}`);
+    const cleanMessage = parseApiError(finalErrorText);
+    throw new Error(cleanMessage);
   }
-
   const contentType = res.headers.get('content-type') || '';
   if (contentType.includes('application/json')) {
     return (await res.json()) as T;
@@ -484,138 +367,92 @@ async function requestWithFile<T = any>(url: string, options: Omit<RequestInit, 
   return undefined as T;
 }
 
-// ---------- API ----------
 const auth = {
-  async register(payload: {
-    email: string;
-    password: string;
-    first_name?: string;
-    last_name?: string;
-    phone?: string;
-    role: 'CONSUMER' | 'OWNER' | 'ADMIN';
-    shop_name?: string;
-    address?: string;
-    province?: string;
-  }): Promise<{ detail: string }> { // Return type is now a simple object with a detail string
-        // The function no longer logs the user in, sets tokens, or processes a user object.
-        // It just makes the API call and returns the success message from the backend.
+    async register(payload: any): Promise<{ detail: string }> {
         const data = await request<{ detail: string }>('/auth/register', {
             method: 'POST',
             body: JSON.stringify(payload),
-        }, /*withAuth*/ false);
-
+        }, false);
         return data;
-  },
-
-  async login(email: string, password: string): Promise<LoginResponse & { user: User }> {
-    const data = await request<LoginResponse>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    }, /*withAuth*/ false);
-
-    setTokens(data.access, data.refresh);
-    const shaped = toUser(data.user);
-    sessionStorage.setItem('user', JSON.stringify(shaped));
-    return { ...data, user: shaped };
-  },
-
-  async logout(): Promise<void> {
-    clearTokens();
-    sessionStorage.removeItem('user');
-  },
-
-  async refresh(): Promise<void> {
-    const refresh = sessionStorage.getItem('refresh') || '';
-    if (!refresh) return;
-    try {
-      const data = await request<{ access: string; refresh?: string }>(
-        '/auth/token/refresh',
-        { method: 'POST', body: JSON.stringify({ refresh }) },
-        /*withAuth*/ false
-      );
-      if (data?.access) {
-        setTokens(data.access, data.refresh || refresh);
-      }
-    } catch {
-      clearTokens();
-      sessionStorage.removeItem('user');
-    }
-  },
-
-  async requestPasswordReset(email: string): Promise<{ detail: string }> {
-    return request<{ detail: string }>('/auth/password-reset/request/', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    }, /*withAuth*/ false);
-  },
-
-  async confirmPasswordReset(payload: { token: string; password: string; password_confirm: string }): Promise<{ detail: string }> {
-    return request<{ detail: string }>('/auth/password-reset/confirm/', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }, /*withAuth*/ false);
-  },
-
-  async requestAdminCode(email: string): Promise<void> {
-    await request('/auth/request-admin-code', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    }, false);
-  },
-
-  async registerAdminVerified(payload: { email: string; password: string, code: string, first_name: string, last_name: string }): Promise<{ user: User }> {
-    const data = await request<{ user: any }>('/auth/register-admin-verified', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }, false);
-    
-    const shaped = toUser(data.user);
-    return { user: shaped };
-  },
-
-  async confirmEmailVerification(token: string): Promise<{ detail: string }> {
+    },
+    async login(email: string, password: string): Promise<LoginResponse & { user: User }> {
+        const data = await request<LoginResponse>('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password }),
+        }, false);
+        setTokens(data.access, data.refresh);
+        const shaped = toUser(data.user);
+        sessionStorage.setItem('user', JSON.stringify(shaped));
+        return { ...data, user: shaped };
+    },
+    async logout(): Promise<void> {
+        clearTokens();
+        sessionStorage.removeItem('user');
+    },
+    async refresh(): Promise<void> {
+        const refresh = sessionStorage.getItem('refresh') || '';
+        if (!refresh) return;
+        try {
+            const data = await request<{ access: string; refresh?: string }>('/auth/token/refresh', { method: 'POST', body: JSON.stringify({ refresh }) }, false);
+            if (data?.access) {
+                setTokens(data.access, data.refresh || refresh);
+            }
+        } catch {
+            clearTokens();
+            sessionStorage.removeItem('user');
+        }
+    },
+    async confirmEmailVerification(token: string): Promise<{ detail: string }> {
         return request<{ detail: string }>('/auth/verify-email/confirm/', {
             method: 'POST',
             body: JSON.stringify({ token }),
         }, false);
-  },
+    },
+    async requestPasswordReset(email: string): Promise<{ detail: string }> {
+        return request<{ detail: string }>('/auth/password-reset/request/', {
+            method: 'POST',
+            body: JSON.stringify({ email }),
+        }, false);
+    },
+    async confirmPasswordReset(payload: { token: string; password: string; password_confirm: string }): Promise<{ detail: string }> {
+        return request<{ detail: string }>('/auth/password-reset/confirm/', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }, false);
+    },
+    async requestAdminCode(email: string): Promise<void> {
+        await request('/auth/request-admin-code', {
+            method: 'POST',
+            body: JSON.stringify({ email }),
+        }, false);
+    },
+    async registerAdminVerified(payload: { email: string; password: string, code: string, first_name: string, last_name: string }): Promise<{ user: User }> {
+        const data = await request<{ user: any }>('/auth/register-admin-verified', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }, false);
+        const shaped = toUser(data.user);
+        return { user: shaped };
+    },
 };
 
-// ==================================================================
-// --- ADD a new 'reports' object ---
-// ==================================================================
-
 const reports = {
-    // ✅ Use the new helper function
     async exportDashboardCsv() {
         await requestAndDownloadCsv('/reports/dashboard/export-csv/', 'dashboard_summary.csv');
     },
 };
 
-// ==================================================================
-// ✅ ADD THIS NEW 'users' OBJECT
-// ==================================================================
-
 const users = {
-  // THIS IS THE MISSING FUNCTION
   async getAll(): Promise<User[]> {
     const data = await request<any[]>('/auth/users/');
     return data.map(toUser);
   },
-  
-  // THIS IS THE CRITICAL FIX
   async update(userId: string, payload: Partial<User>): Promise<User> {
-    // This function now makes a REAL API call to the backend.
     const apiPayload: any = {};
     if (payload.firstName) apiPayload.first_name = payload.firstName;
     if (payload.lastName) apiPayload.last_name = payload.lastName;
     if (payload.phone) apiPayload.phone = payload.phone;
-
-    const data = await request<any>(`/auth/users/${userId}/`, {
-      method: 'PATCH',
-      body: JSON.stringify(apiPayload),
-    });
-    // It returns the fresh, complete user object from the server.
+    const data = await request<any>(`/auth/users/${userId}/`, { method: 'PATCH', body: JSON.stringify(apiPayload) });
     return toUser(data);
   },
 };
@@ -629,12 +466,7 @@ const shops = {
     const data = await request<any>(`/shops/${id}/`);
     return toShop(data);
   },
-  // ==================================================================
-  // ✅ ADD THIS MISSING 'update' METHOD
-  // ==================================================================
-  // THIS IS THE OTHER CRITICAL FIX
-  // ✅ THIS IS THE FIX
-   async update(shopId: string, payload: Partial<SpazaShop> & { name?: string; address?: string; latitude?: number; longitude?: number }): Promise<SpazaShop> {
+  async update(shopId: string, payload: Partial<SpazaShop> & { name?: string; address?: string; latitude?: number; longitude?: number }): Promise<SpazaShop> {
     const apiPayload: any = {};
     if (payload.firstName) apiPayload.first_name = payload.firstName;
     if (payload.lastName) apiPayload.last_name = payload.lastName;
@@ -643,21 +475,10 @@ const shops = {
     if (payload.address) apiPayload.address = payload.address;
     if (payload.latitude !== undefined) apiPayload.latitude = payload.latitude;
     if (payload.longitude !== undefined) apiPayload.longitude = payload.longitude;
-
-    console.log("[mockApi] Sending this payload to the backend:", apiPayload);
-
-    const data = await request<any>(`/shops/${shopId}/`, {
-      method: 'PATCH',
-      body: JSON.stringify(apiPayload),
-    });
-    
+    const data = await request<any>(`/shops/${shopId}/`, { method: 'PATCH', body: JSON.stringify(apiPayload) });
     return toShop(data);
   },
-
-  // ✅ Use the new helper function
-    async exportCsv() {
-        await requestAndDownloadCsv('/shops/export_csv/', 'spaza_shops.csv');
-    },
+  async exportCsv() { await requestAndDownloadCsv('/shops/export_csv/', 'spaza_shops.csv'); },
 };
 
 const documents = {
@@ -665,181 +486,85 @@ const documents = {
     const data = await request<any[]>('/compliance/documents/');
     return data.map(toDocument);
   },
-  
   async upload(shopId: string, payload: { name: string; type: string; file: File; expiry_date?: string | null }) {
     const form = new FormData();
-    // The field name 'shop' must match what the DRF serializer expects
     form.append('shop', shopId); 
     form.append('type', payload.type);
-    // The backend serializer doesn't use a 'name' field for document creation, 
-    // it likely uses the filename. We can omit sending `payload.name`.
-    form.append('file', payload.file, payload.file.name); // Send file with its name
-    if (payload.expiry_date) {
-      form.append('expiry_date', payload.expiry_date);
-    }
-    
-    // Use the new helper function
-    const json = await requestWithFile<any>('/compliance/documents/', {
-      method: 'POST',
-      body: form,
-    });
-    
+    form.append('file', payload.file, payload.file.name); 
+    if (payload.expiry_date) { form.append('expiry_date', payload.expiry_date); }
+    const json = await requestWithFile<any>('/compliance/documents/', { method: 'POST', body: form });
     return toDocument(json);
   },
-
-  // ✅ THE FIX: The function now accepts a data object with notes and an optional expiry_date
   async updateStatus(id: string, action: 'verify' | 'reject', data?: { notes?: string; expiry_date?: string | null }) {
-    await request(`/compliance/documents/${id}/${action}/`, {
-      method: 'POST',
-      body: JSON.stringify(data || {}),
-    });
+    await request(`/compliance/documents/${id}/${action}/`, { method: 'POST', body: JSON.stringify(data || {}) });
   },
-
-  // ✅ Use the new helper function
-    async exportCsv() {
-        await requestAndDownloadCsv('/compliance/documents/export_csv/', 'documents.csv');
-    },
+  async exportCsv() { await requestAndDownloadCsv('/compliance/documents/export_csv/', 'documents.csv'); },
 };
 
-// ✅ FIX 1: Use the exact SiteVisitStatus TextChoices from Django models.py
 const SITE_VISIT_API_MAP: Record<string, string> = {
-    'APPROVED': 'COMPLETED', // Maps frontend success to backend COMPLETED
-    'REJECTED': 'CANCELLED',  // Maps frontend failure to backend CANCELLED (best guess)
-    'PENDING': 'PENDING',
-    'SCHEDULED': 'SCHEDULED', // Added for the new requirement
+    'APPROVED': 'COMPLETED', 'REJECTED': 'CANCELLED', 'PENDING': 'PENDING', 'SCHEDULED': 'SCHEDULED',
 };
 
-// ✅ NEW HELPER: Map client camelCase payload to snake_case API payload
 function toApiPayload(clientPayload: Omit<SiteVisitForm, 'id' | 'visitId' | 'submittedAt'>): any {
     return {
-        inspector_name: clientPayload.inspectorName,
-        inspector_surname: clientPayload.inspectorSurname,
-        contractor_company: clientPayload.contractorCompany,
-
-        cleanliness: clientPayload.cleanliness,
-        inspector_notes: clientPayload.inspectorNotes,
-        
-        
-        // Convert camelCase booleans to snake_case
-        stock_rotation_observed: clientPayload.stockRotationObserved,
-        fire_extinguisher_valid: clientPayload.fireExtinguisherValid,
-        business_licence_displayed: clientPayload.businessLicenceDisplayed,
-        health_certificate_displayed: clientPayload.healthCertificateDisplayed,
-        refund_policy_visible: clientPayload.refundPolicyVisible,
-        sales_record_present: clientPayload.salesRecordPresent,
-        inventory_system_in_place: clientPayload.inventorySystemInPlace,
-        food_labels_and_expiry_present: clientPayload.foodLabelsAndExpiryPresent,
-        prices_visible: clientPayload.pricesVisible,
-        notices_policies_displayed: clientPayload.noticesPoliciesDisplayed,
-        supplier_list_present: clientPayload.supplierListPresent,
-        building_plan_present: clientPayload.buildingPlanPresent,
-        adequate_ventilation: clientPayload.adequateVentilation,
+        inspector_name: clientPayload.inspectorName, inspector_surname: clientPayload.inspectorSurname, contractor_company: clientPayload.contractorCompany,
+        cleanliness: clientPayload.cleanliness, inspector_notes: clientPayload.inspectorNotes, stock_rotation_observed: clientPayload.stockRotationObserved,
+        fire_extinguisher_valid: clientPayload.fireExtinguisherValid, business_licence_displayed: clientPayload.businessLicenceDisplayed,
+        health_certificate_displayed: clientPayload.healthCertificateDisplayed, refund_policy_visible: clientPayload.refundPolicyVisible,
+        sales_record_present: clientPayload.salesRecordPresent, inventory_system_in_place: clientPayload.inventorySystemInPlace,
+        food_labels_and_expiry_present: clientPayload.foodLabelsAndExpiryPresent, prices_visible: clientPayload.pricesVisible,
+        notices_policies_displayed: clientPayload.noticesPoliciesDisplayed, supplier_list_present: clientPayload.supplierListPresent,
+        building_plan_present: clientPayload.buildingPlanPresent, adequate_ventilation: clientPayload.adequateVentilation,
         healthy_storage_goods: clientPayload.healthyStorageGoods,
     };
 }
 
-
-// ==================================================================
-// ✅ THIS IS THE CORRECTED 'visits' OBJECT
-// ==================================================================
 const visits = {
-    // 1. ADD BACK THE MISSING LIST FUNCTION
     async list(): Promise<SiteVisit[]> {
         const data = await request<any[]>('/visits/');
         return data.map(toVisit);
     },
-    
-    // ✅ NEW FIX: Function to get a single visit by ID
-    async getById(id: string, withAuth: boolean = true): Promise<SiteVisit> {
-        console.log(`[visits.getById] Called with id: ${id}, withAuth: ${withAuth}`);
+    async getById(id: string, withAuth = true): Promise<SiteVisit> {
         const data = await request<any>(`/visits/${id}/`, {}, withAuth); 
         return toVisit(data);
     },
-
-    // 2. ADD BACK THE MISSING REQUEST VISIT FUNCTION
     async requestVisit(shopId: string, requestedDateTime: string): Promise<SiteVisit> {
-        const data = await request<any>('/visits/', {
-            method: 'POST',
-            body: JSON.stringify({ shop: shopId, requested_datetime: requestedDateTime }),
-        });
+        const data = await request<any>('/visits/', { method: 'POST', body: JSON.stringify({ shop: shopId, requested_datetime: requestedDateTime }) });
         return toVisit(data);
     },
-
     async schedule(visitId: string, requestedDateTime: string): Promise<SiteVisit> {
-        // Send a PATCH request to update the date/time and set status to SCHEDULED
-        const data = await request<any>(`/visits/${visitId}/`, {
-            method: 'PATCH',
-            body: JSON.stringify({ 
-                requested_datetime: requestedDateTime,
-                status: SITE_VISIT_API_MAP['SCHEDULED'] // Set status to SCHEDULED on scheduling
-            }),
-        });
+        const data = await request<any>(`/visits/${visitId}/`, { method: 'PATCH', body: JSON.stringify({ requested_datetime: requestedDateTime, status: SITE_VISIT_API_MAP['SCHEDULED'] }) });
         return toVisit(data);
     },
-
-    // ✅ FIX 2: Use the dedicated /status/ action endpoint for status updates
     async updateStatus(visitId: string, status: SiteVisitStatus) {
-        // Find the correct status string to send to the API.
         const apiStatus = SITE_VISIT_API_MAP[status.toUpperCase()] || status.toUpperCase();
-        
-        const data = await request<any>(`/visits/${visitId}/status/`, {
-            method: 'POST',
-            body: JSON.stringify({ status: apiStatus }),
-        });
-
+        const data = await request<any>(`/visits/${visitId}/status/`, { method: 'POST', body: JSON.stringify({ status: apiStatus }) });
         return toVisit(data);
     },
-
     toVisitStatus,
-
     async getFormByVisitId(visitId: string): Promise<SiteVisitForm | null> {
-    // This new function fetches the form associated with a visit.
-    const forms = await request<any[]>(`/visits/forms/?visit=${visitId}`);
-    if (forms && forms.length > 0) {
-      return toSiteVisitForm(forms[0]);
-    }
-    return null;
-  },
-
-  async createForm(visitId: string, payload: Omit<SiteVisitForm, 'id' | 'visitId' | 'submittedAt'>, isPublic: boolean = false): Promise<SiteVisitForm> {
-    // NOTE: In a real app, you might need to convert payload to snake_case before sending.
-    // Assuming the server can handle camelCase for now.
-    // ✅ FIX: Convert client payload to snake_case first
-     // ✅ FIX: Pass `!isPublic` as the `withAuth` flag.
-    // If isPublic is true, withAuth will be false.
-    const apiPayload = { ...toApiPayload(payload), visit: visitId };
-    const data = await request<any>(`/visits/forms/`, { 
-        method: 'POST',
-        body: JSON.stringify(apiPayload),
-    }, !isPublic);
-    return toSiteVisitForm(data);
-  },
-  
-  async updateForm(formId: string, payload: Omit<SiteVisitForm, 'id' | 'visitId' | 'submittedAt'>): Promise<SiteVisitForm> {
-    // We don't need to send the visitId when updating, as the form ID is in the URL.
-    const apiPayload = toApiPayload(payload);
-    const data = await request<any>(`/visits/forms/${formId}/`, {
-      method: 'PUT', // Use PUT for a full update
-      // ✅ CORRECTED LINE: Pass the snake_case apiPayload
-      body: JSON.stringify(apiPayload), 
-    });
-    return toSiteVisitForm(data);
-  },
-
-  // ✅ Use the new helper function
-    async exportCsv() {
-        await requestAndDownloadCsv('/visits/export_csv/', 'site_visits.csv');
+        const forms = await request<any[]>(`/visits/forms/?visit=${visitId}`);
+        return (forms?.length > 0) ? toSiteVisitForm(forms[0]) : null;
     },
-
+    async createForm(visitId: string, payload: Omit<SiteVisitForm, 'id' | 'visitId' | 'submittedAt'>, isPublic = false): Promise<SiteVisitForm> {
+        const apiPayload = { ...toApiPayload(payload), visit: visitId };
+        const data = await request<any>(`/visits/forms/`, { method: 'POST', body: JSON.stringify(apiPayload) }, !isPublic);
+        return toSiteVisitForm(data);
+    },
+    async updateForm(formId: string, payload: Omit<SiteVisitForm, 'id' | 'visitId' | 'submittedAt'>): Promise<SiteVisitForm> {
+        const apiPayload = toApiPayload(payload);
+        const data = await request<any>(`/visits/forms/${formId}/`, { method: 'PUT', body: JSON.stringify(apiPayload) });
+        return toSiteVisitForm(data);
+    },
+    async exportCsv() { await requestAndDownloadCsv('/visits/export_csv/', 'site_visits.csv'); },
     async generateShareCode(visitId: string): Promise<SiteVisit> {
-        // This assumes a backend endpoint exists to generate and save the code/expiry
-        const data = await request<any>(`/visits/${visitId}/generate_share_code/`, { 
-            method: 'POST' 
-        });
+        const data = await request<any>(`/visits/${visitId}/generate_share_code/`, { method: 'POST' });
         return toVisit(data);
     },
-
 };
+
+// ✅ ADD THIS TYPE DEFINITION
+type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 const tickets = {
   async list(): Promise<Ticket[]> {
@@ -850,33 +575,16 @@ const tickets = {
     const data = await request<any>(`/support/tickets/${id}/`);
     return toTicket(data);
   },
-  async create(payload: {
-    shop_owner_id?: string;
-    title: string;
-    subject: string;
-    description: string;
-    priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-    attachments?: File[];
-  }): Promise<Ticket> {
+  async create(payload: any): Promise<Ticket> {
     const form = new FormData();
-    if (payload.shop_owner_id) form.append('shop_owner_id', payload.shop_owner_id);
-    form.append('title', payload.title);
-    form.append('subject', payload.subject);
-    form.append('description', payload.description);
-    if (payload.priority) form.append('priority', payload.priority);
-    for (const f of payload.attachments || []) form.append('attachments', f);
-
-    const token = getAccess();
-    const res = await fetch(`${API_BASE}/support/tickets/`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      body: form,
+    Object.keys(payload).forEach(key => {
+        if (key === 'attachments' && payload.attachments) {
+            for (const f of payload.attachments) form.append('attachments', f);
+        } else if (payload[key] !== undefined) {
+            form.append(key, payload[key]);
+        }
     });
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`HTTP ${res.status} ${res.statusText}: ${text}`);
-    }
-    const json = await res.json();
+    const json = await requestWithFile<any>('/support/tickets/', { method: 'POST', body: form });
     return toTicket(json);
   },
   async postMessage(ticketId: string, payload: { content: string; attachment?: File }): Promise<ChatMessage> {
@@ -884,39 +592,19 @@ const tickets = {
     form.append('ticket', ticketId);
     form.append('content', payload.content);
     if (payload.attachment) form.append('attachment', payload.attachment);
-
-    const token = getAccess();
-    const res = await fetch(`${API_BASE}/support/tickets/${ticketId}/messages/`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      body: form,
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`HTTP ${res.status} ${res.statusText}: ${text}`);
-    }
-    const json = await res.json();
+    const json = await requestWithFile<any>(`/support/tickets/${ticketId}/messages/`, { method: 'POST', body: form });
     return toMessage(json);
   },
   async listMessages(ticketId: string): Promise<ChatMessage[]> {
     const data = await request<any[]>(`/support/tickets/${ticketId}/messages/`);
     return data.map(toMessage);
   },
-
-  // THIS IS THE MISSING FUNCTION
   async updateStatus(ticketId: string, status: TicketStatus): Promise<Ticket> {
-    const data = await request<any>(`/support/tickets/${ticketId}/`, {
-      method: 'PATCH', // Use PATCH for partial updates
-      body: JSON.stringify({ status }),
-    });
+    const data = await request<any>(`/support/tickets/${ticketId}/`, { method: 'PATCH', body: JSON.stringify({ status }) });
     return toTicket(data);
   },
-
-  async updatePriority(ticketId: string, priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'): Promise<Ticket> {
-    const data = await request<any>(`/support/tickets/${ticketId}/`, {
-      method: 'PATCH', // Use PATCH for partial updates
-      body: JSON.stringify({ priority }),
-    });
+  async updatePriority(ticketId: string, priority: Priority): Promise<Ticket> {
+    const data = await request<any>(`/support/tickets/${ticketId}/`, { method: 'PATCH', body: JSON.stringify({ priority }) });
     return toTicket(data);
   },
 };
@@ -934,19 +622,6 @@ const core = {
   }
 };
 
-// ==================================================================
-// ✅ ADD 'users' TO THE EXPORTED OBJECT
-// ==================================================================
-const mockApi = {
-  auth,
-  users, // <-- ADD THIS LINE
-  shops,
-  documents,
-  tickets,
-  visits,
-  site,
-  core,
-  reports
-};
+const mockApi = { auth, users, shops, documents, tickets, visits, site, core, reports };
 
 export default mockApi;

@@ -1,5 +1,3 @@
-// src/pages/ForgotPasswordPage.tsx
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '../components/Card';
@@ -24,6 +22,7 @@ const ForgotPasswordPage: React.FC = () => {
             const response = await mockApi.auth.requestPasswordReset(email);
             setSuccessMessage(response.detail);
         } catch (err: any) {
+            // ✅ The error message is now clean from mockApi.ts
             setError(err.message || 'An unknown error occurred. Please try again.');
         } finally {
             setLoading(false);

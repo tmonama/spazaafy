@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { UserRole } from '../types';
 import Button from '../components/Button';
 import Input from '../components/Input';
@@ -35,8 +35,6 @@ const RegisterPage: React.FC = () => {
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  // New state to control showing the success message
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   useEffect(() => {
@@ -110,19 +108,12 @@ const RegisterPage: React.FC = () => {
         payload.longitude = formData.longitude;
       }
       
-      // Call the API directly; it will now send an email instead of logging in.
       await mockApi.auth.register(payload);
-      
-      // Set the success state to show the message instead of navigating.
       setRegistrationSuccess(true);
 
     } catch (err: any) {
-      let msg = err?.message || 'Registration failed.';
-      try {
-        const parsed = JSON.parse(msg.split(':').pop() || '{}');
-        msg = parsed?.detail || parsed?.non_field_errors?.[0] || (parsed && typeof parsed === 'object' ? (Object.values(parsed)?.[0] as any)?.[0] : undefined) || msg;
-      } catch {}
-      setError(String(msg));
+      // ✅ The error message is now already clean from mockApi.ts
+      setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -162,26 +153,10 @@ const RegisterPage: React.FC = () => {
                   I am a:
                 </label>
                 <div className="flex rounded-md shadow-sm">
-                  <button
-                    type="button"
-                    onClick={() => setRole(UserRole.CONSUMER)}
-                    className={`px-4 py-2 border border-gray-300 dark:border-dark-surface text-sm font-medium rounded-l-md w-1/2 ${
-                      role === UserRole.CONSUMER
-                        ? 'bg-primary text-white border-primary'
-                        : 'bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-200'
-                    }`}
-                  >
+                  <button type="button" onClick={() => setRole(UserRole.CONSUMER)} className={`px-4 py-2 border border-gray-300 dark:border-dark-surface text-sm font-medium rounded-l-md w-1/2 ${role === UserRole.CONSUMER ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-200'}`}>
                     Consumer
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole(UserRole.SHOP_OWNER)}
-                    className={`-ml-px px-4 py-2 border border-gray-300 dark:border-dark-surface text-sm font-medium rounded-r-md w-1/2 ${
-                      role === UserRole.SHOP_OWNER
-                        ? 'bg-primary text-white border-primary'
-                        : 'bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-200'
-                    }`}
-                  >
+                  <button type="button" onClick={() => setRole(UserRole.SHOP_OWNER)} className={`-ml-px px-4 py-2 border border-gray-300 dark:border-dark-surface text-sm font-medium rounded-r-md w-1/2 ${role === UserRole.SHOP_OWNER ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-200'}`}>
                     Shop Owner
                   </button>
                 </div>
@@ -203,33 +178,14 @@ const RegisterPage: React.FC = () => {
               {role === UserRole.SHOP_OWNER && (
                 <>
                   <Input id="shopName" label="Shop name" value={formData.shopName} onChange={handleChange} required />
-                  
-                  <AddressAutocompleteInput 
-                    id="address" 
-                    label="Shop address" 
-                    value={formData.address} 
-                    onChange={(value) => setFormData(prev => ({ ...prev, address: value }))}
-                    onPlaceSelect={handlePlaceSelect}
-                  />
-                  
+                  <AddressAutocompleteInput id="address" label="Shop address" value={formData.address} onChange={(value) => setFormData(prev => ({ ...prev, address: value }))} onPlaceSelect={handlePlaceSelect} />
                   <div>
-                    <label htmlFor="province" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Province
-                    </label>
-                    <select
-                      id="province"
-                      name="province"
-                      value={formData.province}
-                      onChange={handleChange}
-                      required
-                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base rounded-md shadow-sm bg-white dark:bg-dark-input text-gray-900 dark:text-white border-gray-300 dark:border-dark-surface focus:outline-none focus:ring-dark-border focus:border-dark-border sm:text-sm"
-                    >
+                    <label htmlFor="province" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Province</label>
+                    <select id="province" name="province" value={formData.province} onChange={handleChange} required className="mt-1 block w-full pl-3 pr-10 py-2 text-base rounded-md shadow-sm bg-white dark:bg-dark-input text-gray-900 dark:text-white border-gray-300 dark:border-dark-surface focus:outline-none focus:ring-dark-border focus:border-dark-border sm:text-sm">
                       {provinces.length === 0 ? (
                         <option value="" disabled>Loading provinces...</option>
                       ) : (
-                        provinces.map((p) => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))
+                        provinces.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))
                       )}
                     </select>
                   </div>
@@ -242,16 +198,7 @@ const RegisterPage: React.FC = () => {
                 </div>
               )}
 
-              <Button
-                type="submit"
-                disabled={
-                  loading ||
-                  !formData.email ||
-                  !formData.password ||
-                  (role === UserRole.SHOP_OWNER && (!formData.shopName.trim() || !formData.province))
-                }
-                className="w-full"
-              >
+              <Button type="submit" disabled={loading || !formData.email || !formData.password || (role === UserRole.SHOP_OWNER && (!formData.shopName.trim() || !formData.province))} className="w-full">
                 {loading ? 'Creating account…' : 'Create account'}
               </Button>
             </form>
