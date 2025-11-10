@@ -7,8 +7,6 @@ from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.shops.models import Province, SpazaShop
-from apps.accounts.models import AdminVerificationCode
-
 from .models import AdminVerificationCode, EmailVerificationToken
 from django.core.mail import send_mail
 from django.conf import settings
@@ -163,8 +161,8 @@ class RegisterSerializer(serializers.Serializer):
             username=email,
             email=email,
             password=password,
-            is_active=False,  # <-- User is inactive until verified
-            **validated_data  # first_name, last_name, phone, role
+            is_active=False,
+            **validated_data
         )
 
         # If OWNER, optionally create the shop
@@ -189,7 +187,6 @@ class RegisterSerializer(serializers.Serializer):
             fail_silently=False,
         )
 
-
         return user
 
     def to_representation(self, user):
@@ -212,14 +209,7 @@ class LoginSerializer(serializers.Serializer):
         user = authenticate(request=self.context.get('request'), email=email, password=password)
 
         if not user:
-            UserModel = get_user_model()
-            try:
-                u = UserModel.objects.get(email__iexact=email)
-            except UserModel.DoesNotExist:
-                u = None
-            if not u or not u.check_password(password):
-                raise serializers.ValidationError({"non_field_errors": ["Invalid email or password."]})
-            user = u
+            raise serializers.ValidationError({"non_field_errors": ["Invalid email or password."]})
 
         if not user.is_active:
             raise serializers.ValidationError({"non_field_errors": ["Please verify your email address before logging in."]})
@@ -234,17 +224,21 @@ class LoginSerializer(serializers.Serializer):
             "user": {
                 "id": str(user.id),
                 "email": user.email,
-                "first_name": getattr(user, "first_name", ""),
-                "last_name": getattr(user, "last_name", ""),
-                "phone": getattr(user, "phone", ""),
-                "role": getattr(user, "role", ""),
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "phone": user.phone,
+                "role": user.role,
             },
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         }
 
 
+# ✅ THIS IS THE CORRECTED SERIALIZER
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'role']
+        # Add 'phone' to the fields that can be read and updated.
+        fields = ['id', 'email', 'first_name', 'last_name', 'role', 'phone']
+        # Email and role are protected from being changed by the user.
+        read_only_fields = ['email', 'role']

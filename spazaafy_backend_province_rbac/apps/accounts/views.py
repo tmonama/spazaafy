@@ -2,22 +2,18 @@
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions, viewsets, generics, serializers
-from .models import User
+from rest_framework import status, permissions, viewsets, generics
 from django.utils import timezone
-from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, AdminRequestCodeSerializer, AdminVerifiedRegistrationSerializer, AdminVerificationCode
+from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, AdminRequestCodeSerializer, AdminVerifiedRegistrationSerializer
 import random
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import AdminVerificationCode
+from .models import User, AdminVerificationCode, EmailVerificationToken
 from django.db import IntegrityError
 from rest_framework.exceptions import ValidationError
 import traceback, sys
-from django.contrib.auth.password_validation import validate_password
-from django.db import transaction
 from datetime import timedelta
-from .models import User, AdminVerificationCode, EmailVerificationToken # Add EmailVerificationToken
-
+from .permissions import IsOwnerOrAdmin
 
 # --- NEW ADMIN REGISTRATION VIEWS ---
 class RequestAdminVerificationCodeView(generics.GenericAPIView):
@@ -30,21 +26,10 @@ class RequestAdminVerificationCodeView(generics.GenericAPIView):
         email = serializer.validated_data['email']
         code = str(random.randint(100000, 999999))
         
-        obj, created = AdminVerificationCode.objects.update_or_create(
+        AdminVerificationCode.objects.update_or_create(
             email=email,
-            defaults={'code': code}
+            defaults={'code': code, 'created_at': timezone.now()}
         )
-        if not created:
-            # refresh timestamp so the code is valid for the next 10 minutes
-            AdminVerificationCode.objects.filter(email=email).update(
-                created_at=timezone.now()
-        )
-
-
-        print("--- EMAIL_BACKEND:", settings.EMAIL_BACKEND)
-        print("--- EMAIL_HOST:", getattr(settings, "EMAIL_HOST", None))
-        print("--- EMAIL_HOST_USER:", getattr(settings, "EMAIL_HOST_USER", None))
-        print("--- DEFAULT_FROM_EMAIL:", getattr(settings, "DEFAULT_FROM_EMAIL", None))
 
         try:
             send_mail(
@@ -70,11 +55,7 @@ class AdminVerifiedRegistrationView(generics.CreateAPIView):
             user = serializer.save()
         except IntegrityError:
             raise ValidationError({"email": ["A user with this email already exists."]})
-        except TypeError as e:
-            # e.g., your User model requires username; add username=email in serializer.create()
-            raise ValidationError({"detail": [str(e)]})
         except Exception as e:
-            # log full traceback to Render logs for quick diagnosis
             traceback.print_exc(file=sys.stderr)
             raise ValidationError({"detail": [str(e)]})
 
@@ -89,7 +70,6 @@ class RegisterView(APIView):
         ser = RegisterSerializer(data=request.data)
         if ser.is_valid():
             user = ser.save()
-            # This is correct because the RegisterSerializer's to_representation is called
             return Response(ser.to_representation(user), status=status.HTTP_201_CREATED)
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -100,7 +80,6 @@ class LoginView(APIView):
     def post(self, request):
         ser = LoginSerializer(data=request.data, context={"request": request})
         if ser.is_valid():
-            # ✅ FIX: Call to_representation on the validated data
             response_data = ser.to_representation(ser.validated_data)
             return Response(response_data, status=status.HTTP_200_OK)
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -113,23 +92,44 @@ class MeView(APIView):
         return Response({
             "id": str(u.id),
             "email": u.email,
-            "first_name": getattr(u, "first_name", ""),
-            "last_name": getattr(u, "last_name", ""),
-            "phone": getattr(u, "phone", ""),
+            "first_name": u.first_name,
+            "last_name": u.last_name,
+            "phone": u.phone,
             "role": u.role,
         })
     
-    # --- THIS IS THE MISSING VIEWSET ---
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
+# ✅ THIS IS THE CORRECTED VIEWSET
+class UserViewSet(viewsets.ModelViewSet):
     """
-    A viewset for viewing user instances.
-    Only accessible by admin users.
+    A viewset for viewing and editing user instances.
+    - Admins can list all users.
+    - Authenticated users can retrieve and update THEIR OWN profile.
     """
     queryset = User.objects.all().order_by('first_name')
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAdminUser]
+    
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.action == 'list':
+            # Only admins can list all users
+            permission_classes = [permissions.IsAdminUser]
+        else:
+            # For retrieve, update, partial_update, etc.,
+            # the user must be authenticated, and we'll check object-level permissions.
+            permission_classes = [permissions.IsAuthenticated, IsOwnerOrAdmin]
+        return [permission() for permission in permission_classes]
 
-
+    def get_queryset(self):
+        """
+        This view should return a list of all users for admin users,
+        but only the current user for other authenticated users to prevent data leakage.
+        """
+        user = self.request.user
+        if user.is_staff:
+            return User.objects.all().order_by('first_name')
+        return User.objects.filter(id=user.id)
 
 class EmailVerificationConfirmView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
@@ -143,7 +143,6 @@ class EmailVerificationConfirmView(generics.GenericAPIView):
             token_obj = EmailVerificationToken.objects.get(token=token_str)
             
             if token_obj.is_expired():
-                # For security, delete the expired token
                 token_obj.delete()
                 return Response({'detail': 'This verification link has expired.'}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -154,7 +153,6 @@ class EmailVerificationConfirmView(generics.GenericAPIView):
             user.is_active = True
             user.save()
             
-            # Delete the token so it cannot be used again
             token_obj.delete()
             
             return Response({'detail': 'Your account has been successfully verified.'}, status=status.HTTP_200_OK)
