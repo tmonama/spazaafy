@@ -8,6 +8,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import translationEN from './src/locales/en/translation.json';
 import translationZU from './src/locales/zu/translation.json';
 import translationXH from './src/locales/xh/translation.json';
+import translationST from './src/locales/st/translation.json'; // ✅ 1. Import the new Sesotho file
 
 // Define the resources (the translations)
 const resources = {
@@ -19,6 +20,10 @@ const resources = {
   },
   xh: {
     translation: translationXH
+  },
+  // ✅ 2. Add the Sesotho resource with the 'st' language code
+  st: {
+    translation: translationST
   }
 };
 
