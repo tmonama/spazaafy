@@ -57,6 +57,7 @@ const SettingsPage: React.FC = () => {
                                     <option value="en">English</option>
                                     <option value="zu">isiZulu</option>
                                     <option value="xh">isiXhosa</option>
+                                    <option value="st">Sesotho</option>
                                 </select>
                             </div>
 

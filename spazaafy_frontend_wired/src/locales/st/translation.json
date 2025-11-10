@@ -1,0 +1,153 @@
+{
+  "header": {
+    "dashboard": "Dashboard",
+    "support": "Tšehetso",
+    "settings": "Litlhophiso",
+    "welcome": "Rea u amohela, {{name}}",
+    "logout": "Tsoa"
+  },
+  "settings": {
+    "title": "Litlhophiso",
+    "theme": {
+      "title": "Mokhoa",
+      "description": "Fetola pakeng tsa mokhoa o khanyang le o lefifi."
+    },
+    "language": {
+      "title": "Puo",
+      "description": "Khetha puo eo u e ratang."
+    }
+  },
+  "accountPage": {
+    "myAccount": "Ak'haonte ea Ka",
+    "loading": "E ntse e kenya lintlha tsa ak'haonte...",
+    "shopOwnerInfo": "Tlhahisoleseding ea Lebenkele le Mong'a lona",
+    "profileInfo": "Tlhahisoleseding ea Boitsebiso",
+    "emailLabel": "Aterese ea Imeile (e ke ke ea fetoloa)",
+    "ownerFirstNameLabel": "Lebitso la Pele la Mong'a lona",
+    "firstNameLabel": "Lebitso la Pele",
+    "ownerLastNameLabel": "Fane ea Mong'a lona",
+    "lastNameLabel": "Fane",
+    "ownerPhoneLabel": "Nomoro ea Mohala ea Mong'a lona",
+    "phoneLabel": "Nomoro ea Mohala",
+    "shopNameLabel": "Lebitso la Lebenkele la Spaza",
+    "addressLabel": "Aterese ea Khoebo",
+    "saveButton": "Boloka Liphetoho",
+    "savingButton": "E ntse e boloka...",
+    "passwordManagement": {
+      "title": "Tsamaiso ea Phasewete",
+      "description": "Tobetsa konopo e ka tlase ho fumana sehokelo sa ho seta phasewete bocha imeileng ea hau.",
+      "resetButton": "Kopa ho Seta Phasewete Bocha"
+    },
+    "alerts": {
+      "pdfOnlyError": "Ho kenya ho hlolehile. Ho amoheloa lifaele tsa PDF feela.",
+      "unknownDocType": "Mofuta oa tokomane o sa tsejoeng: {{docName}}",
+      "uploadFailed": "Ho kenya ho hlolehile.",
+      "updateSuccess": "Tlhahisoleseding ea hau e ntlafalitsoe ka katleho!",
+      "updateError": "Ho bile le phoso. Ka kopo, leka hape.",
+      "resetRequestSuccess": "Sehokelo sa ho seta phasewete bocha se rometsoe imeileng ea hau.",
+      "resetRequestError": "Ho bile le phoso ha ho kopuoa ho seta phasewete bocha. Ka kopo, leka hape."
+    }
+  },
+  "supportPage": {
+    "yourTickets": "Litekete tsa hau tsa Tšehetso",
+    "loading": "E ntse e kenya litekete...",
+    "loadError": "E hlolehile ho kenya litekete tsa tšehetso.",
+    "noTickets": "Ha o so etse litekete tsa tšehetso.",
+    "openedOn": "E butsoe ka: {{date}}",
+    "createTicket": "Etsa Tekete e Ncha",
+    "queryTitle": "Sehlooho",
+    "description": "Tlhaloso",
+    "submitButton": "Romela Tekete",
+    "submittingButton": "E ntse e romela...",
+    "status": {
+      "open": "E BUTSOE",
+      "closed": "E KOETSOE"
+    }
+  },
+  "consumerDashboard": {
+    "nearbyShops": "Mabenkele a Haufi",
+    "buttons": {
+      "list": "Lenane",
+      "map": "'Mapa"
+    },
+    "searchPlaceholder": "Batla lebenkele la spaza...",
+    "loadingLocation": "E ntse e fumana sebaka...",
+    "loadingShops": "E ntse e kenya mabenkele...",
+    "filterByDistance": "Hlophisa ka sebaka:",
+    "all": "Kaofela",
+    "noShopsFound": "Ha ho mabenkele a spaza a fumanoeng haufi le uena.",
+    "modalTitle": "Litšebeletso tsa Sebaka lia Hlokeha",
+    "modalBody": "Spazaafy e hloka sebaka sa hau ho fumana mabenkele a haufi. Ka kopo, lumella litšebeletso tsa sebaka sebatling sa hau kapa litlhophisong tsa sistimi ho tsoela pele."
+  },
+  "shopOwnerDashboard": {
+    "loading": "E ntse e kenya dashboard ea hau...",
+    "noShop": "Ha ho lebenkele le fumanoeng bakeng sa ak'haonte ea hau.",
+    "welcome": "Rea u amohela, {{shopName}}",
+    "description": "Laola boemo ba tumellano le netefatso ea lebenkele la hau mona.",
+    "verificationStatus": {
+      "label": "Boemo ba Netefatso:",
+      "verified": "E Netefalitsoe",
+      "pending": "E emetse Netefatso"
+    },
+    "complianceAlert": "TEMOSO EA TUMELLANO: {{message}}",
+    "requiredDocs": "Litokomane tse Hlokehang",
+    "siteVisit": "Ketelo ea Sebaka bakeng sa Netefatso",
+    "requestButton": "Kopa Ketelo ea Sebaka",
+    "chooseFileButton": "Khetha Faele",
+    "noFileChosen": "Ha ho faele e khethiloeng",
+    "uploadButton": "Kenya",
+    "uploadingButton": "E ntse e kenya...",
+    "uploadNotices": {
+      "rejected": "Kopo e fetileng e HANNWE. Ka kopo, kenya hape.",
+      "expired": "Tokomane e FELETSOE KE NAKO. Ka kopo, kenya hape."
+    },
+    "documentDetails": {
+      "submitted": "E rometsoe",
+      "expires": "E felloa ke nako",
+      "status": "Boemo"
+    },
+    "siteVisitDetails": {
+      "statusLabel": "Boemo ba ketelo ea hau ea sebaka:",
+      "approvedExpires": "Netefatso e Amohetsoe. E felloa ke nako ka {{date}}.",
+      "scheduledDate": "Letsatsi le Behiloe/le Amohetsoe"
+    },
+    "alerts": {
+      "unknownDocType": "Mofuta oa tokomane o sa tsejoeng: {{docName}}",
+      "uploadFailed": "Ho kenya ho hlolehile",
+      "visitRequestSuccess": "Ketelo ea sebaka e kopiloe. Mohlahlobi o tla ikopanya le uena.",
+      "visitRequestFailed": "E hlolehile ho kopa ketelo ea sebaka."
+    },
+    "eligibilityMessages": {
+      "required": "Ketelo ea sebaka ea hlokahala ho phethela netefatso ea hau. Ka kopo, kopa ketelo ho tsoa ho mohlahlobi.",
+      "pending": "",
+      "approved": "Netefatso e Amohetsoe. E felloa ke nako ka {{date}}.",
+      "expired": "Netefatso e Felletsoe ke Nako ka {{date}}. Ka kopo, etsa kopo hape ea ketelo ea sebaka.",
+      "rejectedEligible": "Ketelo e fetileng e Hannwe. Joale u tšoaneleha ho etsa kopo hape ea ketelo ea sebaka.",
+      "rejectedIneligible": "Ketelo e fetileng e Hannwe. U ka etsa kopo hape ka {{date}}."
+    }
+  },
+  "enums": {
+    "docNames": {
+      "Fire Safety Certificate": "Setifikeiti sa Polokeho ea Mollo",
+      "Proof of Property Ownership/Lease": "Bopaki ba Botho/Khiro ea Thepa",
+      "Bank Confirmation Letter": "Lengolo la Netefatso ea Banka",
+      "Other Supporting Documents": "Litokomane tse Ling tse Tšehetsang",
+      "Business Licence / Trading Permit": "Laesense ea Khoebo / Tumello ea Khoebo",
+      "Business Registration Certificate": "Setifikeiti sa Ngoliso ea Khoebo",
+      "Certificate of Acceptability (Health)": "Setifikeiti sa Kamohelo (Bophelo)",
+      "Tax / SARS Documents": "Litokomane tsa Lekhetho / SARS",
+      "Certified ID/Passport/Permit": "ID/Phasepoto/Tumello e Netefalitsoeng"
+    },
+    "docStatuses": {
+      "Verified": "E Netefalitsoe",
+      "Pending": "E emetse",
+      "Rejected": "E Hannwe"
+    },
+    "visitStatuses": {
+      "Approved": "E Amohetsoe",
+      "Pending": "E emetse",
+      "Scheduled": "E Behiloe",
+      "Rejected": "E Hannwe"
+    }
+  }
+}
