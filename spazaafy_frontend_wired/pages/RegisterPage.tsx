@@ -14,9 +14,7 @@ interface Province {
 
 const RegisterPage: React.FC = () => {
   const location = useLocation();
-
-  const initialRole =
-    location.state?.role === 'shop_owner' ? UserRole.SHOP_OWNER : UserRole.CONSUMER;
+  const initialRole = location.state?.role === 'shop_owner' ? UserRole.SHOP_OWNER : UserRole.CONSUMER;
 
   const [role, setRole] = useState<UserRole>(initialRole);
   const [formData, setFormData] = useState({
@@ -36,6 +34,7 @@ const RegisterPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({}); // For individual field errors
 
   useEffect(() => {
     setRole(location.state?.role === 'shop_owner' ? UserRole.SHOP_OWNER : UserRole.CONSUMER);
@@ -62,6 +61,10 @@ const RegisterPage: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
+    // Clear field-specific error when user types
+    if (fieldErrors[id]) {
+        setFieldErrors(prev => ({ ...prev, [id]: '' }));
+    }
   };
 
   const handlePlaceSelect = (address: string, lat: number, lng: number) => {
@@ -76,16 +79,45 @@ const RegisterPage: React.FC = () => {
     return '';
   };
 
+  // ✅ 1. NEW PHONE NUMBER VALIDATION FUNCTION
+  const validatePhoneNumber = (phone: string): string => {
+    if (!phone) return ''; // Phone is optional, so an empty string is valid
+    
+    // Regex for a South African number: starts with 0, followed by 9 digits.
+    const saPhoneRegex = /^0[0-9]{9}$/;
+    
+    if (!saPhoneRegex.test(phone)) {
+      return 'Please enter a valid 10-digit South African phone number starting with 0.';
+    }
+    
+    return ''; // No error
+  };
+
   const handleSubmit = async () => {
     setError('');
-    if (role === UserRole.SHOP_OWNER && (!formData.shopName.trim() || !formData.province)) {
-      return setError('Shop name and province are required for shop owners.');
-    }
+    setFieldErrors({});
+
+    // ✅ 2. RUN ALL VALIDATIONS FIRST
+    const phoneError = validatePhoneNumber(formData.phone);
     const passwordError = validatePassword(formData.password);
-    if (passwordError) return setError(passwordError);
-    if (formData.password !== formData.confirmPassword) {
-      return setError('Passwords do not match.');
+
+    if (phoneError) {
+        setFieldErrors(prev => ({ ...prev, phone: phoneError }));
+        return; // Stop submission
     }
+    if (role === UserRole.SHOP_OWNER && (!formData.shopName.trim() || !formData.province)) {
+      setError('Shop name and province are required for shop owners.');
+      return;
+    }
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    
     setLoading(true);
     try {
       const apiRole: 'CONSUMER' | 'OWNER' =
@@ -112,7 +144,6 @@ const RegisterPage: React.FC = () => {
       setRegistrationSuccess(true);
 
     } catch (err: any) {
-      // ✅ The error message is now already clean from mockApi.ts
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
@@ -144,37 +175,27 @@ const RegisterPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            <form
-              className="space-y-4"
-              onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
-            >
+            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  I am a:
-                </label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">I am a:</label>
                 <div className="flex rounded-md shadow-sm">
-                  <button type="button" onClick={() => setRole(UserRole.CONSUMER)} className={`px-4 py-2 border border-gray-300 dark:border-dark-surface text-sm font-medium rounded-l-md w-1/2 ${role === UserRole.CONSUMER ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-200'}`}>
-                    Consumer
-                  </button>
-                  <button type="button" onClick={() => setRole(UserRole.SHOP_OWNER)} className={`-ml-px px-4 py-2 border border-gray-300 dark:border-dark-surface text-sm font-medium rounded-r-md w-1/2 ${role === UserRole.SHOP_OWNER ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-200'}`}>
-                    Shop Owner
-                  </button>
+                  <button type="button" onClick={() => setRole(UserRole.CONSUMER)} className={`px-4 py-2 border border-gray-300 dark:border-dark-surface text-sm font-medium rounded-l-md w-1/2 ${role === UserRole.CONSUMER ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-200'}`}>Consumer</button>
+                  <button type="button" onClick={() => setRole(UserRole.SHOP_OWNER)} className={`-ml-px px-4 py-2 border border-gray-300 dark:border-dark-surface text-sm font-medium rounded-r-md w-1/2 ${role === UserRole.SHOP_OWNER ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-200'}`}>Shop Owner</button>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <Input id="firstName" label="First name" value={formData.firstName} onChange={handleChange} />
                 <Input id="lastName" label="Last name" value={formData.lastName} onChange={handleChange} />
               </div>
-
               <Input id="email" type="email" label="Email address" value={formData.email} onChange={handleChange} required />
-              <Input id="phone" type="tel" label="Phone (optional)" value={formData.phone} onChange={handleChange} />
-
+              
+              {/* ✅ 3. PASS THE ERROR TO THE PHONE INPUT */}
+              <Input id="phone" type="tel" label="Phone (optional)" value={formData.phone} onChange={handleChange} error={fieldErrors.phone} />
+              
               <div className="grid grid-cols-2 gap-3">
                 <Input id="password" type="password" label="Password" value={formData.password} onChange={handleChange} required />
                 <Input id="confirmPassword" type="password" label="Confirm password" value={formData.confirmPassword} onChange={handleChange} required />
               </div>
-
               {role === UserRole.SHOP_OWNER && (
                 <>
                   <Input id="shopName" label="Shop name" value={formData.shopName} onChange={handleChange} required />
@@ -182,35 +203,22 @@ const RegisterPage: React.FC = () => {
                   <div>
                     <label htmlFor="province" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Province</label>
                     <select id="province" name="province" value={formData.province} onChange={handleChange} required className="mt-1 block w-full pl-3 pr-10 py-2 text-base rounded-md shadow-sm bg-white dark:bg-dark-input text-gray-900 dark:text-white border-gray-300 dark:border-dark-surface focus:outline-none focus:ring-dark-border focus:border-dark-border sm:text-sm">
-                      {provinces.length === 0 ? (
-                        <option value="" disabled>Loading provinces...</option>
-                      ) : (
-                        provinces.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))
-                      )}
+                      {provinces.length === 0 ? (<option value="" disabled>Loading provinces...</option>) : (provinces.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>)))}
                     </select>
                   </div>
                 </>
               )}
-
-              {error && (
-                <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">
-                  {error}
-                </div>
-              )}
-
+              {error && (<div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">{error}</div>)}
               <Button type="submit" disabled={loading || !formData.email || !formData.password || (role === UserRole.SHOP_OWNER && (!formData.shopName.trim() || !formData.province))} className="w-full">
                 {loading ? 'Creating account…' : 'Create account'}
               </Button>
             </form>
           )}
         </Card>
-
         {!registrationSuccess && (
             <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
                 Already have an account?{' '}
-                <Link to="/login" className="font-medium text-primary hover:text-primary-dark dark:text-primary-light dark:hover:text-primary">
-                    Sign in
-                </Link>
+                <Link to="/login" className="font-medium text-primary hover:text-primary-dark dark:text-primary-light dark:hover:text-primary">Sign in</Link>
             </p>
         )}
       </div>
