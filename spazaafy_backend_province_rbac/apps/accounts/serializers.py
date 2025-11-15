@@ -206,7 +206,7 @@ class LoginSerializer(serializers.Serializer):
         email = (attrs.get("email") or "").strip().lower()
         password = attrs.get("password")
 
-        user = authenticate(request=self.context.get('request'), email=email, password=password)
+        user = authenticate(request=self.context.get('request'), username=email, password=password)
 
         if not user:
             raise serializers.ValidationError({"non_field_errors": ["Invalid email or password."]})
