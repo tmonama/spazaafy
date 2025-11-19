@@ -92,7 +92,7 @@ const DownloadAppPage: React.FC = () => {
                     <div className="w-full rounded-xl bg-primary text-white text-center py-3 text-sm font-semibold">
                       I&apos;m a Consumer
                     </div>
-                    <div className="w-full rounded-xl bg-secondary text-white text-center py-3 text-sm font-semibold">
+                    <div className="w-full rounded-xl bg-secondary text-white text-center py-3 px-2 text-sm font-semibold">
                       I&apos;m a Spaza Shop Owner
                     </div>
                   </div>
