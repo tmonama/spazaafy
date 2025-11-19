@@ -26,9 +26,10 @@ const DownloadAppPage: React.FC = () => {
           <div className="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
             {/* Download button – links directly to your APK */}
             <a
+              // Note: Adjusted the appearance to better match the PNG's button gradient.
               href="/spazaafy.apk"
               download="Spazaafy.apk"
-              className="inline-flex items-center justify-center px-8 py-3 rounded-full text-base font-semibold text-white bg-gradient-to-r from-primary to-secondary shadow-md hover:shadow-lg hover:opacity-95 transition"
+              className="inline-flex items-center justify-center px-8 py-3 rounded-full text-base font-semibold text-white bg-gradient-to-r from-green-500 to-lime-400 shadow-lg hover:shadow-xl hover:opacity-95 transition"
             >
               Download Now
             </a>
@@ -52,38 +53,58 @@ const DownloadAppPage: React.FC = () => {
           </p>
         </div>
 
-        {/* RIGHT: Phone mock / image */}
+        {/* RIGHT: Phone mock / image (UPDATED STRUCTURE) */}
         <div className="w-full md:w-1/2 flex justify-center">
           <Card className="relative overflow-hidden w-full max-w-md bg-white dark:bg-gray-900">
-            {/* Green gradient background blob */}
+            {/* Green gradient background blob - Adjusted position and opacity slightly */}
             <div className="absolute -top-32 -right-32 w-72 h-72 bg-gradient-to-br from-primary to-secondary rounded-full opacity-70" />
 
             <div className="relative z-10 flex flex-col items-center px-6 py-10">
-              {/* Mock phone frame */}
-              <div className="w-56 sm:w-64 rounded-3xl bg-black p-3 shadow-2xl">
-                <div className="bg-gray-100 rounded-2xl h-full flex flex-col items-center justify-center px-4 py-6">
-                  <h2 className="text-xl font-extrabold text-gray-900 mb-1">
+              
+              {/* --- START OF NEW PHONE MOCKUP STRUCTURE --- */}
+              <div className="relative w-64 h-[500px] rounded-[3rem] bg-black p-1 shadow-2xl">
+                
+                {/* Status Bar (Time) */}
+                <div className="absolute top-4 left-6 text-white text-xs z-20 font-semibold">
+                    15:57
+                </div>
+                <div className="absolute top-4 right-6 flex items-center space-x-1 z-20">
+                    <div className="w-2 h-2 rounded-full bg-white opacity-80"></div>
+                    <div className="w-3 h-3 rounded-full bg-white opacity-80"></div>
+                    <div className="w-4 h-2 border border-white rounded-sm"></div>
+                </div>
+
+                {/* The Screen Display */}
+                <div className="bg-white dark:bg-gray-100 rounded-[2.8rem] h-full flex flex-col items-center justify-center px-6 py-10">
+                  
+                  {/* Phone Notch */}
+                  <div className="absolute top-1 left-1/2 -translate-x-1/2 w-16 h-5 bg-black rounded-b-xl z-20"></div>
+
+                  <h2 className="text-2xl font-extrabold text-gray-900 mb-1 mt-10">
                     Spazaafy
                   </h2>
-                  <p className="text-xs text-gray-500 mb-4 text-center">
+                  <p className="text-xs text-gray-500 mb-8 text-center">
                     Trust your spaza. Spazaafy it!
                   </p>
 
-                  <div className="w-full space-y-3">
-                    <div className="w-full rounded-xl bg-primary text-white text-center py-2 text-sm font-semibold">
+                  <div className="w-full space-y-4 px-4">
+                    {/* Buttons updated to match the colors and rounded corners in the PNG */}
+                    <div className="w-full rounded-full bg-green-500 hover:bg-green-600 text-white text-center py-3 text-sm font-semibold cursor-pointer transition">
                       I&apos;m a Consumer
                     </div>
-                    <div className="w-full rounded-xl bg-secondary text-white text-center py-2 text-sm font-semibold">
+                    <div className="w-full rounded-full bg-red-500 hover:bg-red-600 text-white text-center py-3 text-sm font-semibold cursor-pointer transition">
                       I&apos;m a Spaza Shop Owner
                     </div>
                   </div>
 
-                  <p className="mt-4 text-[10px] text-gray-500 text-center">
+                  <p className="mt-8 text-xs text-gray-500 text-center">
                     Already have an account?{" "}
-                    <span className="font-semibold text-primary">Log in</span>
+                    <span className="font-semibold text-primary cursor-pointer">Log in here</span>
                   </p>
                 </div>
               </div>
+              {/* --- END OF NEW PHONE MOCKUP STRUCTURE --- */}
+              
             </div>
           </Card>
         </div>
