@@ -89,7 +89,7 @@ const DownloadAppPage: React.FC = () => {
 
                   <div className="w-full space-y-3 px-4">
                     {/* BUTTONS: Reverted to original colors & rounded-xl, but increased vertical padding (py-3) */}
-                    <div className="w-full rounded-xl bg-primary text-white text-center py-3 text-sm font-semibold">
+                    <div className="w-full rounded-xl bg-primary text-white text-center py-3 text-xs font-semibold">
                       I&apos;m a Consumer
                     </div>
                     <div className="w-full rounded-xl bg-secondary text-white text-center py-3 px-2 text-xs font-semibold">
