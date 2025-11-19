@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertsProvider } from './components/AlertsContext';
-import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'; // Add Outlet
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'; // Add Outlet
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
@@ -32,13 +32,14 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 
 import AdminRegisterPage from './pages/admin/AdminRegisterPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
+import DownloadAppPage from "./pages/DownloadAppPage";
 
 
 
 function App() {
   return (
     <AuthProvider>
-      <HashRouter>
+      <BrowserRouter>
         {/* ✅ Global provider so Header always sees alerts */}
         <AlertsProvider>
           <Routes>
@@ -52,6 +53,7 @@ function App() {
             <Route path="/site-visits/:visitId/form" element={<PublicSiteVisitForm />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+            <Route path="/download" element={<DownloadAppPage />} />
 
             {/* User Routes */}
             <Route path="/dashboard" element={<DashboardPage />} />
@@ -83,7 +85,7 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </AlertsProvider>
-      </HashRouter>
+      </BrowserRouter>
     </AuthProvider>
   );
 }
