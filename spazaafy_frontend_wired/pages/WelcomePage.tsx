@@ -16,7 +16,7 @@ const WelcomePage: React.FC = () => {
             setShowPopup(true);
             // Small delay so the opacity transition can kick in
             setTimeout(() => setAnimatePopup(true), 50);
-        }, 3000);
+        }, 2000);
 
         return () => clearTimeout(timer);
     }, []);
