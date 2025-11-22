@@ -49,7 +49,7 @@ const WelcomePage: React.FC = () => {
                                 ✕
                             </button>
 
-                            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">
+                            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
                                 Get the Spazaafy App
                             </h2>
                             <p className="text-gray-600 dark:text-gray-300 mb-6">
@@ -67,7 +67,7 @@ const WelcomePage: React.FC = () => {
                             </a>
 
                             <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                                You can also visit{' '}
+                                Or visit{' '}
                                 <a
                                     href={APP_DOWNLOAD_URL}
                                     target="_blank"
