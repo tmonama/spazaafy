@@ -12,6 +12,7 @@ from apps.shops.models import Province, SpazaShop
 from .models import AdminVerificationCode, EmailVerificationToken
 from django.core.mail import send_mail
 from django.conf import settings
+from django.core.mail import EmailMessage
 
 User = get_user_model()
 
@@ -182,13 +183,29 @@ class RegisterSerializer(serializers.Serializer):
         # ✅ FIX: Removed hash (#) from URL for clean routing
         verification_url = f"{frontend_url}/verify-email/{token_obj.token}"
         
-        send_mail(
-            subject='Verify Your Email for Spazaafy',
-            message=f'Hi {user.first_name or "there"},\n\nPlease click the link below to verify your email address:\n{verification_url}\n\nThis link will expire in 24 hours.\n\nThanks,\nThe Spazaafy Team',
+        token_obj = EmailVerificationToken.objects.create(user=user)
+        frontend_url = settings.FRONTEND_URL.rstrip('/')
+        verification_url = f"{frontend_url}/verify-email/{token_obj.token}"
+
+        # --- NEW CODE FOR BREVO TEMPLATE ---
+        
+        # 1. Create the email object
+        message = EmailMessage(
+            to=[user.email],
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
         )
+
+        # 2. Tell Brevo which template ID to use (Replace '1' with your actual ID)
+        message.template_id = 1
+
+        # 3. Pass the variables to fill into the {{ params.NAME }} spots
+        message.merge_global_data = {
+            'NAME': user.first_name if user.first_name else "User",
+            'LINK': verification_url,
+        }
+
+        # 4. Send
+        message.send()
 
         return user
 

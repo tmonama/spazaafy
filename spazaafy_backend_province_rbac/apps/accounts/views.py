@@ -6,7 +6,7 @@ from rest_framework import status, permissions, viewsets, generics
 from django.utils import timezone
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, AdminRequestCodeSerializer, AdminVerifiedRegistrationSerializer
 import random
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMessage # <--- Import EmailMessage
 from django.conf import settings
 from .models import User, AdminVerificationCode, EmailVerificationToken
 from django.db import IntegrityError
@@ -32,13 +32,25 @@ class RequestAdminVerificationCodeView(generics.GenericAPIView):
         )
 
         try:
-            send_mail(
-                subject='Your Spazaafy Admin Verification Code',
-                message=f'Your verification code is: {code}',
+            # --- UPDATED: Use Brevo Template for Admin Code ---
+            # You need to create a template in Brevo with ID X (e.g., 3)
+            # Variable in Brevo template: {{ params.CODE }}
+            
+            message = EmailMessage(
+                to=[email],
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=False,
             )
+            
+            # REPLACE '3' WITH YOUR ACTUAL ADMIN CODE TEMPLATE ID
+            message.template_id = 2 
+            
+            message.merge_global_data = {
+                'CODE': code,
+            }
+            
+            message.send()
+            # --------------------------------------------------
+
         except Exception as e:
             return Response({"detail": f"Failed to send email. Please check server configuration. Error: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
