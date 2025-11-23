@@ -1,3 +1,5 @@
+// src/pages/admin/AdminTicketDetailPage.tsx
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Ticket, ChatMessage, User, TicketStatus, UserRole } from '../../types';
@@ -37,7 +39,6 @@ const ChatInput: React.FC<{
 
   return (
     <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200 dark:border-gray-700">
-      {/* ✅ FIX: Main input area now wraps */}
       <div className="flex flex-wrap items-start gap-2">
         <textarea
           value={content}
@@ -47,7 +48,6 @@ const ChatInput: React.FC<{
           rows={2}
           disabled={isSending}
         />
-        {/* ✅ FIX: Buttons group together on the right and stack on small screens */}
         <div className="flex w-full sm:w-auto sm:flex-col gap-2">
           <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
           <Button variant="secondary" type="button" onClick={() => fileInputRef.current?.click()} disabled={isSending} className="w-full justify-center">
@@ -70,8 +70,25 @@ const ChatInput: React.FC<{
   );
 };
 
+// --- FIX START: MessageBubble Component ---
 const MessageBubble: React.FC<{ message: ChatMessage; isFromAdmin: boolean; }> = ({ message, isFromAdmin }) => {
-    const apiBaseUrl = (import.meta as any).env.VITE_API_BASE || 'http://localhost:8000';
+    // 1. Determine Attachment URL and Name safely
+    let attachmentUrl = "";
+    let attachmentName = "Attachment";
+
+    if (typeof message.attachment === 'string') {
+        attachmentUrl = message.attachment;
+    } else if (message.attachment && typeof message.attachment === 'object') {
+        attachmentUrl = message.attachment.url;
+        attachmentName = message.attachment.name || "Attachment";
+    }
+
+    // 2. Determine if it's an absolute URL (S3) or relative (Local)
+    // S3 URLs start with http/https, so we use them directly.
+    // Local uploads start with /media, so we prepend the API base.
+    const finalUrl = attachmentUrl.startsWith('http') 
+        ? attachmentUrl 
+        : `${(import.meta as any).env.VITE_API_BASE?.replace('/api', '') || 'http://localhost:8000'}${attachmentUrl}`;
 
     return (
         <div className={`flex ${isFromAdmin ? 'justify-end' : 'justify-start'}`}>
@@ -79,22 +96,29 @@ const MessageBubble: React.FC<{ message: ChatMessage; isFromAdmin: boolean; }> =
                 isFromAdmin ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
             }`}>
                 {message.content && <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{message.content}</p>}
-                {message.attachment && (
+                
+                {attachmentUrl && (
                     <a 
-                        href={`${apiBaseUrl.replace('/api', '')}${message.attachment.url}`}
+                        href={finalUrl}
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        className="mt-2 flex items-center gap-2 p-2 bg-black bg-opacity-20 rounded-lg hover:bg-opacity-30"
+                        className={`mt-2 flex items-center gap-2 p-2 rounded-lg hover:bg-opacity-80 transition-colors ${
+                            isFromAdmin 
+                                ? 'bg-black bg-opacity-20 text-white' 
+                                : 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-500'
+                        }`}
                     >
                         <Paperclip size={16} />
-                        <span className="text-sm font-medium underline truncate">{message.attachment.name}</span>
+                        <span className="text-sm font-medium underline truncate max-w-[150px]">{attachmentName}</span>
                     </a>
                 )}
+                
                 <p className="text-xs opacity-70 mt-1 text-right">{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
             </div>
         </div>
     );
 };
+// --- FIX END ---
 
 const roleDisplay: Record<UserRole, string> = {
     [UserRole.CONSUMER]: 'Consumer',
@@ -223,7 +247,6 @@ const AdminTicketDetailPage: React.FC = () => {
             </div>
             <Card>
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                    {/* ✅ FIX: Header stacks on small screens */}
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
                         <div className="space-y-4">
                             <div>
@@ -247,7 +270,6 @@ const AdminTicketDetailPage: React.FC = () => {
                                     </span>
                                 )}
                             </div>
-                            {/* ✅ FIX: Priority buttons wrap */}
                             <div className="flex items-center flex-wrap gap-2">
                                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Priority:</span>
                                 {PRIORITIES.map(p => (
