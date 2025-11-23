@@ -1,3 +1,5 @@
+# apps/accounts/serializers.py
+
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model, authenticate
@@ -177,7 +179,8 @@ class RegisterSerializer(serializers.Serializer):
 
         token_obj = EmailVerificationToken.objects.create(user=user)
         frontend_url = settings.FRONTEND_URL.rstrip('/')
-        verification_url = f"{frontend_url}/#/verify-email/{token_obj.token}"
+        # ✅ FIX: Removed hash (#) from URL for clean routing
+        verification_url = f"{frontend_url}/verify-email/{token_obj.token}"
         
         send_mail(
             subject='Verify Your Email for Spazaafy',
