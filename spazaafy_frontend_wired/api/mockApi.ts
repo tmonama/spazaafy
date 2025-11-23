@@ -216,12 +216,36 @@ function toTicket(t: any): Ticket {
 }
 
 function toMessage(m: any): ChatMessage {
-  // FIX: Handle attachment format safely
   let attachment = undefined;
+
   if (typeof m.attachment === 'string') {
-      attachment = { name: 'Attachment', url: m.attachment, type: 'application/octet-stream', size: 0 };
+      // ✅ FIX: Extract actual filename from S3 URL
+      let fileName = 'Attachment';
+      try {
+          // Try to parse as URL to handle query params cleanly
+          const urlParts = m.attachment.split('/');
+          const lastPart = urlParts[urlParts.length - 1];
+          // Remove query params if present (e.g. ?AWSAccessKeyId=...)
+          fileName = lastPart.split('?')[0];
+          fileName = decodeURIComponent(fileName);
+      } catch (e) {
+          console.warn("Could not parse attachment filename", e);
+      }
+
+      attachment = { 
+          name: fileName || 'Attachment', 
+          url: m.attachment, 
+          type: 'application/octet-stream', 
+          size: 0 
+      };
   } else if (m.attachment) {
-      attachment = { name: m.attachment.name, url: m.attachment.url, type: m.attachment.type, size: m.attachment.size };
+      // Handle object format
+      attachment = { 
+          name: m.attachment.name, 
+          url: m.attachment.url, 
+          type: m.attachment.type, 
+          size: m.attachment.size 
+      };
   }
 
   return {

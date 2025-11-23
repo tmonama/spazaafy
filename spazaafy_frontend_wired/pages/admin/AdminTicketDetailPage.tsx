@@ -70,26 +70,28 @@ const ChatInput: React.FC<{
   );
 };
 
-// --- FIX START: Robust MessageBubble for Admin ---
+// --- MessageBubble Component ---
 const MessageBubble: React.FC<{ message: ChatMessage; isFromAdmin: boolean; }> = ({ message, isFromAdmin }) => {
-    // 1. Determine Attachment URL and Name safely
     let attachmentUrl = "";
     let attachmentName = "Attachment";
 
-    if (typeof message.attachment === 'string') {
-        attachmentUrl = message.attachment;
-    } else if (message.attachment && typeof message.attachment === 'object') {
-        // Ensure we don't set undefined if .url is missing
-        attachmentUrl = message.attachment.url || "";
-        attachmentName = message.attachment.name || "Attachment";
+    // Safely extract URL and Name from the attachment object/string
+    if (message.attachment) {
+        if (typeof message.attachment === 'string') {
+            attachmentUrl = message.attachment;
+        } else if (typeof message.attachment === 'object') {
+            // Prefer 'url', fallback to 'fileUrl' if API structure varies
+            attachmentUrl = message.attachment.url || (message.attachment as any).fileUrl || "";
+            attachmentName = message.attachment.name || "Attachment";
+        }
     }
 
-    // 2. Get Base URL
+    // Construct final URL
+    // If it starts with 'http', it is an absolute S3 URL -> Use as is.
+    // If it doesn't, it's likely a local dev path -> Prepend API Base.
     const apiBaseUrl = (import.meta as any).env.VITE_API_BASE?.replace('/api', '') || 'http://localhost:8000';
-
-    // 3. Construct Final URL Safely
-    // We check (attachmentUrl && ...) to ensure we don't crash on .startsWith()
-    const finalUrl = (attachmentUrl && attachmentUrl.startsWith('http'))
+    
+    const finalUrl = (attachmentUrl && attachmentUrl.startsWith('http')) 
         ? attachmentUrl 
         : `${apiBaseUrl}${attachmentUrl}`;
 
@@ -100,7 +102,8 @@ const MessageBubble: React.FC<{ message: ChatMessage; isFromAdmin: boolean; }> =
             }`}>
                 {message.content && <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{message.content}</p>}
                 
-                {attachmentUrl && (
+                {/* Render Attachment Link if URL exists */}
+                {attachmentUrl ? (
                     <a 
                         href={finalUrl}
                         target="_blank" 
@@ -114,14 +117,13 @@ const MessageBubble: React.FC<{ message: ChatMessage; isFromAdmin: boolean; }> =
                         <Paperclip size={16} />
                         <span className="text-sm font-medium underline truncate max-w-[150px]">{attachmentName}</span>
                     </a>
-                )}
+                ) : null}
                 
                 <p className="text-xs opacity-70 mt-1 text-right">{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
             </div>
         </div>
     );
 };
-// --- FIX END ---
 
 const roleDisplay: Record<UserRole, string> = {
     [UserRole.CONSUMER]: 'Consumer',
@@ -179,7 +181,6 @@ const AdminTicketDetailPage: React.FC = () => {
             return;
         }
         const intervalId = setInterval(async () => {
-            console.log("Polling for new messages...");
             const messagesData = await mockApi.tickets.listMessages(ticketId);
             setMessages(messagesData);
         }, 5000);
