@@ -24,15 +24,15 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            # For security reasons, we do not want to reveal if an email 
-            # is registered or not. We return silently.
+            # For security, return silently if email doesn't exist
             return
 
         # Create the token
+        # Invalidate old tokens first
+        PasswordResetToken.objects.filter(user=user).update(is_used=True)
         token_obj = PasswordResetToken.objects.create(user=user)
 
         # Build the URL (Clean URL without Hash)
-        # Example: https://spazaafy.co.za/reset-password/uuid-token
         frontend_url = settings.FRONTEND_URL.rstrip('/')
         reset_url = f"{frontend_url}/reset-password/{token_obj.token}"
 
@@ -42,11 +42,10 @@ class PasswordResetRequestSerializer(serializers.Serializer):
             from_email=settings.DEFAULT_FROM_EMAIL,
         )
 
-        # ⚠️ IMPORTANT: Replace '2' with the actual Template ID you created in Brevo
+        # ✅ TEMPLATE ID 3 (Spazaafy Password Reset)
         message.template_id = 3 
 
         # Pass variables to the Brevo template
-        # Ensure your Brevo template uses {{ params.NAME }} and {{ params.RESET_LINK }}
         message.merge_global_data = {
             'NAME': user.first_name if user.first_name else "User",
             'RESET_LINK': reset_url,
@@ -77,10 +76,10 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         
         # 2. Validate Token
         try:
-            token_obj = PasswordResetToken.objects.get(token=data['token'])
+            token_obj = PasswordResetToken.objects.get(token=data['token'], is_used=False)
             
             if token_obj.is_expired():
-                token_obj.delete()
+                # Don't delete immediately so we can show specific expired message
                 raise serializers.ValidationError({"token": "This reset link has expired."})
             
             # Pass these objects to the save method
@@ -95,12 +94,14 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     def save(self):
         user = self.validated_data['user']
         new_password = self.validated_data['password']
+        token_obj = self.validated_data['token_obj']
         
         # Update password
         user.set_password(new_password)
         user.save()
         
-        # Delete the used token so it cannot be used again
-        self.validated_data['token_obj'].delete()
+        # Mark token as used
+        token_obj.is_used = True
+        token_obj.save()
         
         return user
