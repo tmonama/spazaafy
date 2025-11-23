@@ -1,4 +1,4 @@
-/// <reference types="vite/client" />
+
 // api/mockApi.ts — FULL FILE
 
 import {
@@ -216,13 +216,21 @@ function toTicket(t: any): Ticket {
 }
 
 function toMessage(m: any): ChatMessage {
+  // FIX: Handle attachment format safely
+  let attachment = undefined;
+  if (typeof m.attachment === 'string') {
+      attachment = { name: 'Attachment', url: m.attachment, type: 'application/octet-stream', size: 0 };
+  } else if (m.attachment) {
+      attachment = { name: m.attachment.name, url: m.attachment.url, type: m.attachment.type, size: m.attachment.size };
+  }
+
   return {
     id: String(m.id ?? ''),
     ticketId: String(m.ticket_id ?? m.ticketId ?? ''),
     senderId: String(m.sender ?? m.sender_id ?? m.senderId ?? ''),
     content: String(m.content ?? ''),
     createdAt: String(m.created_at ?? m.createdAt ?? new Date().toISOString()),
-    attachment: m.attachment ? { name: m.attachment.name, url: m.attachment.url, type: m.attachment.type, size: m.attachment.size } : undefined,
+    attachment: attachment,
   };
 }
 
@@ -264,6 +272,17 @@ function clearTokens() {
   sessionStorage.removeItem('refresh');
 }
 
+// ✅ NEW HELPER: Detects if we are in Admin or Standard mode and redirects accordingly
+function handleSessionExpiry() {
+    clearTokens();
+    // Check if the current URL is an admin URL
+    if (window.location.hash.includes('/admin') || window.location.pathname.includes('/admin')) {
+        window.location.href = '/#/admin/login';
+    } else {
+        window.location.href = '/#/login';
+    }
+}
+
 let isRefreshing = false;
 let failedQueue: { resolve: (value?: any) => void; reject: (reason?: any) => void; }[] = [];
 const processQueue = (error: Error | null, token: string | null = null) => {
@@ -294,8 +313,7 @@ async function request<T = any>(url: string, options: RequestInit = {}, withAuth
     isRefreshing = true;
     const refreshToken = getRefresh();
     if (!refreshToken) {
-      clearTokens();
-      window.location.href = '/#/login';
+      handleSessionExpiry(); // ✅ USE HELPER
       return Promise.reject(new Error('Session expired.'));
     }
     try {
@@ -312,8 +330,7 @@ async function request<T = any>(url: string, options: RequestInit = {}, withAuth
       res = await fetch(`${API_BASE}${url}`, { ...options, headers });
     } catch (e) {
       processQueue(e as Error, null);
-      clearTokens();
-      window.location.href = '/#/login';
+      handleSessionExpiry(); // ✅ USE HELPER
       return Promise.reject(e);
     } finally {
       isRefreshing = false;
@@ -323,8 +340,7 @@ async function request<T = any>(url: string, options: RequestInit = {}, withAuth
   if (!res.ok) {
     const finalErrorText = await res.text().catch(() => 'Request failed');
     if (res.status === 401 && withAuth) {
-        clearTokens();
-        window.location.href = '/#/login'; 
+        handleSessionExpiry(); // ✅ USE HELPER
         return Promise.reject(new Error('Session expired. Please log in again.'));
     }
     const cleanMessage = parseApiError(finalErrorText);
@@ -350,8 +366,7 @@ async function requestWithFile<T = any>(url: string, options: Omit<RequestInit, 
       headers['Authorization'] = `Bearer ${newToken}`;
       res = await fetch(`${API_BASE}${url}`, { ...options, headers });
     } catch (e) {
-      clearTokens();
-      window.location.href = '/#/login';
+      handleSessionExpiry(); // ✅ USE HELPER
       return Promise.reject(new Error('Session expired.'));
     }
   }
