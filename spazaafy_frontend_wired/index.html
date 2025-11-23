@@ -1,8 +1,14 @@
+<!-- index.html -->
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCgopEvYZT1tPM7P2TC6l_figAkmLp-k6c&libraries=places"></script>
     <meta charset="UTF-8" />
+    
+    <!-- ✅ FIX: Add base href to ensure routing works on subpaths -->
+    <base href="/" />
+
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Spazaafy: Trust Your Spaza</title>
@@ -18,7 +24,6 @@
     <meta property="og:url" content="https://spazaafy.co.za/">
     <meta property="og:title" content="Spazaafy — Trust Your Spaza">
     <meta property="og:description" content="A platform for verifying and managing spaza shops for compliance and consumer trust.">
-    <!-- ✅ CORRECTED PATH: Removed /public/ and used the new filename -->
     <meta property="og:image" content="https://spazaafy.co.za/media/spazaafy-logo.png">
 
     <!-- Twitter -->
@@ -26,7 +31,6 @@
     <meta property="twitter:url" content="https://spazaafy.co.za/">
     <meta property="twitter:title" content="Spazaafy — Trust Your Spaza">
     <meta property="twitter:description" content="A platform for verifying and managing spaza shops for compliance and consumer trust.">
-    <!-- ✅ CORRECTED PATH: Removed /public/ and used the new filename -->
     <meta property="twitter:image" content="https://spazaafy.co.za/media/spazaafy-logo.png">
 
     <!-- ======== END: SOCIAL MEDIA & SEO TAGS ======== -->
@@ -35,6 +39,7 @@
   <body class="bg-slate-50 dark:bg-dark-bg transition-colors duration-300">
     
     <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
+    <!-- ✅ FIX: Changed src="./index.tsx" to "/index.tsx" (absolute path) -->
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
