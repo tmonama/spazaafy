@@ -1,3 +1,4 @@
+
 import os
 import dj_database_url
 from pathlib import Path
@@ -65,9 +66,6 @@ TEMPLATES = [{
 WSGI_APPLICATION = 'spazaafy_backend.wsgi.application'
 
 # --- Database ---
-# This block replaces your old DATABASES setting.
-# It uses the DATABASE_URL from Render in production, but falls back to your
-# local Docker setup if that variable isn't set.
 DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv('DATABASE_URL', 'postgres://spazaafy:spazaafy@db:5432/spazaafy'),
@@ -97,10 +95,18 @@ REST_FRAMEWORK = {
     ],
 }
 
-from datetime import timedelta
+# ✅ MODIFIED: Session Timeout Logic (30 Mins)
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.environ.get('ACCESS_TOKEN_LIFETIME_MIN','60'))),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.environ.get('REFRESH_TOKEN_LIFETIME_DAYS','7'))),
+    # Access token lives for 30 minutes
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.environ.get('ACCESS_TOKEN_LIFETIME_MIN','30'))),
+    
+    # Refresh token also lives for 30 minutes to enforce strict session timeout
+    'REFRESH_TOKEN_LIFETIME': timedelta(minutes=int(os.environ.get('REFRESH_TOKEN_LIFETIME_MIN','30'))),
+    
+    # Enable rotation: If user is active, they get a new 30min refresh token
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
@@ -128,40 +134,27 @@ CORS_ALLOWED_ORIGINS = [o for o in os.environ.get('CORS_ALLOWED_ORIGINS','').spl
 ]
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get('CSRF_TRUSTED_ORIGINS','').split(',') if o]
 
-# spazaafy_backend/settings.py
-
-# --- Email Configuration (for development) ---
-# In production, use a real email backend like SendGrid or AWS SES.
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'noreply@spazaafy.com'
-
-# --- Frontend URL ---
-# This is used to construct the reset link in the email
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
-# DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-
-# This will be set on Render as an environment variable
-# CLOUDINARY_URL = os.getenv('CLOUDINARY_URL')
-
-
-# --- Email Configuration (Production with Brevo) ---
+# --- Email Configuration ---
 if not DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = 'smtp-relay.brevo.com'
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
-    # This reads the EMAIL_HOST_USER variable from your .env file
     EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER") or os.getenv("BREVO_LOGIN")
-    # This reads the EMAIL_HOST_PASSWORD variable from your .env file
     EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD") or os.getenv("BREVO_API_KEY")
-    # This reads the DEFAULT_FROM_EMAIL variable from your .env file
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    DEFAULT_FROM_EMAIL = 'noreply@spazaafy.com'
+
+# --- Frontend URL ---
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
 FILE_UPLOAD_HANDLERS = [
     'django.core.files.uploadhandler.MemoryFileUploadHandler',
 ]
 
-# --- ADD THESE NEW AWS S3 SETTINGS ---
+# --- AWS S3 Settings ---
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
@@ -169,14 +162,11 @@ AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
 AWS_S3_FILE_OVERWRITE = True
 AWS_DEFAULT_ACL = None
 AWS_S3_OBJECT_PARAMETERS = {
-    'CacheControl': 'max-age=86400', # Cache files for 1 day
+    'CacheControl': 'max-age=86400', 
 }
 AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
 
-# This points to your S3 bucket for all media file uploads
 MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
-
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 STORAGES = {
     "default": {
