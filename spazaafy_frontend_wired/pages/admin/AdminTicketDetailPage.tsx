@@ -70,7 +70,7 @@ const ChatInput: React.FC<{
   );
 };
 
-// --- FIX START: MessageBubble Component ---
+// --- FIX START: Robust MessageBubble for Admin ---
 const MessageBubble: React.FC<{ message: ChatMessage; isFromAdmin: boolean; }> = ({ message, isFromAdmin }) => {
     // 1. Determine Attachment URL and Name safely
     let attachmentUrl = "";
@@ -79,16 +79,19 @@ const MessageBubble: React.FC<{ message: ChatMessage; isFromAdmin: boolean; }> =
     if (typeof message.attachment === 'string') {
         attachmentUrl = message.attachment;
     } else if (message.attachment && typeof message.attachment === 'object') {
-        attachmentUrl = message.attachment.url;
+        // Ensure we don't set undefined if .url is missing
+        attachmentUrl = message.attachment.url || "";
         attachmentName = message.attachment.name || "Attachment";
     }
 
-    // 2. Determine if it's an absolute URL (S3) or relative (Local)
-    // S3 URLs start with http/https, so we use them directly.
-    // Local uploads start with /media, so we prepend the API base.
-    const finalUrl = attachmentUrl.startsWith('http') 
+    // 2. Get Base URL
+    const apiBaseUrl = (import.meta as any).env.VITE_API_BASE?.replace('/api', '') || 'http://localhost:8000';
+
+    // 3. Construct Final URL Safely
+    // We check (attachmentUrl && ...) to ensure we don't crash on .startsWith()
+    const finalUrl = (attachmentUrl && attachmentUrl.startsWith('http'))
         ? attachmentUrl 
-        : `${(import.meta as any).env.VITE_API_BASE?.replace('/api', '') || 'http://localhost:8000'}${attachmentUrl}`;
+        : `${apiBaseUrl}${attachmentUrl}`;
 
     return (
         <div className={`flex ${isFromAdmin ? 'justify-end' : 'justify-start'}`}>
