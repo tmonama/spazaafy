@@ -29,7 +29,7 @@ const WelcomePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-dark-bg flex flex-col items-center p-4 relative">
+    <div className="min-h-screen bg-gray-100 dark:bg-dark-bg flex flex-col">
       {/* Popup overlay */}
       {showPopup && (
         <div
@@ -82,79 +82,81 @@ const WelcomePage: React.FC = () => {
         </div>
       )}
 
-      {/* Main content */}
-      <div className="text-center mt-10 mb-12">
-        <h1 className="text-5xl font-extrabold text-primary dark:text-primary">
-          Spazaafy
-        </h1>
-        <p className="mt-2 text-lg text-gray-600 dark:text-gray-300">
-          Trust your spaza. Spazaafy it!
-        </p>
-      </div>
+      {/* MAIN AREA (takes available height, footer sits below) */}
+      <main className="flex-1 flex flex-col items-center p-4 relative">
+        {/* Hero */}
+        <div className="text-center mt-10 mb-12">
+          <h1 className="text-5xl font-extrabold text-primary dark:text-primary">
+            Spazaafy
+          </h1>
+          <p className="mt-2 text-lg text-gray-600 dark:text-gray-300">
+            Trust your spaza. Spazaafy it!
+          </p>
+        </div>
 
-      <div className="w-full max-w-md mx-auto">
-        <Card className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
-            Join our Network
-          </h2>
-          <div className="space-y-4">
-            <Link
-              to="/register"
-              state={{ role: 'consumer' }}
-              className="block w-full text-center py-3 px-4 text-lg font-semibold rounded-md text-white bg-primary hover:bg-primary-dark transition-colors"
-            >
-              I'm a Consumer
-            </Link>
-            <Link
-              to="/register"
-              state={{ role: 'shop_owner' }}
-              className="block w-full text-center py-3 px-4 text-lg font-semibold rounded-md text-white bg-secondary hover:bg-secondary-dark transition-colors"
-            >
-              I'm a Spaza Shop Owner
-            </Link>
-          </div>
-        </Card>
-
-        <p className="mt-10 text-center text-gray-600 dark:text-gray-400">
-          Already have an account?{' '}
-          <Link
-            to="/login"
-            className="font-medium text-primary hover:text-primary-dark dark:text-primary-light dark:hover:text-primary"
-          >
-            Log in
-          </Link>
-        </p>
-
-        {/* Footer */}
-        <footer className="mt-20 pb-10 flex flex-col items-center space-y-4">
-            <Link
-                to="/about"
-                className="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary-light underline"
-            >
-                About us
-            </Link>
-
-            {/* Social icons */}
-            <div className="flex items-center space-x-4">
-                <SocialIconLink href="https://www.instagram.com/spazaafy/" label="Instagram">
-                I
-                </SocialIconLink>
-                <SocialIconLink href="https://x.com/spazaafy" label="X">
-                X
-                </SocialIconLink>
-                <SocialIconLink href="https://www.tiktok.com/@spazaafy" label="TikTok">
-                T
-                </SocialIconLink>
+        {/* Card + login */}
+        <div className="w-full max-w-md mx-auto">
+          <Card className="text-center">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+              Join our Network
+            </h2>
+            <div className="space-y-4">
+              <Link
+                to="/register"
+                state={{ role: 'consumer' }}
+                className="block w-full text-center py-3 px-4 text-lg font-semibold rounded-md text-white bg-primary hover:bg-primary-dark transition-colors"
+              >
+                I'm a Consumer
+              </Link>
+              <Link
+                to="/register"
+                state={{ role: 'shop_owner' }}
+                className="block w-full text-center py-3 px-4 text-lg font-semibold rounded-md text-white bg-secondary hover:bg-secondary-dark transition-colors"
+              >
+                I'm a Spaza Shop Owner
+              </Link>
             </div>
+          </Card>
 
-            {/* Copyright */}
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-                © {new Date().getFullYear()} Spazaafy. All rights reserved.
-            </p>
-        </footer>
+          <p className="mt-10 text-center text-gray-600 dark:text-gray-400">
+            Already have an account?{' '}
+            <Link
+              to="/login"
+              className="font-medium text-primary hover:text-primary-dark dark:text-primary-light dark:hover:text-primary"
+            >
+              Log in
+            </Link>
+          </p>
+        </div>
+      </main>
 
+      {/* FOOTER (true bottom footer, small bottom gap) */}
+      <footer className="pb-6 pt-6 flex flex-col items-center space-y-4">
+        <Link
+          to="/about"
+          className="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary-light underline"
+        >
+          About us
+        </Link>
 
-      </div>
+        {/* Social icons */}
+        <div className="flex items-center space-x-4">
+          <SocialIconLink href="https://www.instagram.com/spazaafy/" label="Instagram">
+            I
+          </SocialIconLink>
+          <SocialIconLink href="https://x.com/spazaafy" label="X (Twitter)">
+            X
+          </SocialIconLink>
+          <SocialIconLink href="https://www.tiktok.com/@spazaafy" label="TikTok">
+            T
+          </SocialIconLink>
+        </div>
+
+        {/* Copyright */}
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          © {new Date().getFullYear()} Spazaafy. All rights reserved.
+        </p>
+      </footer>
     </div>
   );
 };
