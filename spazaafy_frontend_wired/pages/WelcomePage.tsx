@@ -126,7 +126,7 @@ const WelcomePage: React.FC = () => {
         </p>
 
         {/* Footer */}
-        <footer className="mt-20 mb-8 flex flex-col items-center space-y-4">
+        <footer className="mt-20 pb-10 flex flex-col items-center space-y-4">
             <Link
                 to="/about"
                 className="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary-light underline"
@@ -134,21 +134,25 @@ const WelcomePage: React.FC = () => {
                 About us
             </Link>
 
-            <div className="flex items-center space-x-4 mt-2">
-                <SocialIconLink
-                href="https://www.instagram.com/spazaafy/"
-                label="Instagram"
-                >
+            {/* Social icons */}
+            <div className="flex items-center space-x-4">
+                <SocialIconLink href="https://www.instagram.com/spazaafy/" label="Instagram">
                 I
                 </SocialIconLink>
-                <SocialIconLink href="https://x.com/spazaafy" label="X (Twitter)">
+                <SocialIconLink href="https://x.com/spazaafy" label="X">
                 X
                 </SocialIconLink>
                 <SocialIconLink href="https://www.tiktok.com/@spazaafy" label="TikTok">
                 T
                 </SocialIconLink>
             </div>
+
+            {/* Copyright */}
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+                © {new Date().getFullYear()} Spazaafy. All rights reserved.
+            </p>
         </footer>
+
 
       </div>
     </div>
