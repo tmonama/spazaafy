@@ -29,7 +29,7 @@ const WelcomePage: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-100 dark:bg-dark-bg flex flex-col justify-end min-h-screen">
+    <div className="bg-gray-100 dark:bg-dark-bg flex flex-col justify-between min-h-screen">
       {/* Popup overlay */}
       {showPopup && (
         <div
