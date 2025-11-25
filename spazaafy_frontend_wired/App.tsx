@@ -34,6 +34,8 @@ import AdminRegisterPage from './pages/admin/AdminRegisterPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
 import DownloadAppPage from "./pages/DownloadAppPage";
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import AboutUsPage from "./pages/AboutUsPage";
+
 
 
 
@@ -57,6 +59,7 @@ function App() {
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
             <Route path="/download" element={<DownloadAppPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/about" element={<AboutUsPage />} />
 
             {/* User Routes */}
             <Route path="/dashboard" element={<DashboardPage />} />
