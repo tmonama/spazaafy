@@ -9,7 +9,7 @@ const AboutUsPage: React.FC = () => {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: "url('/media/about-us.png')",
+            backgroundImage: "url('./public/media/about-us.png')",
           }}
         />
         <div className="absolute inset-0 bg-black/50" />
@@ -25,7 +25,7 @@ const AboutUsPage: React.FC = () => {
         {/* Who we are */}
         <SectionWithImage
           title="Who we are"
-          image="/images/about-us2.png"
+          image="./public/media/about-us2.png"
           reverse={false}
         >
           Spazaafy is a digital trust and compliance platform built for South Africa’s informal
@@ -36,7 +36,7 @@ const AboutUsPage: React.FC = () => {
         {/* What we do */}
         <SectionWithImage
           title="What we do"
-          image="/images/about-us3.png"
+          image="./public/media/about-us3.png"
           reverse={true}
         >
           <ul className="list-disc pl-5 space-y-2">
@@ -52,7 +52,7 @@ const AboutUsPage: React.FC = () => {
         {/* Our Vision */}
         <SectionWithImage
           title="Our vision"
-          image="/images/about-us4.png"
+          image="./public/media/about-us4.png"
           reverse={false}
         >
           Our vision is a South Africa where every household can trust the spaza shops they use every
@@ -63,7 +63,7 @@ const AboutUsPage: React.FC = () => {
         {/* Connect with us */}
         <SectionWithImage
           title="Connect with us"
-          image="/images/about-us5.png"
+          image="./public/media/about-us5.png"
           reverse={true}
         >
           <p className="mb-6">
