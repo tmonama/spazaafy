@@ -29,7 +29,7 @@ const WelcomePage: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-100 dark:bg-dark-bg flex flex-col justify-between min-h-screen">
+    <div className="bg-gray-100 dark:bg-dark-bg flex flex-col justify-end min-h-screen">
       {/* Popup overlay */}
       {showPopup && (
         <div
@@ -133,7 +133,7 @@ const WelcomePage: React.FC = () => {
       </main>
 
       {/* FOOTER (true bottom footer, small bottom gap) */}
-      <footer className="pb-6 pt-6 flex flex-col items-center space-y-4">
+      <footer className="pb-6 pt-6 flex flex-col items-center space-y-4 mt-30">
         <Link
           to="/about"
           className="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary-light underline"
