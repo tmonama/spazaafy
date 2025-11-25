@@ -142,7 +142,7 @@ const WelcomePage: React.FC = () => {
         </Link>
 
         {/* Social icons */}
-        <div className="flex items-center space-x-4 mt-10">
+        <div className="flex items-center space-x-4 mt-20">
           <SocialIconLink href="https://www.instagram.com/spazaafy/" label="Instagram">
             I
           </SocialIconLink>
