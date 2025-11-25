@@ -356,6 +356,7 @@ const PrivacyPolicyPage: React.FC = () => {
                 spazaafy@gmail.com
               </a>
               <br />
+            </p>
             <p className="mt-2">
               You also have the right to lodge a complaint with the Information
               Regulator (South Africa):{" "}
