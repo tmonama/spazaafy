@@ -29,7 +29,7 @@ const WelcomePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-dark-bg flex flex-col items-center justify-center p-4 relative">
+    <div className="min-h-screen bg-gray-100 dark:bg-dark-bg flex flex-col items-center p-4 relative">
       {/* Popup overlay */}
       {showPopup && (
         <div
@@ -83,7 +83,7 @@ const WelcomePage: React.FC = () => {
       )}
 
       {/* Main content */}
-      <div className="text-center mb-12">
+      <div className="text-center mt-10 mb-12">
         <h1 className="text-5xl font-extrabold text-primary dark:text-primary">
           Spazaafy
         </h1>
@@ -115,7 +115,7 @@ const WelcomePage: React.FC = () => {
           </div>
         </Card>
 
-        <p className="mt-8 text-center text-gray-600 dark:text-gray-400">
+        <p className="mt-10 text-center text-gray-600 dark:text-gray-400">
           Already have an account?{' '}
           <Link
             to="/login"
