@@ -33,6 +33,8 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import AdminRegisterPage from './pages/admin/AdminRegisterPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
 import DownloadAppPage from "./pages/DownloadAppPage";
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+
 
 
 
@@ -80,6 +82,7 @@ function App() {
               <Route path="tickets/:ticketId" element={<AdminTicketDetailPage />} />
               <Route path="site-visits" element={<AdminSiteVisitsPage />} />
               <Route path="site-visits/:visitId" element={<AdminSiteVisitDetailPage />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />
