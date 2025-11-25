@@ -133,7 +133,7 @@ const WelcomePage: React.FC = () => {
       </main>
 
       {/* FOOTER (true bottom footer, small bottom gap) */}
-      <footer className="pb-6 pt-6 flex flex-col items-center space-y-4 mt-40">
+      <footer className="pb-6 pt-6 flex flex-col items-center space-y-4 mt-30">
         <Link
           to="/about"
           className="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary-light underline"
@@ -142,7 +142,7 @@ const WelcomePage: React.FC = () => {
         </Link>
 
         {/* Social icons */}
-        <div className="flex items-center space-x-4 mt-20">
+        <div className="flex items-center space-x-4 mt-10">
           <SocialIconLink href="https://www.instagram.com/spazaafy/" label="Instagram">
             I
           </SocialIconLink>
