@@ -125,33 +125,31 @@ const WelcomePage: React.FC = () => {
           </Link>
         </p>
 
-        {/* About us + social icons */}
-        <div className="mt-10 flex flex-col items-center space-y-4">
-          <Link
-            to="/about"
-            className="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary-light underline"
-          >
-            About us
-          </Link>
+        {/* Footer */}
+        <footer className="mt-20 mb-8 flex flex-col items-center space-y-4">
+            <Link
+                to="/about"
+                className="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary-light underline"
+            >
+                About us
+            </Link>
 
-          <div className="flex items-center space-x-4">
-            <SocialIconLink
-              href="https://www.instagram.com/spazaafy/"
-              label="Instagram"
-            >
-              I
-            </SocialIconLink>
-            <SocialIconLink href="https://x.com/spazaafy" label="X (Twitter)">
-              X
-            </SocialIconLink>
-            <SocialIconLink
-              href="https://www.tiktok.com/@spazaafy"
-              label="TikTok"
-            >
-              T
-            </SocialIconLink>
-          </div>
-        </div>
+            <div className="flex items-center space-x-4 mt-2">
+                <SocialIconLink
+                href="https://www.instagram.com/spazaafy/"
+                label="Instagram"
+                >
+                I
+                </SocialIconLink>
+                <SocialIconLink href="https://x.com/spazaafy" label="X (Twitter)">
+                X
+                </SocialIconLink>
+                <SocialIconLink href="https://www.tiktok.com/@spazaafy" label="TikTok">
+                T
+                </SocialIconLink>
+            </div>
+        </footer>
+
       </div>
     </div>
   );
