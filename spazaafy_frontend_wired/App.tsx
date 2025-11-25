@@ -56,6 +56,7 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
             <Route path="/download" element={<DownloadAppPage />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
 
             {/* User Routes */}
             <Route path="/dashboard" element={<DashboardPage />} />
@@ -82,7 +83,6 @@ function App() {
               <Route path="tickets/:ticketId" element={<AdminTicketDetailPage />} />
               <Route path="site-visits" element={<AdminSiteVisitsPage />} />
               <Route path="site-visits/:visitId" element={<AdminSiteVisitDetailPage />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />
