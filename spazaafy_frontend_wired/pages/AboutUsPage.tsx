@@ -9,7 +9,7 @@ const AboutUsPage: React.FC = () => {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: "url('./public/media/about-us.png')",
+            backgroundImage: "url('/media/about-us.png')",
           }}
         />
         <div className="absolute inset-0 bg-black/50" />
@@ -25,7 +25,7 @@ const AboutUsPage: React.FC = () => {
         {/* Who we are */}
         <SectionWithImage
           title="Who we are"
-          image="./public/media/about-us2.png"
+          image="/media/about-us2.png"
           reverse={false}
         >
           Spazaafy is a digital trust and compliance platform built for South Africa’s informal
@@ -36,7 +36,7 @@ const AboutUsPage: React.FC = () => {
         {/* What we do */}
         <SectionWithImage
           title="What we do"
-          image="./public/media/about-us3.png"
+          image="/media/about-us3.png"
           reverse={true}
         >
           <ul className="list-disc pl-5 space-y-2">
@@ -52,7 +52,7 @@ const AboutUsPage: React.FC = () => {
         {/* Our Vision */}
         <SectionWithImage
           title="Our vision"
-          image="./public/media/about-us4.png"
+          image="/media/about-us4.png"
           reverse={false}
         >
           Our vision is a South Africa where every household can trust the spaza shops they use every
@@ -63,7 +63,7 @@ const AboutUsPage: React.FC = () => {
         {/* Connect with us */}
         <SectionWithImage
           title="Connect with us"
-          image="./public/media/about-us5.png"
+          image="/media/about-us5.png"
           reverse={true}
         >
           <p className="mb-6">
@@ -76,6 +76,25 @@ const AboutUsPage: React.FC = () => {
           </div>
         </SectionWithImage>
       </div>
+
+      {/* Footer */}
+      <footer className="mt-20 pb-10 flex flex-col items-center space-y-4">
+        <div className="flex items-center space-x-4">
+          <SocialIcon href="https://www.instagram.com/spazaafy/" label="Instagram">
+            I
+          </SocialIcon>
+          <SocialIcon href="https://x.com/spazaafy" label="X">
+            X
+          </SocialIcon>
+          <SocialIcon href="https://www.tiktok.com/@spazaafy" label="TikTok">
+            T
+          </SocialIcon>
+        </div>
+
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          © {new Date().getFullYear()} Spazaafy. All rights reserved.
+        </p>
+      </footer>
     </div>
   );
 };
