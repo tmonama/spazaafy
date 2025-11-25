@@ -1,121 +1,154 @@
 // src/pages/AboutUsPage.tsx
-
 import React from "react";
 
 const AboutUsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-dark-bg flex flex-col">
       {/* Banner */}
-      <div className="relative h-64 w-full overflow-hidden">
+      <div className="relative h-72 w-full overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage: "url('/media/about-us.png')",
           }}
         />
-        {/* Dark overlay */}
         <div className="absolute inset-0 bg-black/50" />
         <div className="relative z-10 h-full flex items-center justify-center">
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-wide">
+          <h1 className="text-5xl font-extrabold text-white tracking-wide">
             About us
           </h1>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-10 space-y-8">
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-            Who we are
-          </h2>
-          <p className="text-sm sm:text-base leading-6 text-gray-700 dark:text-gray-300">
-            Spazaafy is a digital trust and compliance platform built for South
-            Africa’s informal retail sector. We help consumers, spaza shop
-            owners, and municipalities to connect in a safer, more transparent
-            way by making shop verification and compliance visible and easy to
-            understand.
-          </p>
-        </section>
+      {/* Content Wrapper */}
+      <div className="w-full max-w-6xl mx-auto px-8 lg:px-16 py-20 space-y-24">
+        {/* Who we are */}
+        <SectionWithImage
+          title="Who we are"
+          image="/images/about-us2.png"
+          reverse={false}
+        >
+          Spazaafy is a digital trust and compliance platform built for South Africa’s informal
+          retail sector. We help consumers, spaza shop owners, and municipalities connect in a safer,
+          more transparent way by making shop verification and compliance visible and easy to understand.
+        </SectionWithImage>
 
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-            What we do
-          </h2>
-          <ul className="list-disc pl-5 space-y-2 text-sm sm:text-base text-gray-700 dark:text-gray-300">
+        {/* What we do */}
+        <SectionWithImage
+          title="What we do"
+          image="/images/about-us3.png"
+          reverse={true}
+        >
+          <ul className="list-disc pl-5 space-y-2">
+            <li>Help consumers find verified and compliant spaza shops in their area.</li>
+            <li>Support shop owners on their journey to becoming registered and trusted in their communities.</li>
             <li>
-              Help consumers find verified and compliant spaza shops in their
-              area.
-            </li>
-            <li>
-              Support shop owners on their journey to becoming registered,
-              compliant and trusted in their communities.
-            </li>
-            <li>
-              Provide municipalities and partners with tools and data to monitor
-              compliance and support public health and safety.
+              Provide municipalities and partners with tools and data to monitor compliance and support
+              public health and safety.
             </li>
           </ul>
-        </section>
+        </SectionWithImage>
 
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-            Our vision
-          </h2>
-          <p className="text-sm sm:text-base leading-6 text-gray-700 dark:text-gray-300">
-            Our vision is a South Africa where every household can trust the
-            spaza shops they use every day — where small businesses are
-            supported, not marginalised, and where compliance is a bridge to
-            growth rather than a barrier.
-          </p>
-        </section>
+        {/* Our Vision */}
+        <SectionWithImage
+          title="Our vision"
+          image="/images/about-us4.png"
+          reverse={false}
+        >
+          Our vision is a South Africa where every household can trust the spaza shops they use every
+          day — where small businesses are supported, not marginalised, and where compliance is a
+          bridge to growth rather than a barrier.
+        </SectionWithImage>
 
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-            Connect with us
-          </h2>
-          <p className="text-sm sm:text-base leading-6 text-gray-700 dark:text-gray-300 mb-4">
-            Follow Spazaafy on social media to stay updated on new features,
-            rollouts and community impact stories:
+        {/* Connect with us */}
+        <SectionWithImage
+          title="Connect with us"
+          image="/images/about-us5.png"
+          reverse={true}
+        >
+          <p className="mb-6">
+            Follow Spazaafy on social media to stay updated on new features, rollouts and community
+            impact stories.
           </p>
-          <div className="flex flex-wrap items-center gap-4">
-            <a
-              href="https://www.instagram.com/spazaafy/"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center space-x-2 text-gray-800 dark:text-gray-100 hover:text-primary dark:hover:text-primary-light"
-            >
-              <SocialDot label="Instagram" />
-              <span className="text-sm">@spazaafy</span>
-            </a>
-            <a
-              href="https://x.com/spazaafy"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center space-x-2 text-gray-800 dark:text-gray-100 hover:text-primary dark:hover:text-primary-light"
-            >
-              <SocialDot label="X" />
-              <span className="text-sm">@spazaafy</span>
-            </a>
-            <a
-              href="https://www.tiktok.com/@spazaafy"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center space-x-2 text-gray-800 dark:text-gray-100 hover:text-primary dark:hover:text-primary-light"
-            >
-              <SocialDot label="TikTok" />
-              <span className="text-sm">@spazaafy</span>
-            </a>
+
+          <div className="flex items-center gap-6">
+            <SocialRow />
           </div>
-        </section>
+        </SectionWithImage>
       </div>
     </div>
   );
 };
 
-const SocialDot: React.FC<{ label: string }> = ({ label }) => (
-  <div className="h-8 w-8 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-xs font-bold text-white dark:text-gray-900">
-    {label[0]}
+/* Reusable Section Component */
+const SectionWithImage = ({
+  title,
+  image,
+  reverse,
+  children,
+}: {
+  title: string;
+  image: string;
+  reverse?: boolean;
+  children: React.ReactNode;
+}) => (
+  <div
+    className={`flex flex-col lg:flex-row items-center gap-12 ${
+      reverse ? "lg:flex-row-reverse" : ""
+    }`}
+  >
+    <div className="flex-1">
+      <h2 className="text-3xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
+        {title}
+      </h2>
+      <div className="text-gray-700 dark:text-gray-300 text-lg leading-7">
+        {children}
+      </div>
+    </div>
+
+    <div className="flex-1">
+      <img
+        src={image}
+        alt={title}
+        className="rounded-xl shadow-lg w-full object-cover"
+      />
+    </div>
   </div>
+);
+
+/* Social icons row */
+const SocialRow = () => (
+  <div className="flex items-center space-x-4">
+    <SocialIcon href="https://www.instagram.com/spazaafy/" label="Instagram">
+      I
+    </SocialIcon>
+    <SocialIcon href="https://x.com/spazaafy" label="X">
+      X
+    </SocialIcon>
+    <SocialIcon href="https://www.tiktok.com/@spazaafy" label="TikTok">
+      T
+    </SocialIcon>
+  </div>
+);
+
+const SocialIcon = ({
+  href,
+  label,
+  children,
+}: {
+  href: string;
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <a
+    href={href}
+    target="_blank"
+    rel="noreferrer"
+    aria-label={label}
+    className="h-10 w-10 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-sm font-bold text-white dark:text-gray-900 hover:bg-primary dark:hover:bg-primary transition-colors"
+  >
+    {children}
+  </a>
 );
 
 export default AboutUsPage;
