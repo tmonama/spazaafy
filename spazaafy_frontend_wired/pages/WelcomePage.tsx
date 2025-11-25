@@ -83,7 +83,7 @@ const WelcomePage: React.FC = () => {
       )}
 
       {/* MAIN AREA (takes available height, footer sits below) */}
-      <main className="flex-1 flex flex-col items-start p-4 relative">
+      <main className="flex flex-col items-center p-4 relative">
         <div className="w-full flex flex-col items-center">
             {/* Hero */}
             <div className="text-center mt-16 mb-12">
