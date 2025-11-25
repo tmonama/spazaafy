@@ -79,17 +79,6 @@ const AboutUsPage: React.FC = () => {
 
       {/* Footer */}
       <footer className="mt-20 pb-10 flex flex-col items-center space-y-4">
-        <div className="flex items-center space-x-4">
-          <SocialIcon href="https://www.instagram.com/spazaafy/" label="Instagram">
-            I
-          </SocialIcon>
-          <SocialIcon href="https://x.com/spazaafy" label="X">
-            X
-          </SocialIcon>
-          <SocialIcon href="https://www.tiktok.com/@spazaafy" label="TikTok">
-            T
-          </SocialIcon>
-        </div>
 
         <p className="text-xs text-gray-500 dark:text-gray-400">
           © {new Date().getFullYear()} Spazaafy. All rights reserved.
