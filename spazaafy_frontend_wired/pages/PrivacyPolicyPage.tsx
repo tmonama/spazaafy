@@ -356,8 +356,6 @@ const PrivacyPolicyPage: React.FC = () => {
                 spazaafy@gmail.com
               </a>
               <br />
-              Postal: (to be updated with official postal address)
-            </p>
             <p className="mt-2">
               You also have the right to lodge a complaint with the Information
               Regulator (South Africa):{" "}
