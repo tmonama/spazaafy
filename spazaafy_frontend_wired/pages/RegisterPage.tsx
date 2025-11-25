@@ -12,6 +12,76 @@ interface Province {
   name: string;
 }
 
+// Helper: format backend errors, with special handling for email already exists
+function formatRegisterError(err: any): string {
+  // Start from a generic fallback
+  let fallback = 'Registration failed. Please try again.';
+
+  if (!err) return fallback;
+
+  // If message already exists
+  if (typeof err.message === 'string' && err.message.trim()) {
+    const lower = err.message.toLowerCase();
+    if (lower.includes('email') && lower.includes('exist')) {
+      return 'Account already exists for this email.';
+    }
+    fallback = err.message;
+  }
+
+  const data = (err as any).response?.data || (err as any).body || (err as any).data;
+
+  if (data && typeof data === 'object') {
+    // Common DRF style: { detail: "... " }
+    if (typeof (data as any).detail === 'string') {
+      const detail = (data as any).detail;
+      const lower = detail.toLowerCase();
+      if (lower.includes('email') && lower.includes('exist')) {
+        return 'Account already exists for this email.';
+      }
+      return detail;
+    }
+
+    // Field-based errors e.g. { email: ["user with this email already exists."] }
+    const parts: string[] = [];
+    for (const key of Object.keys(data)) {
+      const value = (data as any)[key];
+      const arr = Array.isArray(value) ? value : [value];
+
+      arr.forEach((v: any) => {
+        const text = String(v);
+        const lower = text.toLowerCase();
+        if (key === 'email' && lower.includes('exist')) {
+          parts.push('Account already exists for this email.');
+        } else {
+          const label =
+            key === 'non_field_errors' || key === 'detail'
+              ? ''
+              : key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+          parts.push(label ? `${label}: ${text}` : text);
+        }
+      });
+    }
+
+    if (parts.length > 0) {
+      const combined = parts.join('\n');
+      const lower = combined.toLowerCase();
+      if (lower.includes('email') && lower.includes('exist')) {
+        return 'Account already exists for this email.';
+      }
+      return combined;
+    }
+  }
+
+  // Final safety net for email-exists wording hiding elsewhere
+  const combined = fallback;
+  const lower = combined.toLowerCase();
+  if (lower.includes('email') && lower.includes('exist')) {
+    return 'Account already exists for this email.';
+  }
+
+  return combined || 'Registration failed. Please try again.';
+}
+
 const RegisterPage: React.FC = () => {
   const location = useLocation();
   const initialRole =
@@ -37,10 +107,8 @@ const RegisterPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>(
-    {}
-  );
-  const [acceptTerms, setAcceptTerms] = useState(false); // ✅ NEW
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   useEffect(() => {
     setRole(
@@ -78,14 +146,17 @@ const RegisterPage: React.FC = () => {
   ) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
-    // Clear field-specific error when user types
     if (fieldErrors[id]) {
       setFieldErrors((prev) => ({ ...prev, [id]: '' }));
     }
+    if (error) setError('');
   };
 
   const handlePlaceSelect = (address: string, lat: number, lng: number) => {
     setFormData((prev) => ({ ...prev, address, latitude: lat, longitude: lng }));
+    if (fieldErrors.address) {
+      setFieldErrors((prev) => ({ ...prev, address: '' }));
+    }
   };
 
   const validatePassword = (pwd: string): string => {
@@ -98,16 +169,15 @@ const RegisterPage: React.FC = () => {
     return '';
   };
 
-  // ✅ Phone number validation (unchanged)
+  // Phone number now REQUIRED + must be SA format
   const validatePhoneNumber = (phone: string): string => {
-    if (!phone) return ''; // Phone is optional
-
+    if (!phone.trim()) {
+      return 'Phone number is required.';
+    }
     const saPhoneRegex = /^0[0-9]{9}$/;
-
-    if (!saPhoneRegex.test(phone)) {
+    if (!saPhoneRegex.test(phone.trim())) {
       return 'Please enter a valid South African phone number.';
     }
-
     return '';
   };
 
@@ -115,38 +185,79 @@ const RegisterPage: React.FC = () => {
     setError('');
     setFieldErrors({});
 
-    // ✅ Run all validations
+    const newFieldErrors: { [key: string]: string } = {};
+
+    // Required fields for ALL users
+    if (!formData.firstName.trim()) {
+      newFieldErrors.firstName = 'First name is required.';
+    }
+    if (!formData.lastName.trim()) {
+      newFieldErrors.lastName = 'Last name is required.';
+    }
+    if (!formData.email.trim()) {
+      newFieldErrors.email = 'Email address is required.';
+    }
+    if (!formData.phone.trim()) {
+      newFieldErrors.phone = 'Phone number is required.';
+    }
+    if (!formData.password.trim()) {
+      newFieldErrors.password = 'Password is required.';
+    }
+    if (!formData.confirmPassword.trim()) {
+      newFieldErrors.confirmPassword = 'Please confirm your password.';
+    }
+
+    // Shop owner-specific required fields
+    if (role === UserRole.SHOP_OWNER) {
+      if (!formData.shopName.trim()) {
+        newFieldErrors.shopName = 'Shop name is required.';
+      }
+      if (!formData.address.trim()) {
+        newFieldErrors.address = 'Shop address is required.';
+      }
+      if (!formData.province) {
+        newFieldErrors.province = 'Province is required.';
+      }
+    }
+
+    // Phone format
     const phoneError = validatePhoneNumber(formData.phone);
-    const passwordError = validatePassword(formData.password);
-
     if (phoneError) {
-      setFieldErrors((prev) => ({ ...prev, phone: phoneError }));
-      return;
+      newFieldErrors.phone = phoneError;
     }
 
-    if (
-      role === UserRole.SHOP_OWNER &&
-      (!formData.shopName.trim() || !formData.province)
-    ) {
-      setError('Shop name and province are required for shop owners.');
-      return;
-    }
-
+    // Password complexity
+    const passwordError = validatePassword(formData.password);
     if (passwordError) {
-      setError(passwordError);
-      return;
+      newFieldErrors.password = passwordError;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match.');
-      return;
+    // Password match
+    if (
+      formData.password.trim() &&
+      formData.confirmPassword.trim() &&
+      formData.password !== formData.confirmPassword
+    ) {
+      newFieldErrors.confirmPassword = 'Passwords do not match.';
     }
 
-    // ✅ Require user to accept terms / privacy policy
+    // Accept terms
     if (!acceptTerms) {
       setError(
         'Please accept the Privacy Policy and data collection terms to continue.'
       );
+    }
+
+    // If any local errors, stop here
+    if (Object.keys(newFieldErrors).length > 0 || !acceptTerms) {
+      setFieldErrors(newFieldErrors);
+      if (!error) {
+        // Only set a generic error if one isn't already set for terms
+        setError((prev) =>
+          prev ||
+          'Please correct the highlighted fields and try again.'
+        );
+      }
       return;
     }
 
@@ -158,16 +269,16 @@ const RegisterPage: React.FC = () => {
       const payload: any = {
         email: formData.email.trim(),
         password: formData.password,
-        first_name: formData.firstName.trim() || undefined,
-        last_name: formData.lastName.trim() || undefined,
-        phone: formData.phone.trim() || undefined,
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
+        phone: formData.phone.trim(),
         role: apiRole,
       };
 
       if (apiRole === 'OWNER') {
-        payload.shop_name = formData.shopName.trim() || undefined;
-        payload.address = formData.address.trim() || undefined;
-        payload.province = formData.province || undefined;
+        payload.shop_name = formData.shopName.trim();
+        payload.address = formData.address.trim();
+        payload.province = formData.province;
         payload.latitude = formData.latitude;
         payload.longitude = formData.longitude;
       }
@@ -175,11 +286,33 @@ const RegisterPage: React.FC = () => {
       await mockApi.auth.register(payload);
       setRegistrationSuccess(true);
     } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
+      const friendly = formatRegisterError(err);
+      setError(friendly);
     } finally {
       setLoading(false);
     }
   };
+
+  const allRequiredConsumerFilled =
+    formData.firstName.trim() &&
+    formData.lastName.trim() &&
+    formData.email.trim() &&
+    formData.phone.trim() &&
+    formData.password.trim() &&
+    formData.confirmPassword.trim();
+
+  const allRequiredOwnerFilled =
+    allRequiredConsumerFilled &&
+    formData.shopName.trim() &&
+    formData.address.trim() &&
+    formData.province;
+
+  const canSubmit =
+    !loading &&
+    acceptTerms &&
+    (role === UserRole.SHOP_OWNER
+      ? allRequiredOwnerFilled
+      : allRequiredConsumerFilled);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-dark-bg py-12 px-4 sm:px-6 lg:px-8">
@@ -255,12 +388,16 @@ const RegisterPage: React.FC = () => {
                   label="First name"
                   value={formData.firstName}
                   onChange={handleChange}
+                  error={fieldErrors.firstName}
+                  required
                 />
                 <Input
                   id="lastName"
                   label="Last name"
                   value={formData.lastName}
                   onChange={handleChange}
+                  error={fieldErrors.lastName}
+                  required
                 />
               </div>
 
@@ -270,16 +407,18 @@ const RegisterPage: React.FC = () => {
                 label="Email address"
                 value={formData.email}
                 onChange={handleChange}
+                error={fieldErrors.email}
                 required
               />
 
               <Input
                 id="phone"
                 type="tel"
-                label="Phone (optional)"
+                label="Phone"
                 value={formData.phone}
                 onChange={handleChange}
                 error={fieldErrors.phone}
+                required
               />
 
               <div className="grid grid-cols-2 gap-3">
@@ -289,6 +428,7 @@ const RegisterPage: React.FC = () => {
                   label="Password"
                   value={formData.password}
                   onChange={handleChange}
+                  error={fieldErrors.password}
                   required
                 />
                 <Input
@@ -297,6 +437,7 @@ const RegisterPage: React.FC = () => {
                   label="Confirm password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  error={fieldErrors.confirmPassword}
                   required
                 />
               </div>
@@ -308,16 +449,19 @@ const RegisterPage: React.FC = () => {
                     label="Shop name"
                     value={formData.shopName}
                     onChange={handleChange}
+                    error={fieldErrors.shopName}
                     required
                   />
                   <AddressAutocompleteInput
                     id="address"
                     label="Shop address"
                     value={formData.address}
+                    required
                     onChange={(value) =>
                       setFormData((prev) => ({ ...prev, address: value }))
                     }
                     onPlaceSelect={handlePlaceSelect}
+                    error={fieldErrors.address}
                   />
                   <div>
                     <label
@@ -332,25 +476,35 @@ const RegisterPage: React.FC = () => {
                       value={formData.province}
                       onChange={handleChange}
                       required
-                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base rounded-md shadow-sm bg-white dark:bg-dark-input text-gray-900 dark:text-white border-gray-300 dark:border-dark-surface focus:outline-none focus:ring-dark-border focus:border-dark-border sm:text-sm"
+                      className={`mt-1 block w-full pl-3 pr-10 py-2 text-base rounded-md shadow-sm bg-white dark:bg-dark-input text-gray-900 dark:text-white border-gray-300 dark:border-dark-surface focus:outline-none focus:ring-dark-border focus:border-dark-border sm:text-sm ${
+                        fieldErrors.province ? 'border-red-500' : ''
+                      }`}
                     >
                       {provinces.length === 0 ? (
                         <option value="" disabled>
                           Loading provinces...
                         </option>
                       ) : (
-                        provinces.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))
+                        <>
+                          <option value="">Select a province</option>
+                          {provinces.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </>
                       )}
                     </select>
+                    {fieldErrors.province && (
+                      <p className="mt-1 text-xs text-red-500">
+                        {fieldErrors.province}
+                      </p>
+                    )}
                   </div>
                 </>
               )}
 
-              {/* ✅ TERMS & PRIVACY CHECKBOX */}
+              {/* TERMS & PRIVACY CHECKBOX */}
               <div className="flex items-start space-x-3">
                 <button
                   type="button"
@@ -380,20 +534,14 @@ const RegisterPage: React.FC = () => {
               </div>
 
               {error && (
-                <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">
+                <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200 whitespace-pre-line">
                   {error}
                 </div>
               )}
 
               <Button
                 type="submit"
-                disabled={
-                  loading ||
-                  !formData.email ||
-                  !formData.password ||
-                  (role === UserRole.SHOP_OWNER &&
-                    (!formData.shopName.trim() || !formData.province))
-                }
+                disabled={!canSubmit}
                 className="w-full"
               >
                 {loading ? 'Creating account…' : 'Create account'}
