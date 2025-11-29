@@ -9,7 +9,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from apps.shops.models import Province, SpazaShop
 from .models import AdminVerificationCode, EmailVerificationToken
 from django.conf import settings
-from django.core.mail import EmailMessage # <--- Using EmailMessage for Templates
+from django.core.mail import EmailMessage
 
 User = get_user_model()
 
@@ -114,8 +114,7 @@ class RegisterSerializer(serializers.Serializer):
             from_email=settings.DEFAULT_FROM_EMAIL,
         )
 
-        # ⚠️ IMPORTANT: Replace '2' with your actual REGISTRATION template ID from Brevo
-        message.template_id = 2
+        message.template_id = 2 # Ensure this ID is correct in your Brevo/Email setup
 
         message.merge_global_data = {
             'NAME': user.first_name if user.first_name else "User",
@@ -123,7 +122,6 @@ class RegisterSerializer(serializers.Serializer):
         }
 
         message.send()
-        # ---------------------------------
 
         return user
 
@@ -137,11 +135,30 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, attrs):
         email = (attrs.get("email") or "").strip().lower()
         password = attrs.get("password")
+
+        # 1. Attempt standard authentication (Note: authenticate() returns None for inactive users)
         user = authenticate(request=self.context.get('request'), username=email, password=password)
+        
         if not user:
+            # 2. Authentication failed. Check if it's because the user is inactive.
+            try:
+                existing_user = User.objects.get(email=email)
+                if existing_user.check_password(password):
+                    if not existing_user.is_active:
+                        # Password correct, but account inactive
+                        raise serializers.ValidationError(
+                            {"non_field_errors": ["Please verify your email address before logging in."]}
+                        )
+            except User.DoesNotExist:
+                pass
+            
+            # 3. Genuine failure (wrong password or user doesn't exist)
             raise serializers.ValidationError({"non_field_errors": ["Invalid email or password."]})
+
+        # 4. Double check is_active just in case a custom backend allowed it
         if not user.is_active:
             raise serializers.ValidationError({"non_field_errors": ["Please verify your email address before logging in."]})
+        
         attrs["user"] = user
         return attrs
 
