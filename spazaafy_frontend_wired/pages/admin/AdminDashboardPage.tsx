@@ -47,6 +47,7 @@ const AdminDashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const dashboardRef = useRef<HTMLDivElement | null>(null);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -280,26 +281,31 @@ const AdminDashboardPage: React.FC = () => {
     }
   };
 
-  const handleExportImage = async () => {
-    if (!dashboardRef.current) return;
+    const handleExportImage = async () => {
+        if (!dashboardRef.current) return;
 
-    try {
-      const dataUrl = await toPng(dashboardRef.current, {
-        // Optional: set a background so transparent areas aren’t black
-        backgroundColor: '#f1f5f9', // Tailwind slate-100-ish
-        pixelRatio: 2,              // Higher = sharper image
-      });
+        try {
+        const dataUrl = await toPng(dashboardRef.current, {
+            backgroundColor: '#f1f5f9', // light grey/Slate background
+            pixelRatio: 2,
+            // 👇 these styles are applied ONLY to the cloned node used for export
+            style: {
+            padding: '32px',      // extra padding around the dashboard
+            boxSizing: 'border-box',
+            },
+        });
 
-      const link = document.createElement('a');
-      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-      link.download = `spazaafy-dashboard-${today}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (error) {
-      console.error('Failed to export dashboard image:', error);
-      alert('Could not export dashboard image.');
-    }
-  };
+        const link = document.createElement('a');
+        const today = new Date().toISOString().slice(0, 10);
+        link.download = `spazaafy-dashboard-${today}.png`;
+        link.href = dataUrl;
+        link.click();
+        } catch (error) {
+        console.error('Failed to export dashboard image:', error);
+        alert('Could not export dashboard image.');
+        }
+    };
+
 
   return (
     <div ref={dashboardRef} className="space-y-6">
@@ -315,16 +321,42 @@ const AdminDashboardPage: React.FC = () => {
         </div>
 
           <div className="flex items-center gap-3">
-            <Button onClick={handleExportCsv} className="bg-primary text-white">
-            Export to CSV
-            </Button>
-            <Button
-            onClick={handleExportImage}
-            className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-            >
-            Export as image
-            </Button>
-        </div>
+            <div className="relative">
+                <Button
+                onClick={() => setIsExportMenuOpen((open) => !open)}
+                className="bg-primary text-white flex items-center gap-2"
+                >
+                Export
+                <span className="text-xs">▾</span>
+                </Button>
+
+                {isExportMenuOpen && (
+                <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-md shadow-lg z-20">
+                    <button
+                    type="button"
+                    className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100"
+                    onClick={() => {
+                        setIsExportMenuOpen(false);
+                        handleExportCsv();
+                    }}
+                    >
+                    Export as CSV
+                    </button>
+                    <button
+                    type="button"
+                    className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100"
+                    onClick={() => {
+                        setIsExportMenuOpen(false);
+                        handleExportImage();
+                    }}
+                    >
+                    Export as image
+                    </button>
+                </div>
+                )}
+            </div>
+          </div>
+
 
       </div>
 
