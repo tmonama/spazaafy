@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { toPng /* or toJpeg */ } from 'html-to-image';
+import { toPng } from 'html-to-image';
 import StatCard from '../../components/StatCard';
 import mockApi from '../../api/mockApi';
 import { DocumentStatus, UserRole, User } from '../../types';
@@ -95,19 +95,18 @@ const AdminDashboardPage: React.FC = () => {
           (u) => u.role === UserRole.CONSUMER
         ).length;
 
-        // 🔑 Build sign-up events from user timestamps.
-        // Adjust the `rawDate` line if your backend uses a different field name.
+        // Build sign-up events from user timestamps
         const signUpEvents: SignUpEvent[] = (users as User[])
-            .map((u) => {
-                const rawDate = (u as any).dateJoined || (u as any).date_joined;
-                if (!rawDate) return null;
+          .map((u) => {
+            const rawDate = (u as any).dateJoined || (u as any).date_joined;
+            if (!rawDate) return null;
 
-                const created = new Date(rawDate);
-                if (isNaN(created.getTime())) return null;
+            const created = new Date(rawDate);
+            if (isNaN(created.getTime())) return null;
 
-                return { role: u.role, createdAt: created };
-            })
-            .filter((ev): ev is SignUpEvent => ev !== null);
+            return { role: u.role, createdAt: created };
+          })
+          .filter((ev): ev is SignUpEvent => ev !== null);
 
         setStats({
           totalShops: shops.length,
@@ -117,9 +116,9 @@ const AdminDashboardPage: React.FC = () => {
           provinceCounts,
         });
         setSignUps(signUpEvents);
+
         console.log('[Dashboard] raw users:', users);
         console.log('[Dashboard] derived signUpEvents:', signUpEvents);
-
       } catch (err) {
         console.error('Failed to fetch dashboard stats:', err);
         setError('Could not load dashboard data.');
@@ -281,31 +280,35 @@ const AdminDashboardPage: React.FC = () => {
     }
   };
 
-    const handleExportImage = async () => {
-        if (!dashboardRef.current) return;
+  const handleExportImage = async () => {
+    if (!dashboardRef.current) return;
 
-        try {
-        const dataUrl = await toPng(dashboardRef.current, {
-            backgroundColor: '#f1f5f9', // light grey/Slate background
-            pixelRatio: 2,
-            // 👇 these styles are applied ONLY to the cloned node used for export
-            style: {
-            padding: '32px',      // extra padding around the dashboard
-            boxSizing: 'border-box',
-            },
-        });
+    try {
+      const node = dashboardRef.current;
+      const rect = node.getBoundingClientRect();
+      const PADDING = 32;
 
-        const link = document.createElement('a');
-        const today = new Date().toISOString().slice(0, 10);
-        link.download = `spazaafy-dashboard-${today}.png`;
-        link.href = dataUrl;
-        link.click();
-        } catch (error) {
-        console.error('Failed to export dashboard image:', error);
-        alert('Could not export dashboard image.');
-        }
-    };
+      const dataUrl = await toPng(node, {
+        backgroundColor: '#f1f5f9', // page bg
+        pixelRatio: 2,
+        width: rect.width + PADDING * 2,
+        height: rect.height + PADDING * 2,
+        style: {
+          padding: `${PADDING}px`,
+          boxSizing: 'border-box',
+        },
+      });
 
+      const link = document.createElement('a');
+      const today = new Date().toISOString().slice(0, 10);
+      link.download = `spazaafy-dashboard-${today}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('Failed to export dashboard image:', error);
+      alert('Could not export dashboard image.');
+    }
+  };
 
   return (
     <div ref={dashboardRef} className="space-y-6">
@@ -320,44 +323,42 @@ const AdminDashboardPage: React.FC = () => {
           </p>
         </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative">
-                <Button
-                onClick={() => setIsExportMenuOpen((open) => !open)}
-                className="bg-primary text-white flex items-center gap-2"
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Button
+              onClick={() => setIsExportMenuOpen((open) => !open)}
+              className="bg-primary text-white flex items-center gap-2"
+            >
+              Export
+              <span className="text-xs">▾</span>
+            </Button>
+
+            {isExportMenuOpen && (
+              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-md shadow-lg z-20">
+                <button
+                  type="button"
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100"
+                  onClick={() => {
+                    setIsExportMenuOpen(false);
+                    handleExportCsv();
+                  }}
                 >
-                Export
-                <span className="text-xs">▾</span>
-                </Button>
-
-                {isExportMenuOpen && (
-                <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-md shadow-lg z-20">
-                    <button
-                    type="button"
-                    className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100"
-                    onClick={() => {
-                        setIsExportMenuOpen(false);
-                        handleExportCsv();
-                    }}
-                    >
-                    Export as CSV
-                    </button>
-                    <button
-                    type="button"
-                    className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100"
-                    onClick={() => {
-                        setIsExportMenuOpen(false);
-                        handleExportImage();
-                    }}
-                    >
-                    Export as image
-                    </button>
-                </div>
-                )}
-            </div>
+                  Export as CSV
+                </button>
+                <button
+                  type="button"
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100"
+                  onClick={() => {
+                    setIsExportMenuOpen(false);
+                    handleExportImage();
+                  }}
+                >
+                  Export as image
+                </button>
+              </div>
+            )}
           </div>
-
-
+        </div>
       </div>
 
       {/* Top KPI row */}
