@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import StatCard from '../../components/StatCard';
 import mockApi from '../../api/mockApi';
 import { DocumentStatus, UserRole, User } from '../../types';
@@ -14,7 +14,24 @@ import {
   PieChart,
   Pie,
   Cell,
+  AreaChart,
+  Area,
 } from 'recharts';
+
+type SignUpEvent = {
+  role: UserRole;
+  createdAt: Date;
+};
+
+type SignUpPeriod = 'hour' | 'day' | 'month' | 'year';
+
+interface SignUpPoint {
+  label: string;
+  consumers: number;
+  shops: number;
+}
+
+const DOC_COLORS = ['#f97316', '#16a34a'];
 
 const AdminDashboardPage: React.FC = () => {
   const [stats, setStats] = useState({
@@ -24,6 +41,8 @@ const AdminDashboardPage: React.FC = () => {
     totalConsumers: 0,
     provinceCounts: {} as Record<string, number>,
   });
+  const [signUps, setSignUps] = useState<SignUpEvent[]>([]);
+  const [signUpPeriod, setSignUpPeriod] = useState<SignUpPeriod>('day');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -37,35 +56,70 @@ const AdminDashboardPage: React.FC = () => {
           mockApi.core.getProvinces(),
         ]);
 
-        const provinceIdToNameMap = new Map(provinces.map((p) => [p.id, p.name]));
-        const initialCounts = provinces.reduce((acc, province) => {
-          acc[province.name] = 0;
-          return acc;
-        }, {} as Record<string, number>);
+        const provinceIdToNameMap = new Map(
+          provinces.map((p: any) => [p.id, p.name])
+        );
 
-        const provinceCounts = shops.reduce((acc, shop) => {
-          const provinceId = (shop as any).province?.id;
-          if (provinceId) {
-            const provinceName = provinceIdToNameMap.get(provinceId);
-            if (provinceName && acc.hasOwnProperty(provinceName)) {
-              acc[provinceName]++;
+        const initialCounts = provinces.reduce(
+          (acc: Record<string, number>, province: any) => {
+            acc[province.name] = 0;
+            return acc;
+          },
+          {} as Record<string, number>
+        );
+
+        const provinceCounts = shops.reduce(
+          (acc: Record<string, number>, shop: any) => {
+            const provinceId = shop.province?.id;
+            if (provinceId) {
+              const provinceName = provinceIdToNameMap.get(provinceId);
+              if (provinceName && acc.hasOwnProperty(provinceName)) {
+                acc[provinceName] += 1;
+              }
             }
-          }
-          return acc;
-        }, initialCounts);
+            return acc;
+          },
+          initialCounts
+        );
 
         const pendingDocs = documents.filter(
-          (d) => d.status === DocumentStatus.PENDING
+          (d: any) => d.status === DocumentStatus.PENDING
         ).length;
+
+        const totalDocs = documents.length;
+
+        const totalConsumers = (users as User[]).filter(
+          (u) => u.role === UserRole.CONSUMER
+        ).length;
+
+        // 🔑 Build sign-up events from user timestamps.
+        // Adjust the `rawDate` line if your backend uses a different field name.
+        const signUpEvents: SignUpEvent[] = (users as User[])
+          .map((u) => {
+            const anyUser = u as any;
+            const rawDate: string | undefined =
+              anyUser.createdAt ||
+              anyUser.created_at ||
+              anyUser.dateJoined ||
+              anyUser.date_joined ||
+              anyUser.created_at_local;
+
+            if (!rawDate) return null;
+            const created = new Date(rawDate);
+            if (isNaN(created.getTime())) return null;
+
+            return { role: u.role, createdAt: created };
+          })
+          .filter((ev): ev is SignUpEvent => ev !== null);
 
         setStats({
           totalShops: shops.length,
-          totalDocs: documents.length,
+          totalDocs,
           pendingDocs,
-          totalConsumers: users.filter((u: User) => u.role === UserRole.CONSUMER)
-            .length,
+          totalConsumers,
           provinceCounts,
         });
+        setSignUps(signUpEvents);
       } catch (err) {
         console.error('Failed to fetch dashboard stats:', err);
         setError('Could not load dashboard data.');
@@ -77,6 +131,125 @@ const AdminDashboardPage: React.FC = () => {
     fetchStats();
   }, []);
 
+  const buildSignUpSeries = (
+    events: SignUpEvent[],
+    period: SignUpPeriod
+  ): { data: SignUpPoint[]; total: number; windowLabel: string } => {
+    const now = new Date();
+
+    if (events.length === 0) {
+      return { data: [], total: 0, windowLabel: '' };
+    }
+
+    const buckets: {
+      start: Date;
+      end: Date;
+      label: string;
+      consumers: number;
+      shops: number;
+    }[] = [];
+
+    const addBucket = (start: Date, end: Date, label: string) => {
+      buckets.push({ start, end, label, consumers: 0, shops: 0 });
+    };
+
+    let windowLabel = '';
+
+    if (period === 'hour') {
+      // 24 hours, bucketed by hour
+      const endHour = new Date(now);
+      endHour.setMinutes(0, 0, 0);
+      for (let i = 23; i >= 0; i--) {
+        const start = new Date(endHour);
+        start.setHours(endHour.getHours() - i, 0, 0, 0);
+        const end = new Date(start);
+        end.setHours(start.getHours() + 1);
+        const label = start.toLocaleTimeString([], { hour: '2-digit' });
+        addBucket(start, end, label);
+      }
+      windowLabel = 'last 24 hours';
+    } else if (period === 'day') {
+      // 7 days, bucketed by day
+      const today = new Date(now);
+      today.setHours(0, 0, 0, 0);
+      for (let i = 6; i >= 0; i--) {
+        const start = new Date(today);
+        start.setDate(today.getDate() - i);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 1);
+        const label = start.toLocaleDateString([], {
+          month: 'short',
+          day: 'numeric',
+        });
+        addBucket(start, end, label);
+      }
+      windowLabel = 'last 7 days';
+    } else if (period === 'month') {
+      // 12 months, bucketed by month
+      const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      for (let i = 11; i >= 0; i--) {
+        const start = new Date(thisMonth);
+        start.setMonth(thisMonth.getMonth() - i);
+        const end = new Date(start);
+        end.setMonth(start.getMonth() + 1);
+        const label = start.toLocaleDateString([], {
+          month: 'short',
+          year: '2-digit',
+        });
+        addBucket(start, end, label);
+      }
+      windowLabel = 'last 12 months';
+    } else {
+      // year: last 5 years
+      const thisYear = new Date(now.getFullYear(), 0, 1);
+      for (let i = 4; i >= 0; i--) {
+        const start = new Date(thisYear);
+        start.setFullYear(thisYear.getFullYear() - i);
+        const end = new Date(start);
+        end.setFullYear(start.getFullYear() + 1);
+        const label = start.getFullYear().toString();
+        addBucket(start, end, label);
+      }
+      windowLabel = 'last 5 years';
+    }
+
+    const windowStart = buckets[0].start;
+    const filteredEvents = events.filter((e) => e.createdAt >= windowStart);
+
+    let total = 0;
+    filteredEvents.forEach((ev) => {
+      const t = ev.createdAt.getTime();
+      const bucket = buckets.find(
+        (b) => t >= b.start.getTime() && t < b.end.getTime()
+      );
+      if (!bucket) return;
+
+      if (ev.role === UserRole.CONSUMER) {
+        bucket.consumers += 1;
+      } else if (ev.role === UserRole.SHOP_OWNER) {
+        bucket.shops += 1;
+      }
+      total += 1;
+    });
+
+    const data: SignUpPoint[] = buckets.map((b) => ({
+      label: b.label,
+      consumers: b.consumers,
+      shops: b.shops,
+    }));
+
+    return { data, total, windowLabel };
+  };
+
+  const {
+    data: signUpSeries,
+    total: totalSignUps,
+    windowLabel,
+  } = useMemo(
+    () => buildSignUpSeries(signUps, signUpPeriod),
+    [signUps, signUpPeriod]
+  );
+
   if (loading) {
     return <p>Loading dashboard statistics...</p>;
   }
@@ -84,20 +257,6 @@ const AdminDashboardPage: React.FC = () => {
   if (error) {
     return <p className="text-red-500 text-center p-8">{error}</p>;
   }
-
-  const handleExport = async () => {
-    try {
-      await mockApi.reports.exportDashboardCsv();
-    } catch (error) {
-      console.error('Failed to export dashboard:', error);
-      alert('Could not export dashboard data.');
-    }
-  };
-
-  // --- Derived data for charts ---
-  const provinceChartData = Object.entries(stats.provinceCounts)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([name, value]) => ({ name, value }));
 
   const completedDocs = Math.max(stats.totalDocs - stats.pendingDocs, 0);
 
@@ -109,7 +268,18 @@ const AdminDashboardPage: React.FC = () => {
         ]
       : [];
 
-  const DOC_COLORS = ['#f97316', '#16a34a'];
+  const provinceChartData = Object.entries(stats.provinceCounts)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, value]) => ({ name, value }));
+
+  const handleExport = async () => {
+    try {
+      await mockApi.reports.exportDashboardCsv();
+    } catch (err) {
+      console.error('Failed to export dashboard:', err);
+      alert('Could not export dashboard data.');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -142,9 +312,81 @@ const AdminDashboardPage: React.FC = () => {
         <StatCard title="Pending Documents" value={stats.pendingDocs} />
       </div>
 
+      {/* Sign-ups over time */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+              Sign-ups
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {totalSignUps > 0 && windowLabel
+                ? `${totalSignUps} new accounts in the ${windowLabel}.`
+                : 'No sign-up activity in the selected period yet.'}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-gray-500 dark:text-gray-400">View by</span>
+            <select
+              value={signUpPeriod}
+              onChange={(e) =>
+                setSignUpPeriod(e.target.value as SignUpPeriod)
+              }
+              className="rounded-md border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 px-2 py-1 text-xs text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="hour">Hour (last 24h)</option>
+              <option value="day">Day (last 7d)</option>
+              <option value="month">Month (last 12m)</option>
+              <option value="year">Year (last 5y)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="h-64">
+          {signUpSeries.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={signUpSeries}
+                margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="label" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Area
+                  type="monotone"
+                  dataKey="consumers"
+                  name="Consumers"
+                  stroke="#0ea5e9"
+                  fill="#0ea5e9"
+                  fillOpacity={0.18}
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="shops"
+                  name="Shop owners"
+                  stroke="#22c55e"
+                  fill="#22c55e"
+                  fillOpacity={0.18}
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                No sign-ups found for this time range yet.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Main analytics row */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Shops by province (bar chart) */}
+        {/* Shops by province */}
         <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -239,7 +481,7 @@ const AdminDashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Province cards (keeps your old view, but moved to bottom) */}
+      {/* Province cards */}
       <div>
         <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
           Province breakdown
