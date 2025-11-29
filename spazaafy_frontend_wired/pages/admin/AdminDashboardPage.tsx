@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { toPng /* or toJpeg */ } from 'html-to-image';
 import StatCard from '../../components/StatCard';
 import mockApi from '../../api/mockApi';
 import { DocumentStatus, UserRole, User } from '../../types';
@@ -45,6 +46,7 @@ const AdminDashboardPage: React.FC = () => {
   const [signUpPeriod, setSignUpPeriod] = useState<SignUpPeriod>('day');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const dashboardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -269,7 +271,7 @@ const AdminDashboardPage: React.FC = () => {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([name, value]) => ({ name, value }));
 
-  const handleExport = async () => {
+  const handleExportCsv = async () => {
     try {
       await mockApi.reports.exportDashboardCsv();
     } catch (err) {
@@ -278,8 +280,29 @@ const AdminDashboardPage: React.FC = () => {
     }
   };
 
+  const handleExportImage = async () => {
+    if (!dashboardRef.current) return;
+
+    try {
+      const dataUrl = await toPng(dashboardRef.current, {
+        // Optional: set a background so transparent areas aren’t black
+        backgroundColor: '#f1f5f9', // Tailwind slate-100-ish
+        pixelRatio: 2,              // Higher = sharper image
+      });
+
+      const link = document.createElement('a');
+      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      link.download = `spazaafy-dashboard-${today}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('Failed to export dashboard image:', error);
+      alert('Could not export dashboard image.');
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div ref={dashboardRef} className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
@@ -291,14 +314,18 @@ const AdminDashboardPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={handleExport}
-            className="w-full sm:w-auto bg-primary text-white hover:bg-primary-dark"
-          >
+          <div className="flex items-center gap-3">
+            <Button onClick={handleExportCsv} className="bg-primary text-white">
             Export to CSV
-          </Button>
+            </Button>
+            <Button
+            onClick={handleExportImage}
+            className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+            >
+            Export as image
+            </Button>
         </div>
+
       </div>
 
       {/* Top KPI row */}
