@@ -33,6 +33,7 @@ export interface User {
   lastName: string;
   role: UserRole;
   phone?: string;
+  dateJoined?: string;
 }
 
 // SpazaShop now correctly includes all User properties via `extends`

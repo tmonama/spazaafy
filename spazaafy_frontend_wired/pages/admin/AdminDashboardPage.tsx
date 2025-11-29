@@ -95,22 +95,16 @@ const AdminDashboardPage: React.FC = () => {
         // 🔑 Build sign-up events from user timestamps.
         // Adjust the `rawDate` line if your backend uses a different field name.
         const signUpEvents: SignUpEvent[] = (users as User[])
-          .map((u) => {
-            const anyUser = u as any;
-            const rawDate: string | undefined =
-              anyUser.createdAt ||
-              anyUser.created_at ||
-              anyUser.dateJoined ||
-              anyUser.date_joined ||
-              anyUser.created_at_local;
+            .map((u) => {
+                const rawDate = (u as any).dateJoined || (u as any).date_joined;
+                if (!rawDate) return null;
 
-            if (!rawDate) return null;
-            const created = new Date(rawDate);
-            if (isNaN(created.getTime())) return null;
+                const created = new Date(rawDate);
+                if (isNaN(created.getTime())) return null;
 
-            return { role: u.role, createdAt: created };
-          })
-          .filter((ev): ev is SignUpEvent => ev !== null);
+                return { role: u.role, createdAt: created };
+            })
+            .filter((ev): ev is SignUpEvent => ev !== null);
 
         setStats({
           totalShops: shops.length,

@@ -102,6 +102,7 @@ function toUser(u: any): User {
     lastName: String(u.last_name ?? u.lastName ?? ''),
     phone: u.phone ? String(u.phone) : undefined,
     role: toUserRole(u.role),
+    dateJoined: u.date_joined ?? u.dateJoined ?? undefined,
   };
 }
 
