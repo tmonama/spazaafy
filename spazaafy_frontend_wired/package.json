@@ -21,6 +21,7 @@
     "react-dom": "^19.2.0",
     "react-i18next": "^16.2.4",
     "react-router-dom": "^7.9.4",
+    "recharts": "^3.5.1",
     "use-places-autocomplete": "^4.0.1",
     "uuid": "^13.0.0"
   },
@@ -36,7 +37,7 @@
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   },
-  "engines": { 
-    "node": ">=20.19.0" }
-
+  "engines": {
+    "node": ">=20.19.0"
+  }
 }
