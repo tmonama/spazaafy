@@ -120,6 +120,9 @@ const AdminDashboardPage: React.FC = () => {
           provinceCounts,
         });
         setSignUps(signUpEvents);
+        console.log('[Dashboard] raw users:', users);
+        console.log('[Dashboard] derived signUpEvents:', signUpEvents);
+
       } catch (err) {
         console.error('Failed to fetch dashboard stats:', err);
         setError('Could not load dashboard data.');
