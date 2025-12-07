@@ -35,6 +35,7 @@ import EmailVerificationPage from './pages/EmailVerificationPage';
 import DownloadAppPage from "./pages/DownloadAppPage";
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import AboutUsPage from "./pages/AboutUsPage";
+import DeleteAccountPage from './pages/DeleteAccountPage';
 
 
 
@@ -60,6 +61,7 @@ function App() {
             <Route path="/download" element={<DownloadAppPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/about" element={<AboutUsPage />} />
+            <Route path="/delete-account" element={<DeleteAccountPage />} />
 
             {/* User Routes */}
             <Route path="/dashboard" element={<DashboardPage />} />

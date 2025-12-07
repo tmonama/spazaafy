@@ -474,6 +474,13 @@ const auth = {
         const shaped = toUser(data.user);
         return { user: shaped };
     },
+
+    async deleteAccount(): Promise<void> {
+      // This uses your existing request helper and JWT auth
+      await request('/auth/delete-account/', {
+        method: 'DELETE',
+      });
+    },
 };
 
 const reports = {

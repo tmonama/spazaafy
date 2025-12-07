@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 # ✅ 1. Import necessary modules
 from django.conf import settings
+from apps.accounts.views import DeleteAccountInfoView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -20,6 +21,7 @@ urlpatterns = [
     path('api/auth/password-reset/', include('apps.password_reset.urls')),
     path('api/reports/',  include('apps.reports.urls')),
     path('api/core/',  include('apps.core.urls')),
+    path("delete-account/", DeleteAccountInfoView.as_view(), name="delete-account-info")
 ]
 
 # ✅ 2. Add this block at the end of the file

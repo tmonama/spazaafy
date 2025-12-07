@@ -14,6 +14,8 @@ from rest_framework.exceptions import ValidationError
 import traceback, sys
 from datetime import timedelta
 from .permissions import IsOwnerOrAdmin
+from django.views.generic import TemplateView
+
 
 # --- NEW ADMIN REGISTRATION VIEWS ---
 class RequestAdminVerificationCodeView(generics.GenericAPIView):
@@ -170,3 +172,27 @@ class EmailVerificationConfirmView(generics.GenericAPIView):
             return Response({'detail': 'Your account has been successfully verified.'}, status=status.HTTP_200_OK)
         except EmailVerificationToken.DoesNotExist:
             return Response({'detail': 'Invalid verification link.'}, status=status.HTTP_400_BAD_REQUEST)
+
+class DeleteAccountView(APIView):
+    """
+    Authenticated user deletes their own account.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+        # If you ever want soft delete instead:
+        # user.is_active = False
+        # user.save(update_fields=["is_active"])
+        user.delete()
+        return Response(
+            {"detail": "Your account and associated data have been deleted."},
+            status=status.HTTP_204_NO_CONTENT,
+        )
+
+
+class DeleteAccountInfoView(TemplateView):
+    """
+    Simple info page used for Google Play's 'Delete account URL'.
+    """
+    template_name = "delete_account.html"
