@@ -13,9 +13,9 @@ const DeleteAccountPage: React.FC = () => {
 
           <Card title="How to request account deletion">
             <p className="text-sm text-gray-700 dark:text-gray-200 mb-4">
-              You can delete your account in the app (mobile and web) by accessing the "Account" page/screen.
-              If you would like to delete your Spazaafy account and associated data,
-              you can request deletion at any time using the steps below.
+              You can delete your account using two different methods. The first method is by clicking the "Delete account" button in "Account".
+              The second method to delete your Spazaafy account and associated data,
+              is to request deletion at any time using the steps below.
             </p>
 
             <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-900 dark:bg-slate-900/60">
