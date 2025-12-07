@@ -11,7 +11,7 @@ import AddressAutocompleteInput from '../components/AddressAutocompleteInput';
 
 const AccountPage: React.FC = () => {
     const { t } = useTranslation();
-    const { user, updateUser } = useAuth(); 
+    const { user, updateUser, logout } = useAuth();   // ⬅ added logout
     const [shop, setShop] = useState<SpazaShop | null>(null);
     const [formData, setFormData] = useState({
         firstName: '',
@@ -23,14 +23,15 @@ const AccountPage: React.FC = () => {
         longitude: 0,
     });
     const [loading, setLoading] = useState(true);
-    const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({}); // ✅ 1. Add state for field errors
+    const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
     const [successMessage, setSuccessMessage] = useState('');
+    const [deleteError, setDeleteError] = useState('');
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         const fetchInitialData = async () => {
             if (!user) return;
             setLoading(true);
-            // Always set user data first
             setFormData(prev => ({
                 ...prev,
                 firstName: user.firstName,
@@ -40,7 +41,6 @@ const AccountPage: React.FC = () => {
             
             if (user.role === UserRole.SHOP_OWNER) {
                 try {
-                    // Fetch the specific shop for this owner
                     const allShops = await mockApi.shops.getAll();
                     const ownerShop = allShops.find(s => s.ownerId === user.id);
                     if (ownerShop) {
@@ -65,7 +65,6 @@ const AccountPage: React.FC = () => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
         setFormData({ ...formData, [id]: value });
-        // Clear error when user types
         if (fieldErrors[id]) {
             setFieldErrors(prev => ({ ...prev, [id]: '' }));
         }
@@ -75,9 +74,8 @@ const AccountPage: React.FC = () => {
         setFormData(prev => ({ ...prev, address, latitude: lat, longitude: lng }));
     };
 
-    // ✅ 2. Add the phone number validation function
     const validatePhoneNumber = (phone: string): string => {
-        if (!phone) return ''; // Phone is optional in some cases, so empty is fine
+        if (!phone) return '';
         const saPhoneRegex = /^0[0-9]{9}$/;
         if (!saPhoneRegex.test(phone)) {
             return 'Please enter a valid 10-digit South African phone number starting with 0.';
@@ -91,11 +89,10 @@ const AccountPage: React.FC = () => {
         setFieldErrors({});
         setSuccessMessage('');
 
-        // ✅ 3. Run validation before saving
         const phoneError = validatePhoneNumber(formData.phone);
         if (phoneError) {
             setFieldErrors({ phone: phoneError });
-            return; // Stop the save process
+            return;
         }
 
         setLoading(true);
@@ -148,6 +145,31 @@ const AccountPage: React.FC = () => {
         }
     };
 
+    const handleDeleteAccount = async () => {
+        if (!user) return;
+
+        const confirmDelete = window.confirm(
+            'Are you sure you want to delete your account? This action cannot be undone.'
+        );
+        if (!confirmDelete) return;
+
+        setDeleteError('');
+        setDeleting(true);
+
+        try {
+            await mockApi.auth.deleteAccount(); // you’ll add this method in mockApi
+            await logout();
+            window.location.href = '/';
+        } catch (err: any) {
+            console.error('Failed to delete account:', err);
+            setDeleteError(
+                err?.message || 'Failed to delete account. Please try again later.'
+            );
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     if (loading || !user) {
         return (
             <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
@@ -166,7 +188,9 @@ const AccountPage: React.FC = () => {
             <Header />
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="max-w-4xl mx-auto space-y-8">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('accountPage.myAccount')}</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                        {t('accountPage.myAccount')}
+                    </h1>
                     
                     <Card title={isShopOwner ? t('accountPage.shopOwnerInfo') : t('accountPage.profileInfo')}>
                         <div className="space-y-4">
@@ -174,7 +198,6 @@ const AccountPage: React.FC = () => {
                             <Input id="firstName" label={isShopOwner ? t('accountPage.ownerFirstNameLabel') : t('accountPage.firstNameLabel')} value={formData.firstName} onChange={handleChange} />
                             <Input id="lastName" label={isShopOwner ? t('accountPage.ownerLastNameLabel') : t('accountPage.lastNameLabel')} value={formData.lastName} onChange={handleChange} />
                             
-                            {/* ✅ 4. Pass the phone error to the Input component */}
                             <Input 
                                 id="phone" 
                                 label={isShopOwner ? t('accountPage.ownerPhoneLabel') : t('accountPage.phoneLabel')} 
@@ -199,15 +222,44 @@ const AccountPage: React.FC = () => {
                             
                             <div className="flex justify-end items-center pt-4">
                                 {successMessage && <p className="text-sm text-green-600 mr-4">{successMessage}</p>}
-                                <Button onClick={handleSave} disabled={loading}>{loading ? t('accountPage.savingButton') : t('accountPage.saveButton')}</Button>
+                                <Button onClick={handleSave} disabled={loading}>
+                                    {loading ? t('accountPage.savingButton') : t('accountPage.saveButton')}
+                                </Button>
                             </div>
                         </div>
                     </Card>
 
                     <Card title={t('accountPage.passwordManagement.title')}>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{t('accountPage.passwordManagement.description')}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {t('accountPage.passwordManagement.description')}
+                        </p>
                         <div className="mt-4">
-                            <Button variant="danger" onClick={handlePasswordReset}>{t('accountPage.passwordManagement.resetButton')}</Button>
+                            <Button variant="danger" onClick={handlePasswordReset}>
+                                {t('accountPage.passwordManagement.resetButton')}
+                            </Button>
+                        </div>
+                    </Card>
+
+                    <Card title="Delete account">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Deleting your account will permanently remove your Spazaafy profile and
+                            associated data. This action cannot be undone.
+                        </p>
+
+                        {deleteError && (
+                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                                {deleteError}
+                            </p>
+                        )}
+
+                        <div className="mt-4">
+                            <Button
+                                variant="danger"
+                                onClick={handleDeleteAccount}
+                                disabled={deleting}
+                            >
+                                {deleting ? 'Deleting account…' : 'Delete my account'}
+                            </Button>
                         </div>
                     </Card>
                 </div>

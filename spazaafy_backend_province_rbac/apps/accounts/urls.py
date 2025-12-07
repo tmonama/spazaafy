@@ -2,7 +2,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import RegisterView, LoginView, MeView, UserViewSet, RequestAdminVerificationCodeView, AdminVerifiedRegistrationView, EmailVerificationConfirmView
+from .views import RegisterView, LoginView, MeView, UserViewSet, RequestAdminVerificationCodeView, AdminVerifiedRegistrationView, EmailVerificationConfirmView, DeleteAccountView
 
 # 1. Create a router
 router = DefaultRouter()
@@ -23,6 +23,8 @@ urlpatterns = [
     path('register-admin-verified', AdminVerifiedRegistrationView.as_view(), name='admin-register-verified'),
     path('verify-email/confirm/', EmailVerificationConfirmView.as_view(), name='email_verify_confirm'),
 
-    path('', include(router.urls)) # Include the new user routes
+    path('', include(router.urls)), # Include the new user routes,
+
+    path("delete-account/", DeleteAccountView.as_view(), name="delete-account"),
 
 ]
