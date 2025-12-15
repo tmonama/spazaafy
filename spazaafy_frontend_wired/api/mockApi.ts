@@ -726,6 +726,14 @@ const assistance = {
                 partner_email: partnerEmail 
             })
         });
+    },
+
+    // ✅ New Bulk Status Update
+    async bulkUpdateStatus(ids: string[], status: AssistanceStatus): Promise<void> {
+        await request('/support/assistance-requests/bulk_update_status/', {
+            method: 'POST',
+            body: JSON.stringify({ ids, status })
+        });
     }
 };
 
