@@ -7,6 +7,7 @@ from .models import mark_ticket_as_read
 from apps.shops.models import SpazaShop
 from django.core.mail import EmailMessage
 from django.conf import settings
+from rest_framework.decorators import action
 
 # ... TicketViewSet and MessageViewSet remain unchanged ...
 class TicketViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
@@ -160,6 +161,60 @@ class RequestAssistanceView(generics.GenericAPIView):
             "detail": "Assistance request sent successfully.",
             "reference_code": assistance_req.reference_code 
         }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'])
+    def refer(self, request):
+        ids = request.data.get('ids', [])
+        partner_name = request.data.get('partner_name')
+        partner_email = request.data.get('partner_email')
+
+        if not ids or not partner_name or not partner_email:
+            return Response({"detail": "Missing data."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 1. Fetch requests
+        requests_to_refer = AssistanceRequest.objects.filter(id__in=ids)
+        
+        # 2. Construct Email to Partner (CSV style or List)
+        lead_details = ""
+        for req in requests_to_refer:
+            lead_details += f"""
+            - REF: {req.reference_code}
+              Service: {req.assistance_type}
+              Shop: {req.shop_name}
+              Owner: {req.user.get_full_name()} ({req.user.email}, {req.user.phone})
+              Notes: {req.comments}
+            ---------------------------------------------
+            """
+
+        email_body = f"""
+        Dear {partner_name},
+
+        Please find below {requests_to_refer.count()} new lead(s) referred by Spazaafy.
+        
+        IMPORTANT: Please quote the REF number in all invoices and commission statements.
+
+        {lead_details}
+
+        Regards,
+        Spazaafy Admin Team
+        """
+
+        # 3. Send Email
+        try:
+            email = EmailMessage(
+                subject=f"New Referrals from Spazaafy ({requests_to_refer.count()} Leads)",
+                body=email_body,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[partner_email]
+            )
+            email.send()
+        except Exception:
+            return Response({"detail": "Failed to email partner."}, status=500)
+
+        # 4. Update Status to REFERRED
+        requests_to_refer.update(status='REFERRED')
+
+        return Response({"detail": "Referrals sent successfully."}, status=200)
     
 
 class AdminAssistanceViewSet(viewsets.ModelViewSet):

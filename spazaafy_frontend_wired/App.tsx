@@ -38,6 +38,7 @@ import AboutUsPage from "./pages/AboutUsPage";
 import DeleteAccountPage from './pages/DeleteAccountPage';
 import RequestAssistancePage from './pages/RequestAssistancePage';
 import AdminAssistancePage from './pages/admin/AdminAssistancePage';
+import AdminAssistanceDetailPage from './pages/admin/AdminAssistanceDetailPage';
 
 
 function App() {
@@ -91,6 +92,7 @@ function App() {
               <Route path="site-visits" element={<AdminSiteVisitsPage />} />
               <Route path="site-visits/:visitId" element={<AdminSiteVisitDetailPage />} />
               <Route path="assistance" element={<AdminAssistancePage />} />
+              <Route path="assistance/:requestId" element={<AdminAssistanceDetailPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />
