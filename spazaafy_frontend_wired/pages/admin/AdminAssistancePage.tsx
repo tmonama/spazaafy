@@ -1,154 +1,178 @@
 // src/pages/admin/AdminAssistancePage.tsx
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import mockApi from '../../api/mockApi';
 import { AssistanceRequest, AssistanceStatus } from '../../types';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
+import ReferralModal from '../../components/ReferralModal';
 
-// Helper to format enum values
 const formatStatus = (status: string) => status.replace(/_/g, ' ');
 
 const AdminAssistancePage: React.FC = () => {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<AssistanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<AssistanceStatus | 'ALL'>('ALL');
+  
+  // ✅ Bulk Selection State
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchRequests = async () => {
     try {
       setLoading(true);
       const data = await mockApi.assistance.listAll();
-      // Sort by newest first
       data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setRequests(data);
+      setSelectedIds(new Set()); // Reset selection on refresh
     } catch (error) {
       console.error(error);
-      alert("Failed to load assistance requests.");
+      alert("Failed to load requests.");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
+  useEffect(() => { fetchRequests(); }, []);
 
-  const handleStatusChange = async (id: string, newStatus: AssistanceStatus) => {
-    if (!window.confirm(`Are you sure you want to change status to ${formatStatus(newStatus)}?`)) return;
-    try {
-      await mockApi.assistance.updateStatus(id, newStatus);
-      await fetchRequests(); // Refresh list
-    } catch (error) {
-      console.error(error);
-      alert("Failed to update status.");
-    }
-  };
-
+  // Filtering
   const filteredRequests = useMemo(() => {
     if (filter === 'ALL') return requests;
     return requests.filter(r => r.status === filter);
   }, [requests, filter]);
 
-  const getStatusColor = (status: AssistanceStatus) => {
-    switch (status) {
-        case 'PENDING': return 'bg-yellow-100 text-yellow-800';
-        case 'REFERRED': return 'bg-blue-100 text-blue-800';
-        case 'COMMISSION_PAID': return 'bg-green-100 text-green-800 font-bold';
-        case 'CANCELLED': return 'bg-red-100 text-red-800';
-        default: return 'bg-gray-100 text-gray-800';
+  // Bulk Selection Handlers
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      const allIds = filteredRequests.map(r => r.id);
+      setSelectedIds(new Set(allIds));
+    } else {
+      setSelectedIds(new Set());
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Loading requests...</div>;
+  const handleSelectOne = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedIds(newSet);
+  };
+
+  const handleBulkReferral = async (name: string, email: string) => {
+    try {
+      await mockApi.assistance.refer(Array.from(selectedIds), name, email);
+      alert(`Successfully referred ${selectedIds.size} requests.`);
+      fetchRequests(); // Refresh data
+    } catch (e) {
+      alert("Failed to send referrals.");
+    }
+  };
+
+  // Helper to select all of a specific type (e.g. select all CIPC)
+  const handleSelectByType = (type: string) => {
+    const idsOfType = filteredRequests.filter(r => r.assistanceType === type).map(r => r.id);
+    setSelectedIds(new Set(idsOfType));
+  };
+
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Assistance Requests</h1>
-        <Button onClick={fetchRequests} variant="secondary" size="sm">Refresh</Button>
+        <div className="flex gap-2">
+            {selectedIds.size > 0 && (
+                <Button onClick={() => setIsModalOpen(true)}>
+                    Refer Selected ({selectedIds.size})
+                </Button>
+            )}
+            <Button onClick={fetchRequests} variant="secondary" size="sm">Refresh</Button>
+        </div>
       </div>
 
       <Card>
-        {/* Filter Bar */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap gap-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2 self-center">Filter:</span>
-            {(['ALL', 'PENDING', 'REFERRED', 'COMMISSION_PAID'] as const).map(status => (
-                <button
-                    key={status}
-                    onClick={() => setFilter(status)}
-                    className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                        filter === status 
-                        ? 'bg-primary text-white' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
-                    }`}
-                >
-                    {formatStatus(status)}
-                </button>
-            ))}
+        {/* Filters & Bulk Tools */}
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between gap-4">
+            <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-1">Status:</span>
+                {(['ALL', 'PENDING', 'REFERRED', 'COMMISSION_PAID'] as const).map(status => (
+                    <button
+                        key={status}
+                        onClick={() => { setFilter(status); setSelectedIds(new Set()); }}
+                        className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            filter === status ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                        }`}
+                    >
+                        {formatStatus(status)}
+                    </button>
+                ))}
+            </div>
+            
+            {/* Quick Select by Type Dropdown */}
+            <select 
+                className="text-sm border border-gray-300 dark:border-gray-600 rounded p-1 dark:bg-gray-800 dark:text-white"
+                onChange={(e) => handleSelectByType(e.target.value)}
+                defaultValue=""
+            >
+                <option value="" disabled>Quick Select by Type...</option>
+                <option value="CIPC_REGISTRATION">All CIPC Registration</option>
+                <option value="SARS_TAX_CLEARANCE">All SARS Tax</option>
+                <option value="HEALTH_CERTIFICATE">All Health Certs</option>
+            </select>
         </div>
 
-        {/* Table */}
         <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reference</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Shop / Owner</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Service</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                        <th className="px-4 py-3 w-10">
+                            <input 
+                                type="checkbox" 
+                                onChange={handleSelectAll} 
+                                checked={filteredRequests.length > 0 && selectedIds.size === filteredRequests.length}
+                            />
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ref</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shop</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3"></th>
                     </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                     {filteredRequests.map((req) => (
-                        <tr key={req.id}>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="text-sm font-mono font-bold text-primary dark:text-primary-light">
-                                    {req.referenceCode}
-                                </span>
-                                <div className="text-xs text-gray-500">
-                                    {new Date(req.createdAt).toLocaleDateString()}
-                                </div>
+                        <tr key={req.id} className={selectedIds.has(req.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}>
+                            <td className="px-4 py-4">
+                                <input 
+                                    type="checkbox" 
+                                    checked={selectedIds.has(req.id)} 
+                                    onChange={() => handleSelectOne(req.id)}
+                                />
                             </td>
-                            <td className="px-6 py-4">
-                                <div className="text-sm font-medium text-gray-900 dark:text-white">{req.shopName}</div>
-                                <div className="text-sm text-gray-500">{req.ownerName}</div>
-                                <div className="text-xs text-gray-400">{req.ownerEmail}</div>
+                            <td className="px-6 py-4 whitespace-nowrap font-mono text-sm font-bold text-primary cursor-pointer hover:underline" onClick={() => navigate(`/admin/assistance/${req.id}`)}>
+                                {req.referenceCode}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                                {formatStatus(req.assistanceType)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(req.status)}`}>
-                                    {formatStatus(req.status)}
-                                </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <select 
-                                    className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs p-1"
-                                    value=""
-                                    onChange={(e) => handleStatusChange(req.id, e.target.value as AssistanceStatus)}
-                                >
-                                    <option value="" disabled>Change Status...</option>
-                                    <option value="REFERRED">Mark Referred</option>
-                                    <option value="COMPLETED">Mark Completed</option>
-                                    <option value="COMMISSION_PAID">Commission Paid</option>
-                                    <option value="CANCELLED">Cancel</option>
-                                </select>
+                            <td className="px-6 py-4 text-sm font-medium">{req.shopName}</td>
+                            <td className="px-6 py-4 text-sm text-gray-500">{formatStatus(req.assistanceType)}</td>
+                            <td className="px-6 py-4 text-sm">{formatStatus(req.status)}</td>
+                            <td className="px-6 py-4 text-right text-sm">
+                                <button onClick={() => navigate(`/admin/assistance/${req.id}`)} className="text-blue-600 hover:underline">View</button>
                             </td>
                         </tr>
                     ))}
-                    {filteredRequests.length === 0 && (
-                        <tr>
-                            <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                                No requests found.
-                            </td>
-                        </tr>
-                    )}
                 </tbody>
             </table>
         </div>
       </Card>
+
+      <ReferralModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={handleBulkReferral}
+        count={selectedIds.size}
+      />
     </div>
   );
 };

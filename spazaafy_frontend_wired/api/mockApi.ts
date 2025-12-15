@@ -709,6 +709,23 @@ const assistance = {
             body: JSON.stringify({ status })
         });
         return toAssistanceRequest(data);
+    },
+
+    async getById(id: string): Promise<AssistanceRequest> {
+        const data = await request<any>(`/support/assistance-requests/${id}/`);
+        return toAssistanceRequest(data);
+    },
+
+    // New: Bulk Refer
+    async refer(ids: string[], partnerName: string, partnerEmail: string): Promise<void> {
+        await request('/support/assistance-requests/refer/', {
+            method: 'POST',
+            body: JSON.stringify({ 
+                ids, 
+                partner_name: partnerName, 
+                partner_email: partnerEmail 
+            })
+        });
     }
 };
 
