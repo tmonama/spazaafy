@@ -73,6 +73,13 @@ const Header: React.FC = () => {
                 {t('header.dashboard')}
               </NavLink>
 
+              {/* ✅ ADD THIS BLOCK: Assistance Link (Desktop) */}
+              {user?.role === UserRole.SHOP_OWNER && (
+                <NavLink to="/request-assistance" className={getNavLinkClass}>
+                   {t('header.assistance', 'Assistance')}
+                </NavLink>
+              )}
+
               {/* ✅ Wrap in relative so the dot can anchor absolutely */}
               <div className="relative inline-block">
                 <NavLink to="/support" className={getNavLinkClass}>
@@ -138,6 +145,17 @@ const Header: React.FC = () => {
                 >
                   {t('header.dashboard')}
                 </NavLink>
+
+                 {/* ✅ ADD THIS BLOCK: Assistance Link (Mobile) */}
+                {user?.role === UserRole.SHOP_OWNER && (
+                  <NavLink
+                    to="/request-assistance"
+                    className={getMobileNavLinkClass}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    {t('header.assistance', 'Assistance')}
+                  </NavLink>
+                )}
 
                 {/* ✅ Mobile: show the dot too (count visible is fine on mobile) */}
                 <div className="relative inline-block">

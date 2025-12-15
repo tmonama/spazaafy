@@ -41,3 +41,23 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = '__all__'
         read_only_fields = ['ticket', 'sender', 'created_at']
+
+
+class AssistanceRequestSerializer(serializers.Serializer):
+    ASSISTANCE_TYPES = [
+        ("CIPC_REGISTRATION", "CIPC Registration"),
+        ("SARS_TAX_CLEARANCE", "SARS Tax Clearance"),
+        ("HEALTH_CERTIFICATE", "Health Certificate (COA)"),
+        ("TRADING_LICENSE", "Trading License"),
+        ("ZONING_PERMIT", "Zoning Permit"),
+        ("OTHER", "Other"),
+    ]
+
+    assistance_type = serializers.ChoiceField(choices=ASSISTANCE_TYPES)
+    comments = serializers.CharField(min_length=5, label="Additional Comments")
+    consent = serializers.BooleanField()
+
+    def validate_consent(self, value):
+        if not value:
+            raise serializers.ValidationError("You must agree to share your profile with partners to proceed.")
+        return value
