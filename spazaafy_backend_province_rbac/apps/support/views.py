@@ -226,16 +226,87 @@ class AdminAssistanceViewSet(viewsets.ModelViewSet):
     def bulk_update_status(self, request):
         ids = request.data.get('ids', [])
         new_status = request.data.get('status')
+        # ✅ Capture the reason
+        cancellation_reason = request.data.get('cancellation_reason', '')
 
         if not ids or not new_status:
             return Response({"detail": "Missing IDs or Status."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Validate status exists in choices
         valid_statuses = [s[0] for s in AssistanceRequest.STATUS_CHOICES]
         if new_status not in valid_statuses:
              return Response({"detail": "Invalid status code."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Update
+        # 1. Update the Database
         updated_count = AssistanceRequest.objects.filter(id__in=ids).update(status=new_status)
 
+        # 2. SEND CANCELLATION EMAIL (If status is CANCELLED)
+        if new_status == 'CANCELLED':
+            requests_to_cancel = AssistanceRequest.objects.filter(id__in=ids)
+            for req in requests_to_cancel:
+                try:
+                    subject = f"Update on Request {req.reference_code}: Cancelled"
+                    body = f"""
+                    Dear {req.user.first_name},
+
+                    Your request for assistance regarding "{req.assistance_type}" (Ref: {req.reference_code}) has been CANCELLED.
+
+                    Reason for cancellation:
+                    --------------------------------------------------
+                    {cancellation_reason or "No specific reason provided."}
+                    --------------------------------------------------
+
+                    If you believe this is an error, please contact support or submit a new request with the correct details.
+
+                    Regards,
+                    Spazaafy Admin Team
+                    """
+                    
+                    email = EmailMessage(
+                        subject=subject,
+                        body=body,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        to=[req.user.email]
+                    )
+                    email.send()
+                except Exception as e:
+                    print(f"Failed to send cancellation email to {req.user.email}: {e}")
+
         return Response({"detail": f"Successfully updated {updated_count} requests."}, status=status.HTTP_200_OK)
+
+    # ✅ Override PARTIAL_UPDATE (Single Item PATCH) for Cancellation
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        new_status = request.data.get('status')
+        cancellation_reason = request.data.get('cancellation_reason')
+
+        # Run standard update first
+        response = super().partial_update(request, *args, **kwargs)
+
+        # If status changed to CANCELLED, send email
+        if new_status == 'CANCELLED':
+            try:
+                subject = f"Update on Request {instance.reference_code}: Cancelled"
+                body = f"""
+                Dear {instance.user.first_name},
+
+                Your request for assistance regarding "{instance.assistance_type}" (Ref: {instance.reference_code}) has been CANCELLED.
+
+                Reason for cancellation:
+                --------------------------------------------------
+                {cancellation_reason or "No specific reason provided."}
+                --------------------------------------------------
+
+                Regards,
+                Spazaafy Admin Team
+                """
+                email = EmailMessage(
+                    subject=subject,
+                    body=body,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[instance.user.email]
+                )
+                email.send()
+            except Exception as e:
+                print(f"Error sending cancellation email: {e}")
+
+        return response
