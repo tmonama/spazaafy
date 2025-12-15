@@ -702,11 +702,10 @@ const assistance = {
         return data.map(toAssistanceRequest);
     },
 
-    async updateStatus(id: string, status: AssistanceStatus): Promise<AssistanceRequest> {
-        // Assuming: PATCH /api/support/assistance-requests/{id}/
+    async updateStatus(id: string, status: AssistanceStatus, cancellationReason?: string): Promise<AssistanceRequest> {
         const data = await request<any>(`/support/assistance-requests/${id}/`, {
             method: 'PATCH',
-            body: JSON.stringify({ status })
+            body: JSON.stringify({ status, cancellation_reason: cancellationReason })
         });
         return toAssistanceRequest(data);
     },
@@ -728,11 +727,11 @@ const assistance = {
         });
     },
 
-    // ✅ New Bulk Status Update
-    async bulkUpdateStatus(ids: string[], status: AssistanceStatus): Promise<void> {
+    // ✅ Update to accept reason (optional)
+    async bulkUpdateStatus(ids: string[], status: AssistanceStatus, cancellationReason?: string): Promise<void> {
         await request('/support/assistance-requests/bulk_update_status/', {
             method: 'POST',
-            body: JSON.stringify({ ids, status })
+            body: JSON.stringify({ ids, status, cancellation_reason: cancellationReason })
         });
     }
 };

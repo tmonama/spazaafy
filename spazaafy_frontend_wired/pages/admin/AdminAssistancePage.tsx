@@ -7,6 +7,7 @@ import { AssistanceRequest, AssistanceStatus } from '../../types';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import ReferralModal from '../../components/ReferralModal';
+import CancellationModal from '../../components/CancellationModal';
 
 const formatStatus = (status: string) => status.replace(/_/g, ' ');
 
@@ -19,6 +20,9 @@ const AdminAssistancePage: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false); // To show loading state during bulk update
+   // ✅ New State for Cancellation Logic
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [idsToCancel, setIdsToCancel] = useState<string[]>([]);
 
   const fetchRequests = async () => {
     try {
@@ -80,8 +84,21 @@ const AdminAssistancePage: React.FC = () => {
   const handleBulkStatusChange = async (newStatus: string) => {
     if (!newStatus) return; // Ignore default option
     const status = newStatus as AssistanceStatus;
+
+    // IF CANCELLED -> OPEN MODAL
+    if (status === 'CANCELLED') {
+        setIdsToCancel(Array.from(selectedIds));
+        setIsCancelModalOpen(true);
+        return;
+    }
     
     if (!window.confirm(`Are you sure you want to mark ${selectedIds.size} items as ${formatStatus(status)}?`)) return;
+    try {
+        await mockApi.assistance.bulkUpdateStatus(Array.from(selectedIds), status);
+        fetchRequests();
+    } catch (e) {
+        alert("Failed.");
+    }
 
     setIsUpdating(true);
     try {
@@ -95,14 +112,42 @@ const AdminAssistancePage: React.FC = () => {
     }
   };
 
-  // ✅ ACTION 3: Single Status Change (Inline)
+  
+
+  // ✅ MODIFIED: Single Status Change Handler
   const handleSingleStatusChange = async (id: string, newStatus: AssistanceStatus) => {
+    // IF CANCELLED -> OPEN MODAL
+    if (newStatus === 'CANCELLED') {
+        setIdsToCancel([id]);
+        setIsCancelModalOpen(true);
+        return;
+    }
+
     if (!window.confirm(`Change status to ${formatStatus(newStatus)}?`)) return;
     try {
       await mockApi.assistance.updateStatus(id, newStatus);
       fetchRequests();
     } catch (error) {
-      alert("Failed to update status.");
+      alert("Failed.");
+    }
+  };
+
+  // ✅ NEW: Execute Cancellation (Called by Modal)
+  const executeCancellation = async (reason: string) => {
+    try {
+        // If single item
+        if (idsToCancel.length === 1) {
+            await mockApi.assistance.updateStatus(idsToCancel[0], 'CANCELLED', reason);
+        } else {
+            // If bulk
+            await mockApi.assistance.bulkUpdateStatus(idsToCancel, 'CANCELLED', reason);
+        }
+        alert("Cancellation processed.");
+        fetchRequests();
+        setIdsToCancel([]); // cleanup
+    } catch (err) {
+        console.error(err);
+        alert("Failed to cancel requests.");
     }
   };
 
@@ -248,6 +293,14 @@ const AdminAssistancePage: React.FC = () => {
             </table>
         </div>
       </Card>
+
+      {/* ✅ Add the Modal at the bottom */}
+      <CancellationModal 
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        onConfirm={executeCancellation}
+        count={idsToCancel.length}
+      />
 
       <ReferralModal 
         isOpen={isModalOpen}
