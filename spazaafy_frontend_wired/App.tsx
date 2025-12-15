@@ -1,8 +1,8 @@
 import React from 'react';
 import { AlertsProvider } from './components/AlertsContext';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'; // Add Outlet
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './components/ProtectedRoute'; // Ensure this is imported
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import Header from './components/Header';
 
@@ -36,10 +36,7 @@ import DownloadAppPage from "./pages/DownloadAppPage";
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import AboutUsPage from "./pages/AboutUsPage";
 import DeleteAccountPage from './pages/DeleteAccountPage';
-
-
-
-
+import RequestAssistancePage from './pages/RequestAssistancePage';
 
 function App() {
   return (
@@ -63,12 +60,15 @@ function App() {
             <Route path="/about" element={<AboutUsPage />} />
             <Route path="/delete-account" element={<DeleteAccountPage />} />
 
-            {/* User Routes */}
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/support" element={<SupportPage />} />
-            <Route path="/support/:ticketId" element={<TicketDetailPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/account" element={<AccountPage />} />
+            {/* User Routes (Protected) */}
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
+            <Route path="/support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+            
+            {/* ✅ NEW ROUTE: Request Assistance */}
+            <Route path="/request-assistance" element={<ProtectedRoute><RequestAssistancePage /></ProtectedRoute>} />
 
             {/* Admin Routes */}
             <Route

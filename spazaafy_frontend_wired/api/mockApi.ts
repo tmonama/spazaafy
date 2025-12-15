@@ -669,6 +669,15 @@ const core = {
   }
 };
 
-const mockApi = { auth, users, shops, documents, tickets, visits, site, core, reports };
+const assistance = {
+    async request(payload: { assistance_type: string; comments: string; consent: boolean }): Promise<void> {
+        await request('/support/request-assistance/', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    }
+};
+
+const mockApi = { auth, users, shops, documents, tickets, visits, site, core, reports, assistance };
 
 export default mockApi;
