@@ -13,7 +13,7 @@ const PrivacyPolicyPage: React.FC = () => {
               Spazaafy Privacy Policy
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              POPIA-Compliant • Last updated: November 2025
+              POPIA-Compliant • Last updated: December 2025
             </p>
           </div>
           <Link
@@ -89,6 +89,12 @@ const PrivacyPolicyPage: React.FC = () => {
               When you contact support, we collect issue descriptions,
               attachments, role and app version metadata, and resolution history.
             </p>
+            <p className="mt-2 mb-1 font-medium">2.6 Crash &amp; Performance Data</p>
+            <p>
+              If you use our mobile application, we use Google Firebase Crashlytics to collect anonymised crash reports. 
+              This includes stack traces, device state information (e.g., free memory, battery level), and UUIDs (Installation IDs) 
+              to help us identify and fix app stability issues. This data does not directly identify you personally.
+            </p>
           </section>
 
           <section>
@@ -98,7 +104,7 @@ const PrivacyPolicyPage: React.FC = () => {
             <p>
               We collect information directly from you (for example when you
               register, upload documents, or contact support), automatically when
-              you use the Platform (such as device and log data), through field
+              you use the Platform (such as device logs, <strong>crash reports</strong>, and cookies), through field
               agent verification activities, and from partners like municipalities
               or NGOs who assist with onboarding and verification.
             </p>
@@ -132,7 +138,7 @@ const PrivacyPolicyPage: React.FC = () => {
               </li>
               <li>
                 <span className="font-semibold">Legitimate interests</span> – such
-                as preventing fraud, securing the Platform, and improving our
+                as preventing fraud, securing the Platform, <strong>fixing technical bugs</strong>, and improving our
                 services in ways that do not override your rights.
               </li>
             </ul>
@@ -153,6 +159,7 @@ const PrivacyPolicyPage: React.FC = () => {
                 important changes.
               </li>
               <li>Respond to queries, support requests, and technical issues.</li>
+              <li><strong>Diagnose app crashes and improve technical stability.</strong></li>
               <li>
                 Generate anonymised analytics and statistics for planning and
                 reporting.
@@ -184,6 +191,7 @@ const PrivacyPolicyPage: React.FC = () => {
               </li>
               <li>NGOs and community partners assisting with onboarding</li>
               <li>Cloud hosting and infrastructure providers</li>
+              <li><strong>Service providers (such as Google Firebase) for technical logging and crash analysis</strong></li>
               <li>Payment service providers for subscription payments</li>
               <li>Professional advisors such as auditors and legal counsel</li>
             </ul>
@@ -227,7 +235,7 @@ const PrivacyPolicyPage: React.FC = () => {
               We retain personal information only for as long as reasonably
               necessary for the purposes described in this Policy or as required
               by law. For example, compliance documents may be kept for at least
-              five years; support tickets for around twelve months; and analytics
+              five years; support tickets for around twelve months; crash logs via Google for 90 days; and analytics
               data may be retained in anonymised form for longer periods.
             </p>
           </section>
@@ -300,7 +308,7 @@ const PrivacyPolicyPage: React.FC = () => {
             </h2>
             <p>
               Your information may be stored or processed on servers located
-              outside South Africa. Where cross-border transfers occur, we ensure
+              outside South Africa <strong>(including Google Firebase servers in the US)</strong>. Where cross-border transfers occur, we ensure
               that appropriate protections are in place and that transfers comply
               with POPIA (for example, adequate laws, binding agreements, or
               your consent).
