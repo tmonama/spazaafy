@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from .models import Ticket, Message
+from .models import Ticket, Message, AssistanceRequest 
 
 User = get_user_model()
 
@@ -61,3 +61,9 @@ class AssistanceRequestSerializer(serializers.Serializer):
         if not value:
             raise serializers.ValidationError("You must agree to share your profile with partners to proceed.")
         return value
+    
+class AssistanceRequestModelSerializer(serializers.ModelSerializer):
+    user = SimpleUserSerializer(read_only=True) # Reuse your user serializer
+    class Meta:
+        model = AssistanceRequest
+        fields = '__all__'
