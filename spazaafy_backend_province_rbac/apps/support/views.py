@@ -162,6 +162,12 @@ class RequestAssistanceView(generics.GenericAPIView):
             "reference_code": assistance_req.reference_code 
         }, status=status.HTTP_200_OK)
     
+
+class AdminAssistanceViewSet(viewsets.ModelViewSet):
+    queryset = AssistanceRequest.objects.all()
+    serializer_class = AssistanceRequestModelSerializer
+    permission_classes = [permissions.IsAdminUser]
+
     @action(detail=False, methods=['post'])
     def refer(self, request):
         ids = request.data.get('ids', [])
@@ -215,9 +221,21 @@ class RequestAssistanceView(generics.GenericAPIView):
         requests_to_refer.update(status='REFERRED')
 
         return Response({"detail": "Referrals sent successfully."}, status=200)
-    
 
-class AdminAssistanceViewSet(viewsets.ModelViewSet):
-    queryset = AssistanceRequest.objects.all()
-    serializer_class = AssistanceRequestModelSerializer
-    permission_classes = [permissions.IsAdminUser]
+    @action(detail=False, methods=['post'])
+    def bulk_update_status(self, request):
+        ids = request.data.get('ids', [])
+        new_status = request.data.get('status')
+
+        if not ids or not new_status:
+            return Response({"detail": "Missing IDs or Status."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate status exists in choices
+        valid_statuses = [s[0] for s in AssistanceRequest.STATUS_CHOICES]
+        if new_status not in valid_statuses:
+             return Response({"detail": "Invalid status code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update
+        updated_count = AssistanceRequest.objects.filter(id__in=ids).update(status=new_status)
+
+        return Response({"detail": f"Successfully updated {updated_count} requests."}, status=status.HTTP_200_OK)
