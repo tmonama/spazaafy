@@ -5,6 +5,8 @@ from apps.core.models import Province
 from django.db.models.signals import post_save # ✅ 1. Import signals
 from django.dispatch import receiver          # ✅ 2. Import receiver decorator
 from apps.shops.models import SpazaShop
+import random
+import string
 
 class TicketPriority(models.TextChoices):
     LOW = "LOW", "Low"
@@ -88,3 +90,45 @@ def mark_ticket_as_read(ticket, user):
         if ticket.unread_for_assignee:
             ticket.unread_for_assignee = False
             ticket.save(update_fields=['unread_for_assignee'])
+
+
+class AssistanceRequest(models.Model):
+    ASSISTANCE_TYPES = [
+        ("CIPC_REGISTRATION", "CIPC Registration"),
+        ("SARS_TAX_CLEARANCE", "SARS Tax Clearance"),
+        ("HEALTH_CERTIFICATE", "Health Certificate (COA)"),
+        ("TRADING_LICENSE", "Trading License"),
+        ("ZONING_PERMIT", "Zoning Permit"),
+        ("OTHER", "Other"),
+    ]
+
+    STATUS_CHOICES = [
+        ("PENDING", "Pending"),
+        ("REFERRED", "Referred"),
+        ("IN_PROGRESS", "In Progress"),
+        ("COMPLETED", "Completed"),
+        ("COMMISSION_PAID", "Commission Paid"),
+        ("CANCELLED", "Cancelled"),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    shop_name = models.CharField(max_length=255)
+    assistance_type = models.CharField(max_length=50, choices=ASSISTANCE_TYPES)
+    comments = models.TextField()
+    reference_code = models.CharField(max_length=20, unique=True, editable=False)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.reference_code:
+            self.reference_code = self.generate_ref_code()
+        super().save(*args, **kwargs)
+
+    def generate_ref_code(self):
+        numbers = ''.join(random.choices(string.digits, k=4))
+        chars = ''.join(random.choices(string.ascii_uppercase, k=2))
+        return f"SPZ-{numbers}-{chars}"
+
+    def __str__(self):
+        return f"{self.reference_code} - {self.shop_name}"

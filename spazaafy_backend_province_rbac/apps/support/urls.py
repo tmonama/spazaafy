@@ -2,11 +2,13 @@
 
 from django.urls import path, include
 from rest_framework_nested import routers
-from .views import TicketViewSet, MessageViewSet, RequestAssistanceView
+from .views import TicketViewSet, MessageViewSet, RequestAssistanceView, AdminAssistanceViewSet
+
 
 # Main router for the top-level resource (Tickets)
 router = routers.DefaultRouter()
 router.register(r'tickets', TicketViewSet, basename='ticket')
+router.register(r'assistance-requests', AdminAssistanceViewSet, basename='assistance-request')
 
 # Nested router for the child resource (Messages)
 # It creates URLs like /tickets/{ticket_pk}/messages/

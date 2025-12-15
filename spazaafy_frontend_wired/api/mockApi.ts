@@ -3,7 +3,8 @@
 
 import {
   User, UserRole, SpazaShop, ShopDocument, DocumentStatus, Ticket,
-  TicketStatus, ChatMessage, SiteVisit, SiteVisitStatus, Province, SiteVisitForm 
+  TicketStatus, ChatMessage, SiteVisit, SiteVisitStatus, Province, SiteVisitForm,
+  AssistanceRequest, AssistanceStatus
 } from '../types';
 
 const RAW_BASE = (import.meta as any)?.env?.VITE_API_BASE;
@@ -44,6 +45,21 @@ function parseApiError(errorText: string): string {
     }
 
     return genericMessage;
+}
+
+function toAssistanceRequest(r: any): AssistanceRequest {
+    return {
+        id: String(r.id),
+        referenceCode: String(r.reference_code),
+        shopName: String(r.shop_name),
+        ownerName: `${r.user?.first_name || ''} ${r.user?.last_name || ''}`.trim(),
+        ownerEmail: String(r.user?.email || ''),
+        ownerPhone: String(r.user?.phone || ''),
+        assistanceType: String(r.assistance_type),
+        comments: String(r.comments),
+        status: r.status as AssistanceStatus,
+        createdAt: String(r.created_at || new Date().toISOString())
+    };
 }
 
 type LoginResponse = {
@@ -670,11 +686,29 @@ const core = {
 };
 
 const assistance = {
-    async request(payload: { assistance_type: string; comments: string; consent: boolean }): Promise<void> {
-        await request('/support/request-assistance/', {
+    // For Shop Owner (Existing)
+    async request(payload: { assistance_type: string; comments: string; consent: boolean }): Promise<{ detail: string; reference_code: string }> {
+        return request('/support/request-assistance/', {
             method: 'POST',
             body: JSON.stringify(payload),
         });
+    },
+
+    // ✅ For Admin (New)
+    async listAll(): Promise<AssistanceRequest[]> {
+        // You'll need to create this endpoint in Django later or use a generic ViewSet
+        // Assuming: GET /api/support/assistance-requests/
+        const data = await request<any[]>('/support/assistance-requests/'); 
+        return data.map(toAssistanceRequest);
+    },
+
+    async updateStatus(id: string, status: AssistanceStatus): Promise<AssistanceRequest> {
+        // Assuming: PATCH /api/support/assistance-requests/{id}/
+        const data = await request<any>(`/support/assistance-requests/${id}/`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status })
+        });
+        return toAssistanceRequest(data);
     }
 };
 

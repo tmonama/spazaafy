@@ -167,3 +167,18 @@ export interface Province {
   id: number; 
   name: string;
 }
+
+export type AssistanceStatus = 'PENDING' | 'REFERRED' | 'IN_PROGRESS' | 'COMPLETED' | 'COMMISSION_PAID' | 'CANCELLED';
+
+export interface AssistanceRequest {
+  id: string;
+  referenceCode: string;
+  shopName: string;
+  ownerName: string; // derived from user.first_name + user.last_name
+  ownerEmail: string;
+  ownerPhone?: string;
+  assistanceType: string;
+  comments: string;
+  status: AssistanceStatus;
+  createdAt: string;
+}

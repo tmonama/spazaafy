@@ -37,6 +37,8 @@ import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import AboutUsPage from "./pages/AboutUsPage";
 import DeleteAccountPage from './pages/DeleteAccountPage';
 import RequestAssistancePage from './pages/RequestAssistancePage';
+import AdminAssistancePage from './pages/admin/AdminAssistancePage';
+
 
 function App() {
   return (
@@ -88,6 +90,7 @@ function App() {
               <Route path="tickets/:ticketId" element={<AdminTicketDetailPage />} />
               <Route path="site-visits" element={<AdminSiteVisitsPage />} />
               <Route path="site-visits/:visitId" element={<AdminSiteVisitDetailPage />} />
+              <Route path="assistance" element={<AdminAssistancePage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />
