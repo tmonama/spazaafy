@@ -5,9 +5,10 @@ class DocumentSerializer(serializers.ModelSerializer):
     fileUrl = serializers.URLField(source='file.url', read_only=True)
     
     # Explicitly define these to ensure they are accepted as input but optional
-    upload_lat = serializers.FloatField(required=False, write_only=True)
-    upload_lng = serializers.FloatField(required=False, write_only=True)
-    upload_accuracy = serializers.FloatField(required=False, write_only=True)
+    upload_lat = serializers.FloatField(required=False, allow_null=True)
+    upload_lng = serializers.FloatField(required=False, allow_null=True)
+    upload_accuracy = serializers.FloatField(required=False, allow_null=True)
+
 
     class Meta:
         model = Document
@@ -15,6 +16,7 @@ class DocumentSerializer(serializers.ModelSerializer):
             'id',
             'shop',
             'shop_name',
+            'name',
             'type',
             'file',
             'fileUrl',
