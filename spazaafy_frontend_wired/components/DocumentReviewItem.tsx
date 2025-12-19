@@ -7,7 +7,7 @@ import Input from './Input';
 interface DocumentReviewItemProps {
     document: ShopDocument;
     onApprove: (expiryDate: string | null) => void;
-    onReject: () => void;
+    onRejectClick: () => void;
 }
 
 const statusColors: Record<DocumentStatus, string> = {
@@ -16,12 +16,11 @@ const statusColors: Record<DocumentStatus, string> = {
     [DocumentStatus.REJECTED]: 'border-red-500',
 };
 
-const DocumentReviewItem: React.FC<DocumentReviewItemProps> = ({ document, onApprove, onReject }) => {
+const DocumentReviewItem: React.FC<DocumentReviewItemProps> = ({ document, onApprove, onRejectClick }) => {
     
     const [expiryDate, setExpiryDate] = useState('');
     const fullFileUrl = document.fileUrl || '#';
 
-    // ✅ NEW: Generate Google Maps URL
     const mapsUrl = (document.uploadLat && document.uploadLng) 
         ? `https://www.google.com/maps/search/?api=1&query=${document.uploadLat},${document.uploadLng}`
         : null;
@@ -38,22 +37,11 @@ const DocumentReviewItem: React.FC<DocumentReviewItemProps> = ({ document, onApp
                         Submitted: {document.submittedAt ? new Date(document.submittedAt).toLocaleString() : 'N/A'}
                     </p>
 
-                    {/* ✅ NEW: Location Link */}
                     {mapsUrl && (
                         <div className="mt-1">
-                            <a 
-                                href={mapsUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline"
-                            >
-                                <span className="mr-1">📍</span>
-                                View Upload Location
-                                {document.uploadAccuracy && (
-                                    <span className="text-gray-500 dark:text-gray-400 ml-1">
-                                        (±{Math.round(document.uploadAccuracy)}m)
-                                    </span>
-                                )}
+                            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline">
+                                <span className="mr-1">📍</span> View Upload Location
+                                {document.uploadAccuracy && <span className="text-gray-500 dark:text-gray-400 ml-1">(±{Math.round(document.uploadAccuracy)}m)</span>}
                             </a>
                         </div>
                     )}
@@ -62,6 +50,13 @@ const DocumentReviewItem: React.FC<DocumentReviewItemProps> = ({ document, onApp
                         <p className="text-xs text-red-500 dark:text-red-400 font-semibold mt-1">
                             Expires: {new Date(document.expiryDate).toLocaleDateString()}
                         </p>
+                    )}
+
+                    {document.status === DocumentStatus.REJECTED && document.rejectionReason && (
+                         <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 rounded-sm">
+                            <p className="text-xs text-red-700 dark:text-red-300 font-semibold">Rejection Reason:</p>
+                            <p className="text-sm text-red-600 dark:text-red-200 italic">{document.rejectionReason}</p>
+                        </div>
                     )}
                 </div>
                 <div className="mt-4 sm:mt-0 flex items-center space-x-3">
@@ -72,14 +67,14 @@ const DocumentReviewItem: React.FC<DocumentReviewItemProps> = ({ document, onApp
                         <div className="flex items-end space-x-2">
                             <Input 
                                 type="date"
-                                id={`expiry-date-${document.id}`}
+                                id={`expiry-${document.id}`} // ✅ FIXED: Added ID prop
                                 label="Expiry Date"
                                 value={expiryDate}
                                 onChange={(e) => setExpiryDate(e.target.value)}
                                 className="py-1 text-sm w-40"
                             />
+                            <Button onClick={onRejectClick} size="sm" variant="danger">Reject</Button>
                             <Button onClick={() => onApprove(expiryDate || null)} size="sm" variant="primary">Approve</Button>
-                            <Button onClick={onReject} size="sm" variant="danger">Reject</Button>
                         </div>
                     ) : (
                          <div className="text-right">

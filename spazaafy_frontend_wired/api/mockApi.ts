@@ -205,6 +205,7 @@ function toDocument(d: any): ShopDocument {
     uploadLat: d.upload_lat,
     uploadLng: d.upload_lng,
     uploadAccuracy: d.upload_accuracy,
+    rejectionReason: d.rejection_reason,
   };
 }
 
@@ -577,9 +578,14 @@ const documents = {
     return toDocument(json);
   },
 
-  async updateStatus(id: string, action: 'verify' | 'reject', data?: { notes?: string; expiry_date?: string | null }) {
-    await request(`/compliance/documents/${id}/${action}/`, { method: 'POST', body: JSON.stringify(data || {}) });
+  // ✅ MODIFIED: Accept rejectionReason for 'reject' action
+  async updateStatus(id: string, action: 'verify' | 'reject', data?: { notes?: string; expiry_date?: string | null; rejection_reason?: string }) {
+    await request(`/compliance/documents/${id}/${action}/`, { 
+        method: 'POST', 
+        body: JSON.stringify(data || {}) 
+    });
   },
+  
   async exportCsv() { await requestAndDownloadCsv('/compliance/documents/export_csv/', 'documents.csv'); },
 };
 

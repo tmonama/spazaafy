@@ -64,6 +64,7 @@ export interface ShopDocument {
   uploadLat?: number;
   uploadLng?: number;
   uploadAccuracy?: number; 
+  rejectionReason?: string;
 }
 
 // REMOVED old SupportTicket type. We will only use the new `Ticket` type below.
