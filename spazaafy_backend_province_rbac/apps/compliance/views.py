@@ -10,7 +10,7 @@ from django.utils import timezone
 from apps.shops.models import SpazaShop
 from rest_framework.exceptions import PermissionDenied
 import sys
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser 
 import traceback
 from django.core.files.storage import default_storage
 from django.conf import settings
@@ -19,7 +19,7 @@ import boto3, botocore
 from django.core.mail import EmailMessage
 
 class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
-    parser_classes = (MultiPartParser, FormParser)
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
     queryset = Document.objects.select_related('shop', 'verified_by')
     serializer_class = DocumentSerializer
     permission_classes = [permissions.IsAuthenticated]
