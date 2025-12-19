@@ -30,7 +30,8 @@ class DocumentSerializer(serializers.ModelSerializer):
             # New fields
             'upload_lat',
             'upload_lng',
-            'upload_accuracy'
+            'upload_accuracy',
+            'rejection_reason'
         ]
         read_only_fields = ['shop', 'status', 'uploaded_at', 'verified_at', 'verified_by']
         

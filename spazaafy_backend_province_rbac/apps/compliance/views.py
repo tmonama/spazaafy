@@ -16,6 +16,7 @@ from django.core.files.storage import default_storage
 from django.conf import settings
 import os
 import boto3, botocore
+from django.core.mail import EmailMessage
 
 class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
     parser_classes = (MultiPartParser, FormParser)
@@ -88,6 +89,8 @@ class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
         doc.verified_at = timezone.now()
         doc.verified_by = request.user
         doc.notes = request.data.get('notes', 'Admin approved.')
+        # ✅ Clear rejection reason on verification
+        doc.rejection_reason = ""
         
         # ✅ THE FIX: Get the expiry date from the request body and save it
         expiry_date = request.data.get('expiry_date', None)
@@ -105,14 +108,49 @@ class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def reject(self, request, pk=None):
         doc = self.get_object()
+        rejection_reason = request.data.get('rejection_reason', '') # ✅ Get rejection reason
         doc.status = DocumentStatus.REJECTED
         doc.notes = request.data.get('notes', 'Admin rejected.')
         doc.verified_by = request.user
+        # ✅ Save rejection reason
+        doc.rejection_reason = rejection_reason
         doc.save()
         
         # Also check verification status after a rejection
         if hasattr(doc.shop, 'check_and_update_verification'):
             doc.shop.check_and_update_verification()
+
+        # 3. Send Email (Inline)
+        if rejection_reason and doc.shop.owner.email:
+            try:
+                shop_owner = doc.shop.owner
+                subject = f"Action Required: Document Rejected for {doc.shop.name}"
+                body = f"""
+                Dear {shop_owner.first_name},
+
+                Your document submission for "{doc.get_type_display()}" has been REJECTED by our verification team.
+
+                Reason for rejection:
+                --------------------------------------------------
+                {rejection_reason}
+                --------------------------------------------------
+
+                Please log in to your dashboard to upload a corrected version.
+
+                Regards,
+                Spazaafy Admin Team
+                """
+
+                email = EmailMessage(
+                    subject=subject,
+                    body=body,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[shop_owner.email]
+                )
+                email.send()
+                print(f"Rejection email sent to {shop_owner.email}")
+            except Exception as e:
+                print(f"Failed to send rejection email: {e}")
             
         return Response(DocumentSerializer(doc).data)
     
