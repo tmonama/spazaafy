@@ -10,9 +10,6 @@ interface DocumentReviewItemProps {
     onReject: () => void;
 }
 
-// ✅ THE FIX 1: This constant is no longer needed and can be removed.
-// const API_BASE_URL = 'http://localhost:8000';
-
 const statusColors: Record<DocumentStatus, string> = {
     [DocumentStatus.PENDING]: 'border-yellow-500',
     [DocumentStatus.VERIFIED]: 'border-green-500',
@@ -22,8 +19,12 @@ const statusColors: Record<DocumentStatus, string> = {
 const DocumentReviewItem: React.FC<DocumentReviewItemProps> = ({ document, onApprove, onReject }) => {
     
     const [expiryDate, setExpiryDate] = useState('');
-    // ✅ THE FIX 2: Use the document.fileUrl directly. It is now a complete URL.
     const fullFileUrl = document.fileUrl || '#';
+
+    // ✅ NEW: Generate Google Maps URL
+    const mapsUrl = (document.uploadLat && document.uploadLng) 
+        ? `https://www.google.com/maps/search/?api=1&query=${document.uploadLat},${document.uploadLng}`
+        : null;
 
     return (
         <div className={`p-4 rounded-lg bg-white dark:bg-gray-800 shadow-sm border-l-4 ${statusColors[document.status]}`}>
@@ -36,6 +37,27 @@ const DocumentReviewItem: React.FC<DocumentReviewItemProps> = ({ document, onApp
                     <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                         Submitted: {document.submittedAt ? new Date(document.submittedAt).toLocaleString() : 'N/A'}
                     </p>
+
+                    {/* ✅ NEW: Location Link */}
+                    {mapsUrl && (
+                        <div className="mt-1">
+                            <a 
+                                href={mapsUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline"
+                            >
+                                <span className="mr-1">📍</span>
+                                View Upload Location
+                                {document.uploadAccuracy && (
+                                    <span className="text-gray-500 dark:text-gray-400 ml-1">
+                                        (±{Math.round(document.uploadAccuracy)}m)
+                                    </span>
+                                )}
+                            </a>
+                        </div>
+                    )}
+
                     {document.status === DocumentStatus.VERIFIED && document.expiryDate && (
                         <p className="text-xs text-red-500 dark:text-red-400 font-semibold mt-1">
                             Expires: {new Date(document.expiryDate).toLocaleDateString()}
@@ -43,7 +65,6 @@ const DocumentReviewItem: React.FC<DocumentReviewItemProps> = ({ document, onApp
                     )}
                 </div>
                 <div className="mt-4 sm:mt-0 flex items-center space-x-3">
-                    {/* This link will now use the correct URL */}
                     <a href={fullFileUrl} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" variant="neutral" disabled={!document.fileUrl}>View Document</Button>
                     </a>

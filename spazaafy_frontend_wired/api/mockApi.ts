@@ -201,6 +201,10 @@ function toDocument(d: any): ShopDocument {
     submittedAt: submissionDate ? String(submissionDate) : null,
     expiryDate: d.expiry_date ? String(d.expiry_date) : null,
     fileUrl: d.fileUrl || undefined, 
+    // ✅ NEW: Map backend fields to frontend type
+    uploadLat: d.upload_lat,
+    uploadLng: d.upload_lng,
+    uploadAccuracy: d.upload_accuracy,
   };
 }
 

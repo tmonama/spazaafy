@@ -61,6 +61,9 @@ export interface ShopDocument {
   submittedAt: string | null;
   expiryDate: string | null;
   fileUrl?: string;
+  uploadLat?: number;
+  uploadLng?: number;
+  uploadAccuracy?: number; 
 }
 
 // REMOVED old SupportTicket type. We will only use the new `Ticket` type below.
