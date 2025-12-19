@@ -63,13 +63,21 @@ class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
             print("--- DOCUMENT UPLOAD: FAILED - User does not own a shop. ---", file=sys.stderr) # Log Failure
             raise PermissionDenied("You do not own a shop and cannot upload documents.")
         print(f"--- DOCUMENT UPLOAD: Found shop '{shop.name}' (ID: {shop.id}) ---", file=sys.stderr) # Log Step 3
-        # If we found a shop, save the document with the association
+
+        # Log if we received location data (debug purposes)
+        if 'upload_lat' in serializer.validated_data:
+             print(f"--- DOCUMENT UPLOAD: Location data received: {serializer.validated_data['upload_lat']}, {serializer.validated_data.get('upload_lng')} ---", file=sys.stderr)
+        else:
+             print("--- DOCUMENT UPLOAD: No location data provided. ---", file=sys.stderr)
+
         try:
+            # The serializer automatically maps validated_data to model fields, 
+            # so upload_lat/lng will be saved automatically here.
             serializer.save(shop=shop)
         except Exception:
             traceback.print_exc()
             raise
-        print("--- DOCUMENT UPLOAD: serializer.save() completed successfully! ---", file=sys.stderr) # Log Success
+        print("--- DOCUMENT UPLOAD: serializer.save() completed successfully! ---", file=sys.stderr)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def verify(self, request, pk=None):

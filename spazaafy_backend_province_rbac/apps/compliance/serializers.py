@@ -2,8 +2,12 @@ from rest_framework import serializers
 from .models import Document
 
 class DocumentSerializer(serializers.ModelSerializer):
-    # This now works perfectly because `file.url` will generate a pre-signed URL.
     fileUrl = serializers.URLField(source='file.url', read_only=True)
+    
+    # Explicitly define these to ensure they are accepted as input but optional
+    upload_lat = serializers.FloatField(required=False, write_only=True)
+    upload_lng = serializers.FloatField(required=False, write_only=True)
+    upload_accuracy = serializers.FloatField(required=False, write_only=True)
 
     class Meta:
         model = Document
@@ -12,18 +16,21 @@ class DocumentSerializer(serializers.ModelSerializer):
             'shop',
             'shop_name',
             'type',
-            'file',       # Kept for uploads
-            'fileUrl',    # Used for viewing
+            'file',
+            'fileUrl',
             'status',
             'notes',
             'expiry_date',
             'uploaded_at',
             'verified_at',
-            'verified_by'
+            'verified_by',
+            # New fields
+            'upload_lat',
+            'upload_lng',
+            'upload_accuracy'
         ]
-        read_only_fields = ['shop', 'status','uploaded_at','verified_at','verified_by']
+        read_only_fields = ['shop', 'status', 'uploaded_at', 'verified_at', 'verified_by']
         
-        # Hides the original 'file' field from the API response to avoid confusion.
         extra_kwargs = {
             'file': {'write_only': True}
         }

@@ -549,15 +549,30 @@ const documents = {
     const data = await request<any[]>('/compliance/documents/');
     return data.map(toDocument);
   },
-  async upload(shopId: string, payload: { name: string; type: string; file: File; expiry_date?: string | null }) {
+  async upload(shopId: string, payload: { 
+      name: string; 
+      type: string; 
+      file: File; 
+      expiry_date?: string | null;
+      lat?: number;       // New
+      lng?: number;       // New
+      accuracy?: number;  // New
+  }) {
     const form = new FormData();
     form.append('shop', shopId); 
     form.append('type', payload.type);
     form.append('file', payload.file, payload.file.name); 
     if (payload.expiry_date) { form.append('expiry_date', payload.expiry_date); }
+
+    // ✅ NEW: Append location keys if they exist
+    if (payload.lat !== undefined) form.append('upload_lat', String(payload.lat));
+    if (payload.lng !== undefined) form.append('upload_lng', String(payload.lng));
+    if (payload.accuracy !== undefined) form.append('upload_accuracy', String(payload.accuracy));
+
     const json = await requestWithFile<any>('/compliance/documents/', { method: 'POST', body: form });
     return toDocument(json);
   },
+
   async updateStatus(id: string, action: 'verify' | 'reject', data?: { notes?: string; expiry_date?: string | null }) {
     await request(`/compliance/documents/${id}/${action}/`, { method: 'POST', body: JSON.stringify(data || {}) });
   },

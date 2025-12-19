@@ -30,6 +30,13 @@ class Document(models.Model):
     status = models.CharField(max_length=20, choices=DocumentStatus.choices, default=DocumentStatus.PENDING)
     notes = models.TextField(blank=True)
     expiry_date = models.DateField(null=True, blank=True)
+    
+    # --- NEW GEO-TAGGING FIELDS ---
+    upload_lat = models.FloatField(null=True, blank=True, help_text="Latitude where the upload took place")
+    upload_lng = models.FloatField(null=True, blank=True, help_text="Longitude where the upload took place")
+    upload_accuracy = models.FloatField(null=True, blank=True, help_text="GPS accuracy in meters")
+    # ------------------------------
+
     uploaded_at = models.DateTimeField(auto_now_add=True)
     verified_at = models.DateTimeField(null=True, blank=True)
     verified_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='verified_documents')
