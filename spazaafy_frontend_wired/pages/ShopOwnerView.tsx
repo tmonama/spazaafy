@@ -20,11 +20,6 @@ const ShopOwnerView: React.FC = () => {
   const [documents, setDocuments] = useState<ShopDocument[]>([]);
   const [siteVisit, setSiteVisit] = useState<SiteVisit | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-
-  // New state to show feedback during location fetch/upload
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadMessage, setUploadMessage] = useState<string>("");
-
   const navigate = useNavigate(); // <-- Add this if it's not already there
 
   const isOwner = useMemo(() => !!user && user.role === 'shop_owner', [user]);
@@ -140,64 +135,16 @@ const ShopOwnerView: React.FC = () => {
     }
   }, [isOwner]);
 
-  // ✅ NEW: Helper to get location via Browser API
-  const getBrowserLocation = (): Promise<{lat: number, lng: number, accuracy: number} | null> => {
-    return new Promise((resolve) => {
-      if (!navigator.geolocation) {
-        console.warn("Geolocation not supported by this browser.");
-        resolve(null);
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy
-          });
-        },
-        (error) => {
-          console.warn("Location access denied or failed:", error.message);
-          resolve(null); // Proceed without location
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
-    });
-  };
-
-  // ✅ MODIFIED: Upload handler with Geo-tagging
   const handleDocumentUpload = async (documentName: string, file: File) => {
     if (!user || !shop) return;
     const typeCode = NAME_TO_TYPE[documentName];
     if (!typeCode) return alert(t('shopOwnerDashboard.alerts.unknownDocType', { docName: documentName }));
-    
-    setIsUploading(true);
-    setUploadMessage("Getting your location for verification...");
-
     try {
-      // 1. Try to get location
-      const location = await getBrowserLocation();
-      
-      setUploadMessage("Uploading document...");
-
-      // 2. Upload with optional location data
-      await mockApi.documents.upload(String(shop.id), { 
-        name: documentName, 
-        type: typeCode, 
-        file,
-        lat: location?.lat,
-        lng: location?.lng,
-        accuracy: location?.accuracy
-      });
-      
+      await mockApi.documents.upload(String(shop.id), { name: documentName, type: typeCode, file });
       await fetchShopData();
     } catch (e: any) {
       console.error(e);
       alert(e?.message || t('shopOwnerDashboard.alerts.uploadFailed'));
-    } finally {
-      setIsUploading(false);
-      setUploadMessage("");
     }
   };
 
@@ -215,16 +162,6 @@ const ShopOwnerView: React.FC = () => {
 
   if (loading) {
       return <p className="text-center p-8">{t('shopOwnerDashboard.loading')}</p>;
-  }
-
-  // ✅ Show overlay/indicator when uploading
-  if (isUploading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mb-4"></div>
-        <p className="text-lg text-gray-700 dark:text-gray-300">{uploadMessage}</p>
-      </div>
-    );
   }
 
   if (!shop) {
