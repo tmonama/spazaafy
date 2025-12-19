@@ -565,7 +565,7 @@ const documents = {
     const form = new FormData();
     form.append('shop', shopId); 
     form.append('type', payload.type);
-    form.append('file', payload.file, payload.file.name); 
+    form.append('document_file', payload.file, payload.file.name);
     if (payload.expiry_date) { form.append('expiry_date', payload.expiry_date); }
 
     // ✅ NEW: Append location keys if they exist
