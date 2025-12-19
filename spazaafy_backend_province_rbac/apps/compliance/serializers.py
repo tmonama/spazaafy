@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Document
 
 class DocumentSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source='get_type_display', read_only=True)
     fileUrl = serializers.URLField(source='file.url', read_only=True)
     
     # Explicitly define these to ensure they are accepted as input but optional
