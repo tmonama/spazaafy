@@ -40,6 +40,9 @@ class Document(models.Model):
     rejection_reason = models.TextField(blank=True, help_text="Reason for rejection provided by admin")
 
     uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    updated_at = models.DateTimeField(auto_now=True) 
+    
     verified_at = models.DateTimeField(null=True, blank=True)
     verified_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='verified_documents')
 
