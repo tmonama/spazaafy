@@ -99,12 +99,23 @@ class RegisterSerializer(serializers.Serializer):
         password = validated_data.pop('password')
         email = validated_data.pop('email').strip().lower()
 
-        user = User.objects.create_user(username=email, email=email, password=password, is_active=False, **validated_data)
+        # ✅ Set initial reminder fields on user creation
+        user = User.objects.create_user(
+            username=email, 
+            email=email, 
+            password=password, 
+            is_active=False, 
+            reminders_sent_count=0, # ✅ Initial value
+            last_reminder_sent_at=timezone.now(), # ✅ Set initial timestamp for first "sent" event
+            **validated_data
+        )
 
         if user.role == 'OWNER' and shop_name:
             SpazaShop.objects.create(owner=user, name=shop_name, address=address, province=province, verified=False)
 
         # --- EMAIL VERIFICATION LOGIC ---
+        # Delete any old tokens for this user before creating a new one (safety)
+        EmailVerificationToken.objects.filter(user=user).delete() 
         token_obj = EmailVerificationToken.objects.create(user=user)
         frontend_url = settings.FRONTEND_URL.rstrip('/')
         verification_url = f"{frontend_url}/verify-email/{token_obj.token}"
