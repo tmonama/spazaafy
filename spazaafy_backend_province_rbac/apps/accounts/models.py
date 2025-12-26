@@ -16,6 +16,10 @@ class User(AbstractUser):
     province = models.ForeignKey(Province, null=True, blank=True, on_delete=models.SET_NULL,
         help_text='If set for ADMIN, user is a Province Admin. If null and ADMIN, user is Global Admin.')
     
+    # ✅ NEW: Fields for tracking verification reminders
+    reminders_sent_count = models.IntegerField(default=0)
+    last_reminder_sent_at = models.DateTimeField(null=True, blank=True)
+    
     # --- ADD THIS METHOD ---
     def get_full_name(self):
         """
