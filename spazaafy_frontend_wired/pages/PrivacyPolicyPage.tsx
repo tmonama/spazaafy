@@ -13,7 +13,7 @@ const PrivacyPolicyPage: React.FC = () => {
               Spazaafy Privacy Policy
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              POPIA-Compliant • Last updated: December 2025
+              POPIA-Compliant • Last updated: January 2026
             </p>
           </div>
           <Link
@@ -69,12 +69,13 @@ const PrivacyPolicyPage: React.FC = () => {
                 documents
               </li>
             </ul>
-            <p className="mt-2 mb-1 font-medium">2.3 Geolocation Information</p>
+            <p className="mt-2 mb-1 font-medium">2.3 Geolocation & Geo-tagging Information</p>
             <p>
               We collect geolocation information to verify shop locations, map
               verified shops, power proximity-based search, and detect fraud.
-              This may include GPS coordinates, time stamps, and derived address
-              information.
+              <strong>Specifically, we capture exact GPS coordinates when you upload documents ("geo-tagging").</strong>
+              This data is attached to the document submission to verify that the paperwork was submitted
+              from the registered shop premises.
             </p>
             <p className="mt-2 mb-1 font-medium">2.4 Technical &amp; Usage Data</p>
             <ul className="list-disc pl-5 space-y-1">
@@ -104,7 +105,7 @@ const PrivacyPolicyPage: React.FC = () => {
             <p>
               We collect information directly from you (for example when you
               register, upload documents, or contact support), automatically when
-              you use the Platform (such as device logs, <strong>crash reports</strong>, and cookies), through field
+              you use the Platform (such as device logs, <strong>location capture during uploads</strong>, crash reports, and cookies), through field
               agent verification activities, and from partners like municipalities
               or NGOs who assist with onboarding and verification.
             </p>
@@ -151,7 +152,7 @@ const PrivacyPolicyPage: React.FC = () => {
             <p>We use information to:</p>
             <ul className="list-disc pl-5 space-y-1 mt-1">
               <li>Register and authenticate users and accounts.</li>
-              <li>Verify and track compliance status of spaza shops.</li>
+              <li>Verify and track compliance status of spaza shops using geo-tagged evidence.</li>
               <li>Display verified shops to consumers by proximity and filters.</li>
               <li>Provide dashboards and reports to municipalities and suppliers.</li>
               <li>
@@ -209,8 +210,8 @@ const PrivacyPolicyPage: React.FC = () => {
             <p>
               We use automated systems to flag missing or expired documents,
               generate compliance statuses, trigger reminders, and detect risk or
-              fraud patterns. You may request a manual review if you believe an
-              automated outcome is incorrect.
+              fraud patterns (e.g. if the document upload location does not match the shop location).
+              You may request a manual review if you believe an automated outcome is incorrect.
             </p>
           </section>
 
@@ -266,14 +267,19 @@ const PrivacyPolicyPage: React.FC = () => {
 
           <section>
             <h2 className="font-semibold text-gray-900 dark:text-white mb-1">
-              11. Location Data
+              11. Location Data & Geo-tagging
             </h2>
             <p>
               Our apps may request access to your device&apos;s location to verify
               shop locations, show nearby verified outlets, and support fraud
-              detection. You can disable location in your device or browser
-              settings, but certain features may not function correctly without
-              it.
+              detection.
+            </p>
+            <p className="mt-1">
+              <strong>Document Geo-tagging:</strong> When you upload a compliance document, 
+              we capture the precise location at that moment. This is a critical security feature 
+              to prove that the document was submitted by you at the registered business address.
+              You can disable location in your device or browser settings, but document upload
+              and verification features will not function without it.
             </p>
           </section>
 

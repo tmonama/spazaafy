@@ -25,7 +25,7 @@ const ShopOwnerView: React.FC = () => {
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadMessage, setUploadMessage] = useState<string>("");
 
-  const navigate = useNavigate(); // <-- Add this if it's not already there
+  const navigate = useNavigate();
 
   const isOwner = useMemo(() => !!user && user.role === 'shop_owner', [user]);
 
@@ -122,7 +122,6 @@ const ShopOwnerView: React.FC = () => {
       }
     } catch (e: any) {
       console.error("Failed to fetch shop data:", e);
-      // ✅ THE FIX: Check for session expiry and log the user out
       if (e.message.includes('Session expired')) {
         logout();
         navigate('/login');
@@ -140,7 +139,6 @@ const ShopOwnerView: React.FC = () => {
     }
   }, [isOwner]);
 
-  // ✅ NEW: Helper to get location via Browser API
   const getBrowserLocation = (): Promise<{lat: number, lng: number, accuracy: number} | null> => {
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
@@ -166,7 +164,7 @@ const ShopOwnerView: React.FC = () => {
     });
   };
 
-  // ✅ MODIFIED: Upload handler with Geo-tagging
+  // ✅ MODIFIED: Upload handler with Strict Location Check
   const handleDocumentUpload = async (documentName: string, file: File) => {
     if (!user || !shop) return;
     const typeCode = NAME_TO_TYPE[documentName];
@@ -179,6 +177,14 @@ const ShopOwnerView: React.FC = () => {
       // 1. Try to get location
       const location = await getBrowserLocation();
       
+      // ✅ STRICT CHECK: If no location, Stop and Alert User
+      if (!location) {
+          alert("Document upload failed. Please ensure location services are turned on in your browser and system settings, then try again.");
+          setIsUploading(false);
+          setUploadMessage("");
+          return; // <--- This prevents the API call that causes 400
+      }
+      
       setUploadMessage("Uploading document...");
 
       // 2. Upload with optional location data
@@ -186,9 +192,9 @@ const ShopOwnerView: React.FC = () => {
         name: documentName, 
         type: typeCode, 
         file,
-        lat: location?.lat,
-        lng: location?.lng,
-        accuracy: location?.accuracy
+        lat: location.lat,
+        lng: location.lng,
+        accuracy: location.accuracy
       });
       
       await fetchShopData();
@@ -217,7 +223,7 @@ const ShopOwnerView: React.FC = () => {
       return <p className="text-center p-8">{t('shopOwnerDashboard.loading')}</p>;
   }
 
-  // ✅ Show overlay/indicator when uploading
+  // Show overlay/indicator when uploading
   if (isUploading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
