@@ -19,6 +19,7 @@ class User(AbstractUser):
     # ✅ NEW: Fields for tracking verification reminders
     reminders_sent_count = models.IntegerField(default=0)
     last_reminder_sent_at = models.DateTimeField(null=True, blank=True)
+    expo_push_token = models.CharField(max_length=255, blank=True, null=True)
     
     # --- ADD THIS METHOD ---
     def get_full_name(self):

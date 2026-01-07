@@ -8,6 +8,7 @@ from apps.shops.models import SpazaShop
 from django.core.mail import EmailMessage
 from django.conf import settings
 from rest_framework.decorators import action
+from apps.core.utils import send_expo_push_notification
 
 # ... TicketViewSet and MessageViewSet remain unchanged ...
 class TicketViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
@@ -47,6 +48,22 @@ class MessageViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         ticket_id = self.kwargs.get('ticket_pk')
         serializer.save(ticket_id=ticket_id, sender=self.request.user)
+
+        # ✅ Fetch the ticket instance so we know who to notify
+        ticket = Ticket.objects.get(id=ticket_id)
+        sender = self.request.user
+        
+        serializer.save(ticket=ticket, sender=sender)
+
+        # ✅ IF ADMIN REPLIES, NOTIFY USER
+        # (Note: DB 'unread' status is handled automatically by signals in models.py)
+        if sender.is_staff:
+            send_expo_push_notification(
+                user=ticket.user,
+                title="New Support Message",
+                body=f"Support replied to: {ticket.title}",
+                data={"ticketId": str(ticket.id)}
+            )
 
 
 # ✅ UPDATED VIEW

@@ -17,6 +17,7 @@ from django.conf import settings
 import os
 import boto3, botocore
 from django.core.mail import EmailMessage
+from apps.core.utils import send_expo_push_notification
 
 class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
     parser_classes = (MultiPartParser, FormParser, JSONParser)
@@ -98,6 +99,13 @@ class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
             doc.expiry_date = expiry_date
         
         doc.save()
+
+        # ✅ SEND PUSH
+        send_expo_push_notification(
+            user=doc.shop.owner,
+            title="Document Verified",
+            body=f"Your {doc.get_type_display()} has been verified!"
+        )
         
         # Now, check if the shop itself should be verified
         if hasattr(doc.shop, 'check_and_update_verification'):
@@ -115,6 +123,13 @@ class DocumentViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
         # ✅ Save rejection reason
         doc.rejection_reason = rejection_reason
         doc.save()
+
+        # ✅ SEND PUSH
+        send_expo_push_notification(
+            user=doc.shop.owner,
+            title="Action Required: Document Rejected",
+            body=f"Your {doc.get_type_display()} was rejected. Reason: {rejection_reason}"
+        )
         
         # Also check verification status after a rejection
         if hasattr(doc.shop, 'check_and_update_verification'):
