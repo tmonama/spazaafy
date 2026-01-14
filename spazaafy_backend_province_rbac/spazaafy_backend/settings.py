@@ -195,9 +195,9 @@ STORAGES = {
 }
 
 # --- GOOGLE AUTH CONFIGURATION ---
-GOOGLE_WEB_CLIENT_ID = os.environ.get('696918461560-rrl8hqektt8pg7j2jmrho2rajeagp3cr.apps.googleusercontent.com')
-GOOGLE_ANDROID_CLIENT_ID = os.environ.get('696918461560-omsilrf4maufg10hi5ajoiptsl220m8r.apps.googleusercontent.com')
-GOOGLE_IOS_CLIENT_ID = os.environ.get('696918461560-nfb63b4rrj3384ql3hgb84925euk4cln.apps.googleusercontent.com')
+GOOGLE_WEB_CLIENT_ID = os.environ.get('GOOGLE_WEB_CLIENT_ID')
+GOOGLE_ANDROID_CLIENT_ID = os.environ.get('GOOGLE_ANDROID_CLIENT_ID')
+GOOGLE_IOS_CLIENT_ID = os.environ.get('GOOGLE_IOS_CLIENT_ID')
 
 # List of all trusted Client IDs
 GOOGLE_VALID_CLIENT_IDS = [
