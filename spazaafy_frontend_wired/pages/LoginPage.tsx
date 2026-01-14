@@ -59,14 +59,16 @@ const LoginPage: React.FC = () => {
         const res = await mockApi.auth.googleAuth(token);
 
         if (res.status === "LOGIN_SUCCESS") {
-            // User exists: Manually save session and reload/redirect
-            // (Assuming standard JWT auth storage keys)
-            sessionStorage.setItem('access', res.access);
-            sessionStorage.setItem('refresh', res.refresh);
-            sessionStorage.setItem('user', JSON.stringify(res.user));
-            
-            // Force reload to pick up auth state or navigate if AuthContext listens to storage
-            window.location.href = HOME; 
+            const { setSession } = useAuth();
+
+            if (res.status === "LOGIN_SUCCESS") {
+              sessionStorage.setItem('access', res.access);
+              sessionStorage.setItem('refresh', res.refresh);
+
+              setSession(res.user);   // ✅ updates context immediately
+              navigate('/dashboard'); // ✅ no hard reload
+            }
+
         } 
         else if (res.status === "REGISTER_REQUIRED") {
             // User new: Navigate to Register with Prefill Data

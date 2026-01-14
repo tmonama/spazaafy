@@ -11,6 +11,7 @@ export interface AuthContextType {
   // ✅ Also corrected this one for consistency
   register: (payload: any) => Promise<User>;
   updateUser: (updatedUser: User) => void;
+  setSession: (user: User) => void;
   theme: Theme;
   toggleTheme: () => void;
 }
@@ -20,6 +21,12 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const setSession = (user: User) => {
+    setUser(user);
+    sessionStorage.setItem('user', JSON.stringify(user));
+  };
+
 
   // --- THEME MANAGEMENT LOGIC (RESTORED) ---
   const [theme, setTheme] = useState<Theme>(() => {
@@ -82,7 +89,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // The complete value provided to all components that use the 'useAuth' hook
-  const value = { user, loading, login, logout, register, updateUser, theme, toggleTheme };
+  const value = { user, loading, login, logout, register, updateUser, setSession, theme, toggleTheme };
 
   return (
     <AuthContext.Provider value={value}>

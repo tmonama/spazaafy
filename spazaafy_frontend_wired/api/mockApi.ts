@@ -446,17 +446,29 @@ const auth = {
         sessionStorage.setItem('user', JSON.stringify(shaped));
         return { ...data, user: shaped };
     },
-
     // ✅ NEW: Google Auth Endpoint
-    async googleAuth(token: string) {
-        // This matches the Mobile App logic
-        const data = await request<any>('/auth/google/', { 
-            method: 'POST', 
-            body: JSON.stringify({ token }) 
-        }, false); // false = no auth header needed
-        return data;
+    async googleAuth(token: string): Promise<any> {
+      const data = await request<any>(
+        '/auth/google/',
+        {
+          method: 'POST',
+          body: JSON.stringify({ token }),
+        },
+        false
+      );
+
+      // ✅ IMPORTANT: if backend says login success, store exactly like email login
+      if (data?.status === "LOGIN_SUCCESS") {
+        setTokens(data.access, data.refresh);
+        const shaped = toUser(data.user);
+        sessionStorage.setItem("user", JSON.stringify(shaped));
+        return { ...data, user: shaped };
+      }
+
+      return data;
     },
-    
+
+
     async logout(): Promise<void> {
         clearTokens();
         sessionStorage.removeItem('user');
