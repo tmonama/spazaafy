@@ -8,6 +8,7 @@ import Input from '../components/Input';
 import Card from '../components/Card';
 import AddressAutocompleteInput from '../components/AddressAutocompleteInput';
 import mockApi from '../api/mockApi';
+import { GoogleLogin } from '@react-oauth/google'; // ✅ Import Google
 
 interface Province {
   id: string;
@@ -51,7 +52,7 @@ const RegisterPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // ✅ 1. Get Prefill Data (from Google Login)
+  // 1. Get Prefill Data (from Login redirect)
   const prefill = location.state?.prefill;
 
   const initialRole =
@@ -61,7 +62,7 @@ const RegisterPage: React.FC = () => {
 
   const [role, setRole] = useState<UserRole>(initialRole);
   
-  // ✅ 2. Initialize Form with Prefill Data
+  // 2. Initialize Form
   const [formData, setFormData] = useState({
     firstName: prefill?.firstName || '',
     lastName: prefill?.lastName || '',
@@ -76,6 +77,10 @@ const RegisterPage: React.FC = () => {
     longitude: 0,
   });
 
+  // Track if we have a google token (either from login redirect or clicked on this page)
+  const [googleToken, setGoogleToken] = useState<string | null>(prefill?.googleToken || null);
+  const [isGoogleAccount, setIsGoogleAccount] = useState<boolean>(!!prefill?.isGoogle);
+
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -84,16 +89,13 @@ const RegisterPage: React.FC = () => {
   const [acceptTerms, setAcceptTerms] = useState(false);
 
   useEffect(() => {
-    // If role switches via navigation state updates
     if (location.state?.role) {
         setRole(location.state.role === 'shop_owner' ? UserRole.SHOP_OWNER : UserRole.CONSUMER);
     }
   }, [location.state]);
 
   useEffect(() => {
-    // Only fetch provinces if needed
     if (role === UserRole.SHOP_OWNER || role === UserRole.CONSUMER) { 
-       // Actually fetch for all, just in case logic changes, but mostly for Shop Owner
        const fetchProvinces = async () => {
         try {
           const apiProvinces = await mockApi.core.getProvinces();
@@ -121,17 +123,43 @@ const RegisterPage: React.FC = () => {
     if (fieldErrors.address) setFieldErrors((prev) => ({ ...prev, address: '' }));
   };
 
-  const validatePassword = (pwd: string): string => {
-    if (pwd.length < 8) return 'Password must be at least 8 characters.';
-    if (!/[A-Z]/.test(pwd)) return 'Password must include at least one uppercase letter.';
-    if (!/[0-9]/.test(pwd)) return 'Password must include at least one digit.';
-    return '';
-  };
+  // ✅ Handle Google Sign Up Click
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    const token = credentialResponse.credential;
+    if (!token) return;
 
-  const validatePhoneNumber = (phone: string): string => {
-    if (!phone.trim()) return 'Phone number is required.';
-    if (!/^0[0-9]{9}$/.test(phone.trim())) return 'Please enter a valid South African phone number.';
-    return '';
+    setLoading(true);
+    setError('');
+
+    try {
+        // Check backend: Does user exist?
+        const res = await mockApi.auth.googleAuth(token);
+
+        if (res.status === "LOGIN_SUCCESS") {
+            // User ALREADY exists -> Log them in directly
+            sessionStorage.setItem('access', res.access);
+            sessionStorage.setItem('refresh', res.refresh);
+            sessionStorage.setItem('user', JSON.stringify(res.user));
+            window.location.href = '/dashboard';
+        } 
+        else if (res.status === "REGISTER_REQUIRED") {
+            // User NEW -> Fill form
+            setFormData(prev => ({
+                ...prev,
+                email: res.email,
+                firstName: res.first_name,
+                lastName: res.last_name,
+            }));
+            setGoogleToken(token);
+            setIsGoogleAccount(true);
+            setError(""); // Clear any errors
+        }
+    } catch (err) {
+        console.error(err);
+        setError("Google authentication failed.");
+    } finally {
+        setLoading(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -153,14 +181,14 @@ const RegisterPage: React.FC = () => {
       if (!formData.province) newFieldErrors.province = 'Province is required.';
     }
 
-    const phoneError = validatePhoneNumber(formData.phone);
-    if (phoneError) newFieldErrors.phone = phoneError;
+    if (!formData.phone.trim() || !/^0[0-9]{9}$/.test(formData.phone.trim())) {
+        newFieldErrors.phone = 'Please enter a valid SA phone number.';
+    }
 
-    const passwordError = validatePassword(formData.password);
-    if (passwordError) newFieldErrors.password = passwordError;
-
-    if (formData.password !== formData.confirmPassword) {
-      newFieldErrors.confirmPassword = 'Passwords do not match.';
+    // Password Validation (only if not empty, otherwise required check hits)
+    if (formData.password) {
+        if (formData.password.length < 8) newFieldErrors.password = 'Password must be at least 8 characters.';
+        if (formData.password !== formData.confirmPassword) newFieldErrors.confirmPassword = 'Passwords do not match.';
     }
 
     if (!acceptTerms) setError('Please accept the Privacy Policy to continue.');
@@ -182,8 +210,8 @@ const RegisterPage: React.FC = () => {
         last_name: formData.lastName.trim(),
         phone: formData.phone.trim(),
         role: apiRole,
-        // ✅ 3. Include Google Token if present
-        google_token: prefill?.googleToken
+        // ✅ Include Google Token
+        google_token: googleToken
       };
 
       if (apiRole === 'OWNER') {
@@ -196,9 +224,8 @@ const RegisterPage: React.FC = () => {
 
       await mockApi.auth.register(payload);
       
-      // ✅ 4. Handle Success based on Registration Type
-      if (prefill?.isGoogle) {
-          // If Google, account is already verified.
+      if (isGoogleAccount) {
+          // Auto-verified via Google
           alert("Account created successfully! Please sign in with Google.");
           navigate('/login');
       } else {
@@ -212,6 +239,10 @@ const RegisterPage: React.FC = () => {
     }
   };
 
+  const allRequiredConsumerFilled = formData.firstName && formData.lastName && formData.email && formData.phone && formData.password && formData.confirmPassword;
+  const allRequiredOwnerFilled = allRequiredConsumerFilled && formData.shopName && formData.address && formData.province;
+  const canSubmit = !loading && acceptTerms && (role === UserRole.SHOP_OWNER ? allRequiredOwnerFilled : allRequiredConsumerFilled);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-dark-bg py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -220,7 +251,7 @@ const RegisterPage: React.FC = () => {
             Spazaafy
           </h1>
           <h2 className="mt-2 text-center text-2xl font-bold text-gray-900 dark:text-white">
-            {prefill?.isGoogle ? "Complete your Profile" : "Create your account"}
+            {isGoogleAccount ? "Complete your Profile" : "Create your account"}
           </h2>
         </div>
         <Card>
@@ -250,6 +281,29 @@ const RegisterPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* ✅ GOOGLE BUTTON */}
+              {!isGoogleAccount && (
+                  <div className="my-4">
+                    <div className="flex justify-center">
+                        <GoogleLogin
+                            onSuccess={handleGoogleSuccess}
+                            onError={() => setError("Google Sign-Up Failed")}
+                            text="signup_with"
+                            theme="outline"
+                            width="100%"
+                        />
+                    </div>
+                    <div className="relative mt-4">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-white dark:bg-dark-surface text-gray-500">Or sign up with email</span>
+                        </div>
+                    </div>
+                  </div>
+              )}
+
               {/* Name Fields */}
               <div className="grid grid-cols-2 gap-3">
                 <Input id="firstName" label="First name" value={formData.firstName} onChange={handleChange} error={fieldErrors.firstName} required />
@@ -265,8 +319,8 @@ const RegisterPage: React.FC = () => {
                 onChange={handleChange}
                 error={fieldErrors.email}
                 required
-                disabled={!!prefill?.isGoogle} 
-                className={prefill?.isGoogle ? "bg-gray-100 dark:bg-dark-surface opacity-60 cursor-not-allowed" : ""}
+                disabled={isGoogleAccount} // Lock if Google
+                className={isGoogleAccount ? "bg-gray-100 cursor-not-allowed" : ""}
               />
 
               <Input id="phone" type="tel" label="Phone" value={formData.phone} onChange={handleChange} error={fieldErrors.phone} required />
@@ -309,7 +363,7 @@ const RegisterPage: React.FC = () => {
 
               {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200 whitespace-pre-line">{error}</div>}
 
-              <Button type="submit" disabled={!loading && (!acceptTerms || (role===UserRole.SHOP_OWNER ? !(formData.shopName && formData.address && formData.province) : !formData.firstName))} className="w-full">
+              <Button type="submit" disabled={!canSubmit} className="w-full">
                 {loading ? 'Creating account…' : 'Create account'}
               </Button>
             </form>
