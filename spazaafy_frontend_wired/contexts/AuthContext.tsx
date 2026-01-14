@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // The complete value provided to all components that use the 'useAuth' hook
-  const value = { user, loading, login, logout, register, updateUser, theme, toggleTheme };
+  const value = { user, loading, login, loginWithGoogle, logout, register, updateUser, theme, toggleTheme };
 
   return (
     <AuthContext.Provider value={value}>
