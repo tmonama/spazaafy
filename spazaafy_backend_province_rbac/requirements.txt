@@ -22,3 +22,6 @@ django-storages[boto3]
 boto3
 
 django-anymail==11.1
+
+google-auth
+requests

@@ -11,6 +11,10 @@ from .models import AdminVerificationCode, EmailVerificationToken
 from django.conf import settings
 from django.core.mail import EmailMessage
 
+# Google Imports
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
 User = get_user_model()
 
 ROLE_CHOICES = ('CONSUMER', 'OWNER', 'ADMIN')
@@ -82,6 +86,9 @@ class RegisterSerializer(serializers.Serializer):
     address = serializers.CharField(required=False, allow_blank=True)
     province = serializers.PrimaryKeyRelatedField(queryset=Province.objects.all(), required=False, allow_null=True)
 
+    # ✅ NEW: Accept Google Token to verify identity
+    google_token = serializers.CharField(required=False, allow_blank=True, write_only=True)
+
     def validate_email(self, value: str) -> str:
         email = value.strip().lower()
         if User.objects.filter(email__iexact=email).exists():
@@ -98,45 +105,60 @@ class RegisterSerializer(serializers.Serializer):
         province = validated_data.pop('province', None)
         password = validated_data.pop('password')
         email = validated_data.pop('email').strip().lower()
+        google_token = validated_data.pop('google_token', None)
 
-        # ✅ Set initial reminder fields on user creation
+        # ✅ Check if this is a verified Google Registration
+        is_google_verified = False
+        if google_token:
+            try:
+                # We do not pass 'audience' here because we check it manually if needed, 
+                # or trust verify_oauth2_token's signature check.
+                id_info = id_token.verify_oauth2_token(google_token, google_requests.Request(), audience=None)
+                
+                # Security Check: Ensure the token email matches the form email
+                if id_info.get('email') == email:
+                    # Optional: Check if aud matches one of our IDs
+                    if id_info.get('aud') in settings.GOOGLE_VALID_CLIENT_IDS:
+                        is_google_verified = True
+            except Exception as e:
+                print(f"Google Token Verification Failed during register: {e}")
+                is_google_verified = False
+
+        # ✅ Create user with active status if Google Verified
         user = User.objects.create_user(
             username=email, 
             email=email, 
             password=password, 
-            is_active=False, 
-            reminders_sent_count=0, # ✅ Initial value
-            last_reminder_sent_at=timezone.now(), # ✅ Set initial timestamp for first "sent" event
+            is_active=is_google_verified,  # Auto-activate if Google
             **validated_data
         )
 
         if user.role == 'OWNER' and shop_name:
             SpazaShop.objects.create(owner=user, name=shop_name, address=address, province=province, verified=False)
 
-        # --- EMAIL VERIFICATION LOGIC ---
-        # Delete any old tokens for this user before creating a new one (safety)
-        EmailVerificationToken.objects.filter(user=user).delete() 
-        token_obj = EmailVerificationToken.objects.create(user=user)
-        frontend_url = settings.FRONTEND_URL.rstrip('/')
-        verification_url = f"{frontend_url}/verify-email/{token_obj.token}"
-        
-        message = EmailMessage(
-            to=[user.email],
-            from_email=settings.DEFAULT_FROM_EMAIL,
-        )
-
-        message.template_id = 2 # Ensure this ID is correct in your Brevo/Email setup
-
-        message.merge_global_data = {
-            'NAME': user.first_name if user.first_name else "User",
-            'LINK': verification_url,
-        }
-
-        message.send()
+        # --- EMAIL VERIFICATION LOGIC (Only if NOT Google) ---
+        if not is_google_verified:
+            token_obj = EmailVerificationToken.objects.create(user=user)
+            frontend_url = settings.FRONTEND_URL.rstrip('/')
+            verification_url = f"{frontend_url}/verify-email/{token_obj.token}"
+            
+            message = EmailMessage(
+                to=[user.email],
+                from_email=settings.DEFAULT_FROM_EMAIL,
+            )
+            message.template_id = 2 
+            message.merge_global_data = {
+                'NAME': user.first_name if user.first_name else "User",
+                'LINK': verification_url,
+            }
+            message.send()
 
         return user
 
     def to_representation(self, user):
+        # If active, it means they registered via Google and can login immediately
+        if user.is_active:
+            return {"detail": "Account created successfully. You can now login."}
         return {"detail": "Registration successful. Please check your email to verify your account."}
 
 class LoginSerializer(serializers.Serializer):
@@ -146,27 +168,18 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, attrs):
         email = (attrs.get("email") or "").strip().lower()
         password = attrs.get("password")
-
-        # 1. Attempt standard authentication (Note: authenticate() returns None for inactive users)
         user = authenticate(request=self.context.get('request'), username=email, password=password)
         
         if not user:
-            # 2. Authentication failed. Check if it's because the user is inactive.
             try:
                 existing_user = User.objects.get(email=email)
                 if existing_user.check_password(password):
                     if not existing_user.is_active:
-                        # Password correct, but account inactive
-                        raise serializers.ValidationError(
-                            {"non_field_errors": ["Please verify your email address before logging in."]}
-                        )
+                        raise serializers.ValidationError({"non_field_errors": ["Please verify your email address before logging in."]})
             except User.DoesNotExist:
                 pass
-            
-            # 3. Genuine failure (wrong password or user doesn't exist)
             raise serializers.ValidationError({"non_field_errors": ["Invalid email or password."]})
 
-        # 4. Double check is_active just in case a custom backend allowed it
         if not user.is_active:
             raise serializers.ValidationError({"non_field_errors": ["Please verify your email address before logging in."]})
         

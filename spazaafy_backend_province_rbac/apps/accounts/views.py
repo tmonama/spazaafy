@@ -16,6 +16,68 @@ from datetime import timedelta
 from .permissions import IsOwnerOrAdmin
 from django.views.generic import TemplateView
 
+# Google Imports
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from rest_framework_simplejwt.tokens import RefreshToken
+
+# --- GOOGLE AUTH VIEW ---
+class GoogleAuthView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        token = request.data.get('token')
+        if not token:
+            return Response({'detail': 'No token provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # 1. Verify the token signature
+            # We pass audience=None here because we check it manually against our list
+            id_info = id_token.verify_oauth2_token(token, google_requests.Request(), audience=None)
+
+            # 2. Manual Audience Check
+            token_audience = id_info.get('aud')
+            if token_audience not in settings.GOOGLE_VALID_CLIENT_IDS:
+                return Response({'detail': 'Invalid Google Client ID'}, status=status.HTTP_403_FORBIDDEN)
+
+            # 3. Extract User Info
+            email = id_info.get('email')
+            first_name = id_info.get('given_name', '')
+            last_name = id_info.get('family_name', '')
+
+            # 4. Check if user exists
+            try:
+                user = User.objects.get(email=email)
+                
+                # Auto-verify if they existed but were inactive
+                if not user.is_active:
+                    user.is_active = True
+                    user.save()
+
+                # Login Success
+                refresh = RefreshToken.for_user(user)
+                
+                return Response({
+                    "status": "LOGIN_SUCCESS",
+                    "user": UserSerializer(user).data,
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                })
+
+            except User.DoesNotExist:
+                # 5. User does not exist -> Frontend must register
+                return Response({
+                    "status": "REGISTER_REQUIRED",
+                    "email": email,
+                    "first_name": first_name,
+                    "last_name": last_name
+                }, status=status.HTTP_200_OK)
+
+        except ValueError:
+            return Response({'detail': 'Invalid Google Token'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # --- NEW ADMIN REGISTRATION VIEWS ---
 class RequestAdminVerificationCodeView(generics.GenericAPIView):

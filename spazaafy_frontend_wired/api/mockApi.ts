@@ -446,6 +446,17 @@ const auth = {
         sessionStorage.setItem('user', JSON.stringify(shaped));
         return { ...data, user: shaped };
     },
+
+    // ✅ NEW: Google Auth Endpoint
+    async googleAuth(token: string) {
+        // This matches the Mobile App logic
+        const data = await request<any>('/auth/google/', { 
+            method: 'POST', 
+            body: JSON.stringify({ token }) 
+        }, false); // false = no auth header needed
+        return data;
+    },
+    
     async logout(): Promise<void> {
         clearTokens();
         sessionStorage.removeItem('user');
