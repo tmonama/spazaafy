@@ -12,7 +12,7 @@ const HOME = '/dashboard';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, googleLogin } = useAuth();
+  const { login, loginWithGoogle } = useAuth(); // ✅ Get loginWithGoogle
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,6 +35,32 @@ const LoginPage: React.FC = () => {
           msg;
       } catch {}
       setError(String(msg));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Handle Google Success
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setError('');
+    setLoading(true);
+    try {
+      const token = credentialResponse.credential;
+      const result = await loginWithGoogle(token);
+      
+      if (result.status === 'LOGIN_SUCCESS') {
+        navigate(HOME, { replace: true });
+      } else if (result.status === 'REGISTER_REQUIRED') {
+        // Redirect to register, passing the google data and token
+        navigate('/register', { 
+          state: { 
+            googleData: result.data, 
+            googleToken: token 
+          } 
+        });
+      }
+    } catch (err: any) {
+      setError('Google sign-in failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -98,35 +124,26 @@ const LoginPage: React.FC = () => {
             </div>
           </form>
 
-          <div className="mt-4">
-            <GoogleLogin
-              onSuccess={async (credentialResponse) => {
-                try {
-                  const token = credentialResponse.credential;
-                  if (!token) throw new Error('No credential returned');
+          {/* ✅ Google Auth Section */}
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300 dark:border-dark-border" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white dark:bg-dark-surface text-gray-500">Or continue with</span>
+              </div>
+            </div>
 
-                  const result = await googleLogin(token);
-
-                  if (result.status === 'REGISTER_REQUIRED') {
-                    navigate('/register', {
-                      state: {
-                        google: true,
-                        googleToken: token,
-                        email: result.email,
-                        firstName: result.first_name,
-                        lastName: result.last_name,
-                      },
-                    });
-                    return;
-                  }
-
-                  navigate(HOME, { replace: true });
-                } catch {
-                  setError('Google sign-in failed. Please try again.');
-                }
-              }}
-              onError={() => setError('Google sign-in failed.')}
-            />
+            <div className="mt-6 flex justify-center">
+               <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setError('Google Sign In was unsuccessful')}
+                  theme="outline"
+                  width="100%" 
+                  // Note: The Google button has a specific width style, usually handled by library
+               />
+            </div>
           </div>
         </Card>
 

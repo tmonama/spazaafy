@@ -6,6 +6,8 @@ import Input from '../components/Input';
 import Card from '../components/Card';
 import AddressAutocompleteInput from '../components/AddressAutocompleteInput';
 import mockApi from '../api/mockApi';
+import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../hooks/useAuth';
 
 interface Province {
   id: string;
@@ -84,8 +86,11 @@ function formatRegisterError(err: any): string {
 
 const RegisterPage: React.FC = () => {
   const location = useLocation();
-  const isGoogle = Boolean(location.state?.google);
-  const googleToken = location.state?.googleToken;
+  const { loginWithGoogle } = useAuth();
+
+  // Check for Google Data passed from Login Page
+  const googleData = location.state?.googleData;
+  const googleTokenState = location.state?.googleToken;
 
   const initialRole =
     location.state?.role === 'shop_owner'
@@ -93,10 +98,12 @@ const RegisterPage: React.FC = () => {
       : UserRole.CONSUMER;
 
   const [role, setRole] = useState<UserRole>(initialRole);
+
+  // ✅ Pre-fill data if Google Data exists
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
+    firstName: googleData?.first_name || '',
+    lastName: googleData?.last_name || '',
+    email: googleData?.email || '',
     phone: '',
     password: '',
     confirmPassword: '',
@@ -106,6 +113,8 @@ const RegisterPage: React.FC = () => {
     latitude: 0,
     longitude: 0,
   });
+
+  const [googleToken, setGoogleToken] = useState<string | null>(googleTokenState || null);
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -120,21 +129,6 @@ const RegisterPage: React.FC = () => {
         : UserRole.CONSUMER
     );
   }, [location.state]);
-
-  useEffect(() => {
-    if (isGoogle) {
-      setFormData((prev) => ({
-        ...prev,
-        email: location.state?.email || '',
-        firstName: location.state?.firstName || '',
-        lastName: location.state?.lastName || '',
-        password: 'GoogleAuth',
-        confirmPassword: 'GoogleAuth',
-      }));
-    }
-  }, [isGoogle, location.state]);
-
-
 
   useEffect(() => {
     if (role === UserRole.SHOP_OWNER) {
@@ -197,6 +191,31 @@ const RegisterPage: React.FC = () => {
       return 'Please enter a valid South African phone number.';
     }
     return '';
+  };
+
+  // ✅ Handle Google Sign Up Button Click (if user clicks "Sign up with Google" directly on register page)
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    const token = credentialResponse.credential;
+    try {
+      const result = await loginWithGoogle(token);
+      if (result.status === 'LOGIN_SUCCESS') {
+        // Account exists, just login
+        window.location.href = '/dashboard'; 
+      } else {
+        // Account doesn't exist, pre-fill form
+        const data = result.data;
+        setFormData(prev => ({
+            ...prev,
+            firstName: data.first_name,
+            lastName: data.last_name,
+            email: data.email
+        }));
+        setGoogleToken(token);
+        setError("Please complete your profile to finish registration.");
+      }
+    } catch(e) {
+      setError("Google sign up failed.");
+    }
   };
 
   const handleSubmit = async () => {
@@ -291,12 +310,9 @@ const RegisterPage: React.FC = () => {
         last_name: formData.lastName.trim(),
         phone: formData.phone.trim(),
         role: apiRole,
+        // ✅ Attach Google Token if present
+        google_token: googleToken || undefined
       };
-
-      if (isGoogle && googleToken) {
-        payload.google_token = googleToken;
-      }
-
 
       if (apiRole === 'OWNER') {
         payload.shop_name = formData.shopName.trim();
@@ -307,17 +323,17 @@ const RegisterPage: React.FC = () => {
       }
 
       await mockApi.auth.register(payload);
-      setRegistrationSuccess(true);
-      if (isGoogle && googleToken) {
-        const res = await mockApi.auth.googleLogin(googleToken);
-        sessionStorage.setItem('user', JSON.stringify(res.user));
-        window.location.href = '/dashboard';
-        return;
+      if (googleToken) {
+          // Log them in automatically or redirect to login?
+          // Since mockApi.auth.register doesn't return tokens, we redirect to login
+          // But actually, for UX, maybe just tell them to login.
+          // OR: You can call login immediately here.
+          setRegistrationSuccess(true); 
+      } else {
+          setRegistrationSuccess(true);
       }
-
     } catch (err: any) {
-      const friendly = formatRegisterError(err);
-      setError(friendly);
+      setError(formatRegisterError(err));
     } finally {
       setLoading(false);
     }
@@ -359,11 +375,13 @@ const RegisterPage: React.FC = () => {
           {registrationSuccess ? (
             <div className="text-center p-4">
               <h3 className="text-xl font-bold text-green-600 dark:text-green-400">
-                Registration Successful!
+                {googleToken ? 'Account Created!' : 'Registration Successful!'}
               </h3>
               <p className="mt-2 text-gray-700 dark:text-gray-300">
-                Please check your email to find a verification link to activate
-                your account.
+                {googleToken 
+                  ? "Your account has been verified via Google. You can now log in."
+                  : "Please check your email to find a verification link to activate your account."
+                }
               </p>
               <p className="mt-4">
                 <Link
@@ -382,6 +400,7 @@ const RegisterPage: React.FC = () => {
                 handleSubmit();
               }}
             >
+              {/* Role Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   I am a:
@@ -412,6 +431,29 @@ const RegisterPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* ✅ Google Auth Section (Only if not already authenticated via Google) */}
+              {!googleToken && (
+                <div className="mb-4">
+                   <div className="flex justify-center w-full">
+                       <GoogleLogin 
+                          onSuccess={handleGoogleSuccess}
+                          onError={() => setError('Google sign up failed.')}
+                          text="signup_with"
+                          width="100%"
+                       />
+                   </div>
+                   <div className="relative mt-4">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300 dark:border-dark-border" />
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white dark:bg-dark-surface text-gray-500">Or register with email</span>
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Names */}
               <div className="grid grid-cols-2 gap-3">
                 <Input
                   id="firstName"
@@ -431,6 +473,7 @@ const RegisterPage: React.FC = () => {
                 />
               </div>
 
+              {/* Email - ReadOnly if Google Token exists */}
               <Input
                 id="email"
                 type="email"
@@ -438,8 +481,9 @@ const RegisterPage: React.FC = () => {
                 value={formData.email}
                 onChange={handleChange}
                 error={fieldErrors.email}
-                disabled={isGoogle}
                 required
+                readOnly={!!googleToken}
+                className={googleToken ? "bg-gray-100 dark:bg-dark-surface cursor-not-allowed opacity-70" : ""}
               />
 
               <Input
@@ -452,6 +496,7 @@ const RegisterPage: React.FC = () => {
                 required
               />
 
+              {/* Passwords - Still required */}
               <div className="grid grid-cols-2 gap-3">
                 <Input
                   id="password"
@@ -460,7 +505,6 @@ const RegisterPage: React.FC = () => {
                   value={formData.password}
                   onChange={handleChange}
                   error={fieldErrors.password}
-                  disabled={isGoogle}
                   required
                 />
                 <Input
@@ -470,11 +514,11 @@ const RegisterPage: React.FC = () => {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   error={fieldErrors.confirmPassword}
-                  disabled={isGoogle}
                   required
                 />
               </div>
 
+              {/* Shop Owner Fields */}
               {role === UserRole.SHOP_OWNER && (
                 <>
                   <Input

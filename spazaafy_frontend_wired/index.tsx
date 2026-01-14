@@ -6,7 +6,7 @@ import './i18n';
 import './index.css';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
-const GOOGLE_CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID || "696918461560-rrl8hqektt8pg7j2jmrho2rajeagp3cr.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = (import.meta as any).env.GOOGLE_WEB_CLIENT_ID || "696918461560-rrl8hqektt8pg7j2jmrho2rajeagp3cr.apps.googleusercontent.com";
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

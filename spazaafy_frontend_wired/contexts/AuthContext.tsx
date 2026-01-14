@@ -7,10 +7,13 @@ export interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  googleLogin: (token: string) => Promise<any>;
   logout: () => Promise<void>;
   // ✅ Also corrected this one for consistency
   register: (payload: any) => Promise<User>;
+
+  // ✅ NEW: Google Login Function
+  loginWithGoogle: (token: string) => Promise<{ status: 'LOGIN_SUCCESS' | 'REGISTER_REQUIRED'; data?: any }>;
+
   updateUser: (updatedUser: User) => void;
   theme: Theme;
   toggleTheme: () => void;
@@ -66,19 +69,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return user; // <-- Return the user from the successful API call
   };
 
-  const googleLogin = async (token: string) => {
-    const data = await mockApi.auth.googleLogin(token);
-
-    if (data.status === 'LOGIN_SUCCESS') {
-      setUser(data.user);
-      sessionStorage.setItem('user', JSON.stringify(data.user));
-      return data.user;
+  // ✅ NEW: Google Login Implementation
+  const loginWithGoogle = async (token: string) => {
+    const response = await mockApi.auth.googleAuth(token);
+    
+    if (response.status === 'LOGIN_SUCCESS') {
+      setUser(response.user);
+      return { status: 'LOGIN_SUCCESS', data: response.user };
+    } else {
+      // Returns { status: 'REGISTER_REQUIRED', email, first_name, last_name }
+      return { status: 'REGISTER_REQUIRED', data: response };
     }
-
-    // REGISTER_REQUIRED
-    return data;
   };
-
 
   const logout = async () => {
     await mockApi.auth.logout();
@@ -97,7 +99,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // The complete value provided to all components that use the 'useAuth' hook
-  const value = { user, loading, login, googleLogin, logout, register, updateUser, theme, toggleTheme };
+  const value = { user, loading, login, logout, register, updateUser, theme, toggleTheme };
 
   return (
     <AuthContext.Provider value={value}>

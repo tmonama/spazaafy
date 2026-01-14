@@ -446,22 +446,6 @@ const auth = {
         sessionStorage.setItem('user', JSON.stringify(shaped));
         return { ...data, user: shaped };
     },
-
-    // mockApi.auth.googleLogin
-    googleLogin: async (googleToken: string) => {
-      const response = await fetch(`${API_BASE}/auth/google/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: googleToken }),
-      });
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
-      return response.json();
-    },
-
     async logout(): Promise<void> {
         clearTokens();
         sessionStorage.removeItem('user');
@@ -478,6 +462,26 @@ const auth = {
             clearTokens();
             sessionStorage.removeItem('user');
         }
+    },
+
+    async googleAuth(token: string): Promise<any> {
+        // We set withAuth=false because the user isn't logged in yet
+        const data = await request<any>('/auth/google/', {
+            method: 'POST',
+            body: JSON.stringify({ token }),
+        }, false);
+        
+        // If successful login, save tokens immediately
+        if (data.status === 'LOGIN_SUCCESS' && data.access) {
+            setTokens(data.access, data.refresh);
+            const shaped = toUser(data.user);
+            sessionStorage.setItem('user', JSON.stringify(shaped));
+            // Return shaped user data merged with status
+            return { ...data, user: shaped };
+        }
+
+        // If register required, just return data (email, names)
+        return data;
     },
     async confirmEmailVerification(token: string): Promise<{ detail: string }> {
         return request<{ detail: string }>('/auth/verify-email/confirm/', {
