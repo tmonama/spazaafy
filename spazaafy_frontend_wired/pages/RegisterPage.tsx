@@ -1,59 +1,91 @@
-// src/pages/RegisterPage.tsx
-
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { UserRole } from '../types';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import Card from '../components/Card';
 import AddressAutocompleteInput from '../components/AddressAutocompleteInput';
 import mockApi from '../api/mockApi';
-import { GoogleLogin } from '@react-oauth/google'; // ✅ Import Google
 
 interface Province {
   id: string;
   name: string;
 }
 
-// Helper: format backend errors
+// Helper: format backend errors, with special handling for email already exists
 function formatRegisterError(err: any): string {
+  // Start from a generic fallback
   let fallback = 'Registration failed. Please try again.';
+
   if (!err) return fallback;
 
+  // If message already exists
   if (typeof err.message === 'string' && err.message.trim()) {
     const lower = err.message.toLowerCase();
-    if (lower.includes('email') && lower.includes('exist')) return 'Account already exists for this email.';
+    if (lower.includes('email') && lower.includes('exist')) {
+      return 'Account already exists for this email.';
+    }
     fallback = err.message;
   }
 
   const data = (err as any).response?.data || (err as any).body || (err as any).data;
+
   if (data && typeof data === 'object') {
-    if (typeof (data as any).detail === 'string') return (data as any).detail;
-    
+    // Common DRF style: { detail: "... " }
+    if (typeof (data as any).detail === 'string') {
+      const detail = (data as any).detail;
+      const lower = detail.toLowerCase();
+      if (lower.includes('email') && lower.includes('exist')) {
+        return 'Account already exists for this email.';
+      }
+      return detail;
+    }
+
+    // Field-based errors e.g. { email: ["user with this email already exists."] }
     const parts: string[] = [];
     for (const key of Object.keys(data)) {
       const value = (data as any)[key];
       const arr = Array.isArray(value) ? value : [value];
+
       arr.forEach((v: any) => {
         const text = String(v);
-        if (key === 'email' && text.toLowerCase().includes('exist')) {
+        const lower = text.toLowerCase();
+        if (key === 'email' && lower.includes('exist')) {
           parts.push('Account already exists for this email.');
         } else {
-          parts.push(text);
+          const label =
+            key === 'non_field_errors' || key === 'detail'
+              ? ''
+              : key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+          parts.push(label ? `${label}: ${text}` : text);
         }
       });
     }
-    if (parts.length > 0) return parts.join('\n');
+
+    if (parts.length > 0) {
+      const combined = parts.join('\n');
+      const lower = combined.toLowerCase();
+      if (lower.includes('email') && lower.includes('exist')) {
+        return 'Account already exists for this email.';
+      }
+      return combined;
+    }
   }
-  return fallback;
+
+  // Final safety net for email-exists wording hiding elsewhere
+  const combined = fallback;
+  const lower = combined.toLowerCase();
+  if (lower.includes('email') && lower.includes('exist')) {
+    return 'Account already exists for this email.';
+  }
+
+  return combined || 'Registration failed. Please try again.';
 }
 
 const RegisterPage: React.FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
-
-  // 1. Get Prefill Data (from Login redirect)
-  const prefill = location.state?.prefill;
+  const isGoogle = Boolean(location.state?.google);
+  const googleToken = location.state?.googleToken;
 
   const initialRole =
     location.state?.role === 'shop_owner'
@@ -61,12 +93,10 @@ const RegisterPage: React.FC = () => {
       : UserRole.CONSUMER;
 
   const [role, setRole] = useState<UserRole>(initialRole);
-  
-  // 2. Initialize Form
   const [formData, setFormData] = useState({
-    firstName: prefill?.firstName || '',
-    lastName: prefill?.lastName || '',
-    email: prefill?.email || '',
+    firstName: '',
+    lastName: '',
+    email: '',
     phone: '',
     password: '',
     confirmPassword: '',
@@ -76,11 +106,6 @@ const RegisterPage: React.FC = () => {
     latitude: 0,
     longitude: 0,
   });
-
-  // Track if we have a google token (either from login redirect or clicked on this page)
-  const [googleToken, setGoogleToken] = useState<string | null>(prefill?.googleToken || null);
-  const [isGoogleAccount, setIsGoogleAccount] = useState<boolean>(!!prefill?.isGoogle);
-
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -89,77 +114,89 @@ const RegisterPage: React.FC = () => {
   const [acceptTerms, setAcceptTerms] = useState(false);
 
   useEffect(() => {
-    if (location.state?.role) {
-        setRole(location.state.role === 'shop_owner' ? UserRole.SHOP_OWNER : UserRole.CONSUMER);
-    }
+    setRole(
+      location.state?.role === 'shop_owner'
+        ? UserRole.SHOP_OWNER
+        : UserRole.CONSUMER
+    );
   }, [location.state]);
 
   useEffect(() => {
-    if (role === UserRole.SHOP_OWNER || role === UserRole.CONSUMER) { 
-       const fetchProvinces = async () => {
+    if (isGoogle) {
+      setFormData((prev) => ({
+        ...prev,
+        email: location.state?.email || '',
+        firstName: location.state?.firstName || '',
+        lastName: location.state?.lastName || '',
+        password: 'GoogleAuth',
+        confirmPassword: 'GoogleAuth',
+      }));
+    }
+  }, [isGoogle, location.state]);
+
+
+
+  useEffect(() => {
+    if (role === UserRole.SHOP_OWNER) {
+      const fetchProvinces = async () => {
         try {
           const apiProvinces = await mockApi.core.getProvinces();
-          setProvinces(apiProvinces.map((p) => ({ id: String(p.id), name: p.name })));
+          setProvinces(
+            apiProvinces.map((p) => ({ id: String(p.id), name: p.name }))
+          );
           if (apiProvinces.length > 0 && !formData.province) {
-            setFormData((prev) => ({ ...prev, province: String(apiProvinces[0].id) }));
+            setFormData((prev) => ({
+              ...prev,
+              province: String(apiProvinces[0].id),
+            }));
           }
         } catch (err) {
           console.error('Failed to fetch provinces:', err);
+          setError('Could not load provinces. Please try again later.');
         }
       };
       fetchProvinces();
     }
-  }, [role]);
+  }, [role, formData.province]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
-    if (fieldErrors[id]) setFieldErrors((prev) => ({ ...prev, [id]: '' }));
+    if (fieldErrors[id]) {
+      setFieldErrors((prev) => ({ ...prev, [id]: '' }));
+    }
     if (error) setError('');
   };
 
   const handlePlaceSelect = (address: string, lat: number, lng: number) => {
     setFormData((prev) => ({ ...prev, address, latitude: lat, longitude: lng }));
-    if (fieldErrors.address) setFieldErrors((prev) => ({ ...prev, address: '' }));
+    if (fieldErrors.address) {
+      setFieldErrors((prev) => ({ ...prev, address: '' }));
+    }
   };
 
-  // ✅ Handle Google Sign Up Click
-  const handleGoogleSuccess = async (credentialResponse: any) => {
-    const token = credentialResponse.credential;
-    if (!token) return;
+  const validatePassword = (pwd: string): string => {
+    if (pwd.length < 8) return 'Password must be at least 8 characters.';
+    if (!/[A-Z]/.test(pwd))
+      return 'Password must include at least one uppercase letter.';
+    if (!/[a-z]/.test(pwd))
+      return 'Password must include at least one lowercase letter.';
+    if (!/[0-9]/.test(pwd)) return 'Password must include at least one digit.';
+    return '';
+  };
 
-    setLoading(true);
-    setError('');
-
-    try {
-        // Check backend: Does user exist?
-        const res = await mockApi.auth.googleAuth(token);
-
-        if (res.status === "LOGIN_SUCCESS") {
-            // User ALREADY exists -> Log them in directly
-            sessionStorage.setItem('access', res.access);
-            sessionStorage.setItem('refresh', res.refresh);
-            sessionStorage.setItem('user', JSON.stringify(res.user));
-            window.location.href = '/dashboard';
-        } 
-        else if (res.status === "REGISTER_REQUIRED") {
-            // User NEW -> Fill form
-            setFormData(prev => ({
-                ...prev,
-                email: res.email,
-                firstName: res.first_name,
-                lastName: res.last_name,
-            }));
-            setGoogleToken(token);
-            setIsGoogleAccount(true);
-            setError(""); // Clear any errors
-        }
-    } catch (err) {
-        console.error(err);
-        setError("Google authentication failed.");
-    } finally {
-        setLoading(false);
+  // Phone number now REQUIRED + must be SA format
+  const validatePhoneNumber = (phone: string): string => {
+    if (!phone.trim()) {
+      return 'Phone number is required.';
     }
+    const saPhoneRegex = /^0[0-9]{9}$/;
+    if (!saPhoneRegex.test(phone.trim())) {
+      return 'Please enter a valid South African phone number.';
+    }
+    return '';
   };
 
   const handleSubmit = async () => {
@@ -168,41 +205,85 @@ const RegisterPage: React.FC = () => {
 
     const newFieldErrors: { [key: string]: string } = {};
 
-    if (!formData.firstName.trim()) newFieldErrors.firstName = 'First name is required.';
-    if (!formData.lastName.trim()) newFieldErrors.lastName = 'Last name is required.';
-    if (!formData.email.trim()) newFieldErrors.email = 'Email address is required.';
-    if (!formData.phone.trim()) newFieldErrors.phone = 'Phone number is required.';
-    if (!formData.password.trim()) newFieldErrors.password = 'Password is required.';
-    if (!formData.confirmPassword.trim()) newFieldErrors.confirmPassword = 'Please confirm your password.';
+    // Required fields for ALL users
+    if (!formData.firstName.trim()) {
+      newFieldErrors.firstName = 'First name is required.';
+    }
+    if (!formData.lastName.trim()) {
+      newFieldErrors.lastName = 'Last name is required.';
+    }
+    if (!formData.email.trim()) {
+      newFieldErrors.email = 'Email address is required.';
+    }
+    if (!formData.phone.trim()) {
+      newFieldErrors.phone = 'Phone number is required.';
+    }
+    if (!formData.password.trim()) {
+      newFieldErrors.password = 'Password is required.';
+    }
+    if (!formData.confirmPassword.trim()) {
+      newFieldErrors.confirmPassword = 'Please confirm your password.';
+    }
 
+    // Shop owner-specific required fields
     if (role === UserRole.SHOP_OWNER) {
-      if (!formData.shopName.trim()) newFieldErrors.shopName = 'Shop name is required.';
-      if (!formData.address.trim()) newFieldErrors.address = 'Shop address is required.';
-      if (!formData.province) newFieldErrors.province = 'Province is required.';
+      if (!formData.shopName.trim()) {
+        newFieldErrors.shopName = 'Shop name is required.';
+      }
+      if (!formData.address.trim()) {
+        newFieldErrors.address = 'Shop address is required.';
+      }
+      if (!formData.province) {
+        newFieldErrors.province = 'Province is required.';
+      }
     }
 
-    if (!formData.phone.trim() || !/^0[0-9]{9}$/.test(formData.phone.trim())) {
-        newFieldErrors.phone = 'Please enter a valid SA phone number.';
+    // Phone format
+    const phoneError = validatePhoneNumber(formData.phone);
+    if (phoneError) {
+      newFieldErrors.phone = phoneError;
     }
 
-    // Password Validation (only if not empty, otherwise required check hits)
-    if (formData.password) {
-        if (formData.password.length < 8) newFieldErrors.password = 'Password must be at least 8 characters.';
-        if (formData.password !== formData.confirmPassword) newFieldErrors.confirmPassword = 'Passwords do not match.';
+    // Password complexity
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) {
+      newFieldErrors.password = passwordError;
     }
 
-    if (!acceptTerms) setError('Please accept the Privacy Policy to continue.');
+    // Password match
+    if (
+      formData.password.trim() &&
+      formData.confirmPassword.trim() &&
+      formData.password !== formData.confirmPassword
+    ) {
+      newFieldErrors.confirmPassword = 'Passwords do not match.';
+    }
 
+    // Accept terms
+    if (!acceptTerms) {
+      setError(
+        'Please accept the Privacy Policy and data collection terms to continue.'
+      );
+    }
+
+    // If any local errors, stop here
     if (Object.keys(newFieldErrors).length > 0 || !acceptTerms) {
       setFieldErrors(newFieldErrors);
-      if (!error) setError((prev) => prev || 'Please correct the highlighted fields.');
+      if (!error) {
+        // Only set a generic error if one isn't already set for terms
+        setError((prev) =>
+          prev ||
+          'Please correct the highlighted fields and try again.'
+        );
+      }
       return;
     }
 
     setLoading(true);
     try {
-      const apiRole = role === UserRole.SHOP_OWNER ? 'OWNER' : 'CONSUMER';
-      
+      const apiRole: 'CONSUMER' | 'OWNER' =
+        role === UserRole.SHOP_OWNER ? 'OWNER' : 'CONSUMER';
+
       const payload: any = {
         email: formData.email.trim(),
         password: formData.password,
@@ -210,9 +291,12 @@ const RegisterPage: React.FC = () => {
         last_name: formData.lastName.trim(),
         phone: formData.phone.trim(),
         role: apiRole,
-        // ✅ Include Google Token
-        google_token: googleToken
       };
+
+      if (isGoogle && googleToken) {
+        payload.google_token = googleToken;
+      }
+
 
       if (apiRole === 'OWNER') {
         payload.shop_name = formData.shopName.trim();
@@ -223,25 +307,42 @@ const RegisterPage: React.FC = () => {
       }
 
       await mockApi.auth.register(payload);
-      
-      if (isGoogleAccount) {
-          // Auto-verified via Google
-          alert("Account created successfully! Please sign in with Google.");
-          navigate('/login');
-      } else {
-          setRegistrationSuccess(true);
+      setRegistrationSuccess(true);
+      if (isGoogle && googleToken) {
+        const res = await mockApi.auth.googleLogin(googleToken);
+        sessionStorage.setItem('user', JSON.stringify(res.user));
+        window.location.href = '/dashboard';
+        return;
       }
 
     } catch (err: any) {
-      setError(formatRegisterError(err));
+      const friendly = formatRegisterError(err);
+      setError(friendly);
     } finally {
       setLoading(false);
     }
   };
 
-  const allRequiredConsumerFilled = formData.firstName && formData.lastName && formData.email && formData.phone && formData.password && formData.confirmPassword;
-  const allRequiredOwnerFilled = allRequiredConsumerFilled && formData.shopName && formData.address && formData.province;
-  const canSubmit = !loading && acceptTerms && (role === UserRole.SHOP_OWNER ? allRequiredOwnerFilled : allRequiredConsumerFilled);
+  const allRequiredConsumerFilled =
+    formData.firstName.trim() &&
+    formData.lastName.trim() &&
+    formData.email.trim() &&
+    formData.phone.trim() &&
+    formData.password.trim() &&
+    formData.confirmPassword.trim();
+
+  const allRequiredOwnerFilled =
+    allRequiredConsumerFilled &&
+    formData.shopName.trim() &&
+    formData.address.trim() &&
+    formData.province;
+
+  const canSubmit =
+    !loading &&
+    acceptTerms &&
+    (role === UserRole.SHOP_OWNER
+      ? allRequiredOwnerFilled
+      : allRequiredConsumerFilled);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-dark-bg py-12 px-4 sm:px-6 lg:px-8">
@@ -251,7 +352,7 @@ const RegisterPage: React.FC = () => {
             Spazaafy
           </h1>
           <h2 className="mt-2 text-center text-2xl font-bold text-gray-900 dark:text-white">
-            {isGoogleAccount ? "Complete your Profile" : "Create your account"}
+            Create your account
           </h2>
         </div>
         <Card>
@@ -261,56 +362,75 @@ const RegisterPage: React.FC = () => {
                 Registration Successful!
               </h3>
               <p className="mt-2 text-gray-700 dark:text-gray-300">
-                Please check your email to find a verification link to activate your account.
+                Please check your email to find a verification link to activate
+                your account.
               </p>
               <p className="mt-4">
-                <Link to="/login" className="font-medium text-primary hover:text-primary-dark">
+                <Link
+                  to="/login"
+                  className="font-medium text-primary hover:text-primary-dark dark:hover:text-primary-light"
+                >
                   &larr; Back to Login
                 </Link>
               </p>
             </div>
           ) : (
-            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-              
-              {/* Role Switcher */}
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSubmit();
+              }}
+            >
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">I am a:</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  I am a:
+                </label>
                 <div className="flex rounded-md shadow-sm">
-                  <button type="button" onClick={() => setRole(UserRole.CONSUMER)} className={`px-4 py-2 border border-gray-300 dark:border-dark-surface text-sm font-medium rounded-l-md w-1/2 ${role === UserRole.CONSUMER ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-200'}`}>Consumer</button>
-                  <button type="button" onClick={() => setRole(UserRole.SHOP_OWNER)} className={`-ml-px px-4 py-2 border border-gray-300 dark:border-dark-surface text-sm font-medium rounded-r-md w-1/2 ${role === UserRole.SHOP_OWNER ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-200'}`}>Shop Owner</button>
+                  <button
+                    type="button"
+                    onClick={() => setRole(UserRole.CONSUMER)}
+                    className={`px-4 py-2 border border-gray-300 dark:border-dark-surface text-sm font-medium rounded-l-md w-1/2 ${
+                      role === UserRole.CONSUMER
+                        ? 'bg-primary text-white border-primary'
+                        : 'bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-200'
+                    }`}
+                  >
+                    Consumer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole(UserRole.SHOP_OWNER)}
+                    className={`-ml-px px-4 py-2 border border-gray-300 dark:border-dark-surface text-sm font-medium rounded-r-md w-1/2 ${
+                      role === UserRole.SHOP_OWNER
+                        ? 'bg-primary text-white border-primary'
+                        : 'bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-200'
+                    }`}
+                  >
+                    Shop Owner
+                  </button>
                 </div>
               </div>
 
-              {/* ✅ GOOGLE BUTTON */}
-              {!isGoogleAccount && (
-                  <div className="my-4">
-                    <div className="flex justify-center">
-                        <GoogleLogin
-                            onSuccess={handleGoogleSuccess}
-                            onError={() => setError("Google Sign-Up Failed")}
-                            text="signup_with"
-                            theme="outline"
-                            width="100%"
-                        />
-                    </div>
-                    <div className="relative mt-4">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white dark:bg-dark-surface text-gray-500">Or sign up with email</span>
-                        </div>
-                    </div>
-                  </div>
-              )}
-
-              {/* Name Fields */}
               <div className="grid grid-cols-2 gap-3">
-                <Input id="firstName" label="First name" value={formData.firstName} onChange={handleChange} error={fieldErrors.firstName} required />
-                <Input id="lastName" label="Last name" value={formData.lastName} onChange={handleChange} error={fieldErrors.lastName} required />
+                <Input
+                  id="firstName"
+                  label="First name"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  error={fieldErrors.firstName}
+                  required
+                />
+                <Input
+                  id="lastName"
+                  label="Last name"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  error={fieldErrors.lastName}
+                  required
+                />
               </div>
 
-              {/* ✅ Email Field - Disabled if Google */}
               <Input
                 id="email"
                 type="email"
@@ -318,62 +438,157 @@ const RegisterPage: React.FC = () => {
                 value={formData.email}
                 onChange={handleChange}
                 error={fieldErrors.email}
+                disabled={isGoogle}
                 required
-                disabled={isGoogleAccount} // Lock if Google
-                className={isGoogleAccount ? "bg-gray-100 cursor-not-allowed" : ""}
               />
 
-              <Input id="phone" type="tel" label="Phone" value={formData.phone} onChange={handleChange} error={fieldErrors.phone} required />
+              <Input
+                id="phone"
+                type="tel"
+                label="Phone"
+                value={formData.phone}
+                onChange={handleChange}
+                error={fieldErrors.phone}
+                required
+              />
 
-              {/* Password Fields */}
               <div className="grid grid-cols-2 gap-3">
-                <Input id="password" type="password" label="Password" value={formData.password} onChange={handleChange} error={fieldErrors.password} required />
-                <Input id="confirmPassword" type="password" label="Confirm password" value={formData.confirmPassword} onChange={handleChange} error={fieldErrors.confirmPassword} required />
+                <Input
+                  id="password"
+                  type="password"
+                  label="Password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  error={fieldErrors.password}
+                  disabled={isGoogle}
+                  required
+                />
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  label="Confirm password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  error={fieldErrors.confirmPassword}
+                  disabled={isGoogle}
+                  required
+                />
               </div>
 
-              {/* Shop Owner Specific */}
               {role === UserRole.SHOP_OWNER && (
                 <>
-                  <Input id="shopName" label="Shop name" value={formData.shopName} onChange={handleChange} error={fieldErrors.shopName} required />
-                  <AddressAutocompleteInput id="address" label="Shop address" value={formData.address} required onChange={(value) => setFormData((prev) => ({ ...prev, address: value }))} onPlaceSelect={handlePlaceSelect} error={fieldErrors.address} />
+                  <Input
+                    id="shopName"
+                    label="Shop name"
+                    value={formData.shopName}
+                    onChange={handleChange}
+                    error={fieldErrors.shopName}
+                    required
+                  />
+                  <AddressAutocompleteInput
+                    id="address"
+                    label="Shop address"
+                    value={formData.address}
+                    required
+                    onChange={(value) =>
+                      setFormData((prev) => ({ ...prev, address: value }))
+                    }
+                    onPlaceSelect={handlePlaceSelect}
+                    error={fieldErrors.address}
+                  />
                   <div>
-                    <label htmlFor="province" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Province</label>
-                    <select id="province" name="province" value={formData.province} onChange={handleChange} required className={`mt-1 block w-full pl-3 pr-10 py-2 text-base rounded-md shadow-sm bg-white dark:bg-dark-input text-gray-900 dark:text-white border-gray-300 dark:border-dark-surface focus:outline-none focus:ring-dark-border focus:border-dark-border sm:text-sm ${fieldErrors.province ? 'border-red-500' : ''}`}>
-                      {provinces.length === 0 ? <option value="" disabled>Loading provinces...</option> : 
+                    <label
+                      htmlFor="province"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
+                      Province
+                    </label>
+                    <select
+                      id="province"
+                      name="province"
+                      value={formData.province}
+                      onChange={handleChange}
+                      required
+                      className={`mt-1 block w-full pl-3 pr-10 py-2 text-base rounded-md shadow-sm bg-white dark:bg-dark-input text-gray-900 dark:text-white border-gray-300 dark:border-dark-surface focus:outline-none focus:ring-dark-border focus:border-dark-border sm:text-sm ${
+                        fieldErrors.province ? 'border-red-500' : ''
+                      }`}
+                    >
+                      {provinces.length === 0 ? (
+                        <option value="" disabled>
+                          Loading provinces...
+                        </option>
+                      ) : (
                         <>
                           <option value="">Select a province</option>
-                          {provinces.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
+                          {provinces.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
                         </>
-                      }
+                      )}
                     </select>
-                    {fieldErrors.province && <p className="mt-1 text-xs text-red-500">{fieldErrors.province}</p>}
+                    {fieldErrors.province && (
+                      <p className="mt-1 text-xs text-red-500">
+                        {fieldErrors.province}
+                      </p>
+                    )}
                   </div>
                 </>
               )}
 
-              {/* Terms */}
+              {/* TERMS & PRIVACY CHECKBOX */}
               <div className="flex items-start space-x-3">
-                <button type="button" onClick={() => setAcceptTerms((prev) => !prev)} className={`mt-1 flex h-5 w-5 items-center justify-center rounded border text-xs ${acceptTerms ? 'bg-primary border-primary text-white' : 'bg-white border-dark-border dark:bg-dark-input dark:border-dark-border'}`} aria-pressed={acceptTerms}>
+                <button
+                  type="button"
+                  onClick={() => setAcceptTerms((prev) => !prev)}
+                  className={`mt-1 flex h-5 w-5 items-center justify-center rounded border text-xs ${
+                    acceptTerms
+                      ? 'bg-primary border-primary text-white'
+                      : 'bg-white border-dark-border dark:bg-dark-input dark:border-dark-border'
+                  }`}
+                  aria-pressed={acceptTerms}
+                >
                   {acceptTerms && <span className="leading-none">✓</span>}
                 </button>
                 <p className="text-xs text-gray-700 dark:text-gray-300">
-                  I agree to allow Spazaafy to collect my data and use my location for service verification. Read our <Link to="/privacy-policy" className="font-semibold text-primary hover:text-primary-dark" target="_blank" rel="noopener noreferrer">Privacy Policy &amp; Data Collection</Link>.
+                  I agree to allow Spazaafy to collect my data and use my
+                  location for service verification. Read our{' '}
+                  <Link
+                    to="/privacy-policy"
+                    className="font-semibold text-primary hover:text-primary-dark dark:text-primary-light dark:hover:text-primary"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Privacy Policy &amp; Data Collection
+                  </Link>
+                  .
                 </p>
               </div>
 
-              {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200 whitespace-pre-line">{error}</div>}
+              {error && (
+                <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200 whitespace-pre-line">
+                  {error}
+                </div>
+              )}
 
-              <Button type="submit" disabled={!canSubmit} className="w-full">
+              <Button
+                type="submit"
+                disabled={!canSubmit}
+                className="w-full"
+              >
                 {loading ? 'Creating account…' : 'Create account'}
               </Button>
             </form>
           )}
         </Card>
-        
         {!registrationSuccess && (
           <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
             Already have an account?{' '}
-            <Link to="/login" className="font-medium text-primary hover:text-primary-dark">
+            <Link
+              to="/login"
+              className="font-medium text-primary hover:text-primary-dark dark:text-primary-light dark:hover:text-primary"
+            >
               Sign in
             </Link>
           </p>

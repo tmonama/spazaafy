@@ -447,16 +447,21 @@ const auth = {
         return { ...data, user: shaped };
     },
 
-    // ✅ NEW: Google Auth Endpoint
-    async googleAuth(token: string) {
-        // This matches the Mobile App logic
-        const data = await request<any>('/auth/google/', { 
-            method: 'POST', 
-            body: JSON.stringify({ token }) 
-        }, false); // false = no auth header needed
-        return data;
+    // mockApi.auth.googleLogin
+    googleLogin: async (googleToken: string) => {
+      const response = await fetch(`${API_BASE}/auth/google/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: googleToken }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
     },
-    
+
     async logout(): Promise<void> {
         clearTokens();
         sessionStorage.removeItem('user');
