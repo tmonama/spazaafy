@@ -46,12 +46,17 @@ const LoginPage: React.FC = () => {
     setLoading(true);
     try {
       const token = credentialResponse.credential;
+      if (!token) {
+        throw new Error("No Google credential received.");
+      }
+
+      console.log("Sending Google Token to backend:", token); // Debug log
+
       const result = await loginWithGoogle(token);
       
       if (result.status === 'LOGIN_SUCCESS') {
         navigate(HOME, { replace: true });
       } else if (result.status === 'REGISTER_REQUIRED') {
-        // Redirect to register, passing the google data and token
         navigate('/register', { 
           state: { 
             googleData: result.data, 
@@ -60,7 +65,9 @@ const LoginPage: React.FC = () => {
         });
       }
     } catch (err: any) {
-      setError('Google sign-in failed. Please try again.');
+      console.error("Google Auth Error:", err); // Log full error to console
+      // Show the actual error message from the backend (mockApi parses it)
+      setError(err.message || 'Google sign-in failed. Please try again.');
     } finally {
       setLoading(false);
     }
