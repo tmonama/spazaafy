@@ -179,7 +179,41 @@ const Header: React.FC = () => {
               </>
             )}
           </div>
-          {/* ...account/logout section unchanged... */}
+          {/* ✅ ADD THIS SECTION: Mobile Profile & Logout */}
+          <div className="pt-4 pb-4 border-t border-gray-200 dark:border-dark-border">
+            <div className="flex items-center px-5">
+              <div className="flex-shrink-0">
+                 {/* Simple Avatar Icon */}
+                <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-white font-bold">
+                    {user?.firstName?.charAt(0) || "U"}
+                </div>
+              </div>
+              <div className="ml-3">
+                <div className="text-base font-medium leading-none text-gray-800 dark:text-white">
+                    {user?.firstName} {user?.lastName}
+                </div>
+                <div className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400 mt-1">
+                    {user?.email}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 px-2 space-y-1">
+              <NavLink
+                to="/account"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-gray-900 hover:bg-gray-50 dark:hover:bg-gray-700"
+                onClick={() => setMenuOpen(false)}
+              >
+                {t('header.account', 'Your Profile')}
+              </NavLink>
+              
+              <button
+                onClick={handleLogout}
+                className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-900/20"
+              >
+                {t('header.logout')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </header>
