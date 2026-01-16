@@ -46,15 +46,15 @@ const LegalRegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h1 className="text-center text-4xl font-extrabold text-white tracking-tight">Legal Dept.</h1>
-          <h2 className="mt-2 text-center text-lg text-gray-400">Secure Registration</h2>
+          <h1 className="text-center text-4xl font-extrabold text-primary">Legal Dept.</h1>
+          <h2 className="mt-2 text-center text-lg text-gray-600">Secure Registration</h2>
         </div>
 
-        <Card className="bg-gray-800 border-gray-700 p-8">
-          {error && <div className="mb-4 bg-red-900/30 border border-red-800 text-red-400 px-4 py-3 rounded text-sm text-center">{error}</div>}
+        <Card>
+          {error && <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded text-sm text-center">{error}</div>}
 
           {step === 1 ? (
             <form onSubmit={handleRequestCode} className="space-y-6">
@@ -66,17 +66,15 @@ const LegalRegisterPage: React.FC = () => {
                 onChange={e => setEmail(e.target.value)} 
                 required 
                 placeholder="legal.internal@spazaafy.co.za"
-                className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
-                labelClassName="text-gray-300"
               />
-              <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+              <Button type="submit" disabled={loading} className="w-full">
                 {loading ? "Verifying..." : "Request Access Code"}
               </Button>
             </form>
           ) : (
             <form onSubmit={handleRegister} className="space-y-6">
-              <div className="bg-blue-900/30 border border-blue-800 text-blue-300 px-4 py-3 rounded text-sm mb-4 text-center">
-                Code sent to: <span className="font-bold text-white">{email}</span>
+              <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded text-sm mb-4 text-center">
+                Code sent to: <span className="font-bold">{email}</span>
               </div>
               
               <Input 
@@ -85,8 +83,6 @@ const LegalRegisterPage: React.FC = () => {
                 value={code} 
                 onChange={e => setCode(e.target.value)} 
                 required 
-                className="bg-gray-700 border-gray-600 text-white"
-                labelClassName="text-gray-300"
               />
               
               <div className="grid grid-cols-2 gap-4">
@@ -96,8 +92,6 @@ const LegalRegisterPage: React.FC = () => {
                     value={firstName} 
                     onChange={e => setFirstName(e.target.value)} 
                     required 
-                    className="bg-gray-700 border-gray-600 text-white"
-                    labelClassName="text-gray-300"
                 />
                 <Input 
                     id="lname" 
@@ -105,8 +99,6 @@ const LegalRegisterPage: React.FC = () => {
                     value={lastName} 
                     onChange={e => setLastName(e.target.value)} 
                     required 
-                    className="bg-gray-700 border-gray-600 text-white"
-                    labelClassName="text-gray-300"
                 />
               </div>
 
@@ -117,20 +109,18 @@ const LegalRegisterPage: React.FC = () => {
                 value={password} 
                 onChange={e => setPassword(e.target.value)} 
                 required 
-                className="bg-gray-700 border-gray-600 text-white"
-                labelClassName="text-gray-300"
               />
               
-              <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700 text-white">
+              <Button type="submit" disabled={loading} className="w-full">
                 {loading ? "Registering..." : "Complete Registration"}
               </Button>
             </form>
           )}
         </Card>
         
-        <p className="text-center text-sm text-gray-500">
+        <p className="text-center text-sm text-gray-600">
             Already registered?{' '}
-            <Link to="/legal/login" className="font-medium text-blue-400 hover:text-blue-300">
+            <Link to="/legal/login" className="font-medium text-primary hover:text-primary-dark">
             Sign in
             </Link>
         </p>
