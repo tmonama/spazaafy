@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import LegalRequest
+from .models import LegalRequest, LegalCategory, LegalUrgency, LegalStatus
 
 class LegalRequestPublicSerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,7 +17,7 @@ class LegalRequestAdminSerializer(serializers.ModelSerializer):
     category = serializers.ChoiceField(choices=LegalCategory.choices)
     urgency = serializers.ChoiceField(choices=LegalUrgency.choices)
     status = serializers.ChoiceField(choices=LegalStatus.choices)
-    
+
     # ✅ FIX: Use SerializerMethodField to get the S3 URL safely
     file_url = serializers.SerializerMethodField()
 
