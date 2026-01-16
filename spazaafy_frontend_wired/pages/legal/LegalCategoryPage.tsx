@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-// import { useParams } from 'react-router-dom'; // ❌ REMOVED
+// ❌ REMOVE useParams, we don't need it anymore
+// import { useParams } from 'react-router-dom'; 
 import { legalApi } from '../../api/legalApi';
 import { useAuth } from '../../hooks/useAuth';
 import Card from '../../components/Card';
@@ -26,16 +27,14 @@ const FILTER_TABS = [
     { label: 'All', value: 'ALL' }
 ];
 
-// ✅ Interface for Props
+// ✅ Define the Props Interface
 interface LegalCategoryPageProps {
     isOverview?: boolean;
-    categoryProp?: string; // This comes from App.tsx
+    categoryProp?: string; // This is passed from App.tsx
 }
 
 const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = false, categoryProp }) => {
-    // ❌ REMOVED: const { category } = useParams();
-    
-    // ✅ USE PROP
+    // ✅ USE THE PROP, NOT PARAMS
     const activeCategoryKey = categoryProp || '';
 
     const token = sessionStorage.getItem('access') || '';
@@ -44,6 +43,7 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
     const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState('SUBMITTED');
     
+    // Action Modal State
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
     const [actionType, setActionType] = useState<string>(''); 
@@ -55,6 +55,7 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
         try {
             const data = await legalApi.getAllRequests(token);
             data.sort((a: any, b: any) => {
+                // Critical first, then newest
                 if (a.urgency === 'CRITICAL' && b.urgency !== 'CRITICAL') return -1;
                 if (b.urgency === 'CRITICAL' && a.urgency !== 'CRITICAL') return 1;
                 return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -74,39 +75,31 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
     const filteredRequests = useMemo(() => {
         let list = requests;
 
-        // 1. Filter by Category
+        // ✅ 1. Filter by Category (using the prop)
         if (!isOverview) {
-            const mapKey = activeCategoryKey?.toLowerCase(); // e.g. 'policies'
-            const targetCategory = CATEGORY_MAP[mapKey]; // e.g. 'POLICY'
+            const backendCategory = CATEGORY_MAP[activeCategoryKey];
+            
+            // Debugging (Check your console to see this work now)
+            console.log(`Page: ${activeCategoryKey}, Looking for: ${backendCategory}`);
 
-            if (!targetCategory) return [];
-
-            list = list.filter(r => {
-                // Handle both "POLICY" (Key) and "Policy Document" (Label)
-                const apiValue = r.category?.toUpperCase() || '';
-                const apiLabel = r.category_label?.toUpperCase() || '';
-                const target = targetCategory.toUpperCase();
-
-                // Check if API value matches target OR if API label contains target word (fallback)
-                // For POLICY, check if value is POLICY
-                return apiValue === target;
-            });
-        }
-
-        // 2. Filter by Tab Status
-        if (activeFilter !== 'ALL') {
-            if (activeFilter === 'APPROVED_FILED') {
-                list = list.filter(r => r.status === 'APPROVED' || r.status === 'FILED');
+            if (backendCategory) {
+                list = list.filter(r => r.category === backendCategory);
             } else {
-                list = list.filter(r => r.status === activeFilter);
+                return [];
             }
         }
 
-        return list;
+        // 2. Filter by Tab Status
+        if (activeFilter === 'ALL') return list;
+        
+        if (activeFilter === 'APPROVED_FILED') {
+            return list.filter(r => r.status === 'APPROVED' || r.status === 'FILED');
+        }
+
+        return list.filter(r => r.status === activeFilter);
 
     }, [requests, activeCategoryKey, isOverview, activeFilter]);
-    
-    // ... (Keep existing modal handlers: openActionModal, submitAction) ...
+
     const openActionModal = (request: any, type: string) => {
         setSelectedRequest(request);
         setActionType(type);
@@ -154,6 +147,9 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{pageTitle}</h1>
+                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Total Records: {filteredRequests.length}
+                </div>
             </div>
 
             <Card className="p-1">
@@ -223,8 +219,6 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                                 </div>
 
                                 <div className="flex flex-col gap-3 min-w-[200px] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 pt-4 lg:pt-0 lg:pl-6 justify-center">
-                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 lg:hidden">Actions</p>
-
                                     {req.status === 'SUBMITTED' && (
                                         <Button onClick={() => openActionModal(req, 'UNDER_REVIEW')}>
                                             Start Review
