@@ -46,18 +46,18 @@ const LegalRegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Legal Dept.</h1>
-          <p className="text-gray-400">Secure Registration</p>
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h1 className="text-center text-4xl font-extrabold text-white tracking-tight">Legal Dept.</h1>
+          <h2 className="mt-2 text-center text-lg text-gray-400">Secure Registration</h2>
         </div>
 
-        <Card className="p-8">
-          {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
+        <Card className="bg-gray-800 border-gray-700 p-8">
+          {error && <div className="mb-4 bg-red-900/30 border border-red-800 text-red-400 px-4 py-3 rounded text-sm text-center">{error}</div>}
 
           {step === 1 ? (
-            <form onSubmit={handleRequestCode} className="space-y-4">
+            <form onSubmit={handleRequestCode} className="space-y-6">
               <Input 
                 id="email" 
                 type="email" 
@@ -66,35 +66,74 @@ const LegalRegisterPage: React.FC = () => {
                 onChange={e => setEmail(e.target.value)} 
                 required 
                 placeholder="legal.internal@spazaafy.co.za"
+                className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                labelClassName="text-gray-300"
               />
-              <Button type="submit" disabled={loading} className="w-full">
+              <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                 {loading ? "Verifying..." : "Request Access Code"}
               </Button>
             </form>
           ) : (
-            <form onSubmit={handleRegister} className="space-y-4">
-              <div className="bg-blue-50 p-3 rounded text-sm text-blue-800 mb-2">
-                Code sent to: <strong>{email}</strong>
+            <form onSubmit={handleRegister} className="space-y-6">
+              <div className="bg-blue-900/30 border border-blue-800 text-blue-300 px-4 py-3 rounded text-sm mb-4 text-center">
+                Code sent to: <span className="font-bold text-white">{email}</span>
               </div>
-              <Input id="code" label="Verification Code" value={code} onChange={e => setCode(e.target.value)} required />
-              <div className="grid grid-cols-2 gap-2">
-                <Input id="fname" label="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
-                <Input id="lname" label="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} required />
-              </div>
-              <Input id="pass" type="password" label="Password" value={password} onChange={e => setPassword(e.target.value)} required />
               
-              <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700">
+              <Input 
+                id="code" 
+                label="Verification Code" 
+                value={code} 
+                onChange={e => setCode(e.target.value)} 
+                required 
+                className="bg-gray-700 border-gray-600 text-white"
+                labelClassName="text-gray-300"
+              />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <Input 
+                    id="fname" 
+                    label="First Name" 
+                    value={firstName} 
+                    onChange={e => setFirstName(e.target.value)} 
+                    required 
+                    className="bg-gray-700 border-gray-600 text-white"
+                    labelClassName="text-gray-300"
+                />
+                <Input 
+                    id="lname" 
+                    label="Last Name" 
+                    value={lastName} 
+                    onChange={e => setLastName(e.target.value)} 
+                    required 
+                    className="bg-gray-700 border-gray-600 text-white"
+                    labelClassName="text-gray-300"
+                />
+              </div>
+
+              <Input 
+                id="pass" 
+                type="password" 
+                label="Password" 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                required 
+                className="bg-gray-700 border-gray-600 text-white"
+                labelClassName="text-gray-300"
+              />
+              
+              <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700 text-white">
                 {loading ? "Registering..." : "Complete Registration"}
               </Button>
             </form>
           )}
-
-          <div className="mt-4 text-center">
-            <Link to="/legal/login" className="text-sm text-blue-600 hover:underline">
-              Already have an account? Log in
-            </Link>
-          </div>
         </Card>
+        
+        <p className="text-center text-sm text-gray-500">
+            Already registered?{' '}
+            <Link to="/legal/login" className="font-medium text-blue-400 hover:text-blue-300">
+            Sign in
+            </Link>
+        </p>
       </div>
     </div>
   );
