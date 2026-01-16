@@ -6,8 +6,7 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import Modal from '../../components/Modal';
-// ✅ FIX: Added AlertTriangle to imports
-import { CheckCircle, XCircle, AlertCircle, FileText, Clock, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, FileText, Clock } from 'lucide-react';
 
 const CATEGORY_MAP: Record<string, string> = {
     'contracts': 'CONTRACT',
@@ -18,14 +17,26 @@ const CATEGORY_MAP: Record<string, string> = {
     'other': 'OTHER'
 };
 
+// Define available tabs for filtering
+const FILTER_TABS = [
+    { label: 'Pending', value: 'SUBMITTED' },
+    { label: 'In Review', value: 'UNDER_REVIEW' },
+    { label: 'Amend Req.', value: 'AMENDMENT_REQ' },
+    { label: 'Approved/Filed', value: 'APPROVED_FILED' }, // Custom composite filter
+    { label: 'Rejected', value: 'REJECTED' },
+    { label: 'All', value: 'ALL' }
+];
+
 const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = false }) => {
     const { category } = useParams();
-    // Assuming token logic is handled by API client or auth hook internally now
     const token = sessionStorage.getItem('access') || '';
     
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    // ✅ 1. Add Filter State (Default to 'SUBMITTED' aka Pending, or 'ALL')
+    const [activeFilter, setActiveFilter] = useState('SUBMITTED');
     
+    // Action Modal State
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
     const [actionType, setActionType] = useState<string>(''); 
@@ -36,6 +47,7 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
         setLoading(true);
         try {
             const data = await legalApi.getAllRequests(token);
+            // Sort: Critical first, then newest
             data.sort((a: any, b: any) => {
                 if (a.urgency === 'CRITICAL' && b.urgency !== 'CRITICAL') return -1;
                 if (b.urgency === 'CRITICAL' && a.urgency !== 'CRITICAL') return 1;
@@ -54,12 +66,30 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
     }, []);
 
     const filteredRequests = useMemo(() => {
-        if (isOverview) return requests; 
-        const backendCategory = CATEGORY_MAP[category || ''];
-        if (!backendCategory) return [];
-        return requests.filter(r => r.category === backendCategory);
-    }, [requests, category, isOverview]);
+        let list = requests;
 
+        // 1. Filter by Category (if not dashboard overview)
+        if (!isOverview) {
+            const backendCategory = CATEGORY_MAP[category || ''];
+            if (backendCategory) {
+                list = list.filter(r => r.category === backendCategory);
+            } else {
+                return [];
+            }
+        }
+
+        // 2. Filter by Tab Status
+        if (activeFilter === 'ALL') return list;
+        
+        if (activeFilter === 'APPROVED_FILED') {
+            return list.filter(r => r.status === 'APPROVED' || r.status === 'FILED');
+        }
+
+        return list.filter(r => r.status === activeFilter);
+
+    }, [requests, category, isOverview, activeFilter]);
+
+    // ... (Keep existing modal handlers: openActionModal, submitAction) ...
     const openActionModal = (request: any, type: string) => {
         setSelectedRequest(request);
         setActionType(type);
@@ -69,12 +99,10 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
 
     const submitAction = async () => {
         if (!selectedRequest) return;
-        
         if ((actionType === 'AMENDMENT_REQ' || actionType === 'REJECTED') && !note.trim()) {
             alert("A reason is strictly required for this action.");
             return;
         }
-
         setProcessingAction(true);
         try {
             await legalApi.updateStatus(selectedRequest.id, actionType, note, token);
@@ -107,20 +135,36 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{pageTitle}</h1>
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Total Records: {filteredRequests.length}
-                </div>
             </div>
 
+            {/* ✅ 2. Filter Tabs (Styled like Admin Portal) */}
+            <Card className="p-1">
+                <div className="flex flex-wrap gap-2 p-2">
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400 self-center mr-2">Filter by status:</span>
+                    {FILTER_TABS.map((tab) => (
+                        <button
+                            key={tab.value}
+                            onClick={() => setActiveFilter(tab.value)}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                                activeFilter === tab.value
+                                    ? 'bg-green-600 text-white shadow-sm'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+            </Card>
+
             {filteredRequests.length === 0 ? (
-                <Card>
-                    <div className="p-12 text-center">
-                        <p className="text-gray-500 dark:text-gray-400 text-lg">No documents found in this category.</p>
-                    </div>
-                </Card>
+                <div className="p-12 text-center border-2 border-dashed border-gray-200 rounded-lg">
+                    <p className="text-gray-500 dark:text-gray-400 text-lg">No documents found with status: <strong>{activeFilter.replace('_', ' ')}</strong></p>
+                </div>
             ) : (
                 <div className="space-y-4">
                     {filteredRequests.map((req) => (
+                        // Matches DocumentReviewItem style
                         <div key={req.id} className={`p-6 rounded-lg bg-white dark:bg-gray-800 shadow-sm border-l-4 ${
                             req.urgency === 'CRITICAL' ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'
                         }`}>
@@ -133,7 +177,6 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                                         <span className="text-xs font-mono text-gray-400">{req.id.slice(0, 8)}</span>
                                         {req.urgency === 'CRITICAL' && (
                                             <span className="flex items-center px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-200">
-                                                {/* ✅ AlertTriangle is now imported */}
                                                 <AlertTriangle size={12} className="mr-1" /> CRITICAL
                                             </span>
                                         )}
@@ -153,6 +196,7 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                                         <strong>Context:</strong> {req.description}
                                     </div>
 
+                                    {/* Download/View Link */}
                                     {req.file_url ? (
                                         <a href={req.file_url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
                                             📄 View Attached Document
@@ -162,6 +206,7 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                                     )}
                                 </div>
 
+                                {/* ACTION WORKFLOW */}
                                 <div className="flex flex-col gap-3 min-w-[200px] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 pt-4 lg:pt-0 lg:pl-6 justify-center">
                                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 lg:hidden">Actions</p>
 
@@ -173,7 +218,6 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
 
                                     {(req.status === 'UNDER_REVIEW' || req.status === 'AMENDMENT_REQ') && (
                                         <>
-                                            {/* ✅ FIX: Changed 'outline' to 'neutral' */}
                                             <Button variant="neutral" size="sm" onClick={() => openActionModal(req, 'AMENDMENT_REQ')}>
                                                 Request Amendment
                                             </Button>
@@ -189,8 +233,17 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                                         </>
                                     )}
                                     
-                                    {['APPROVED', 'FILED', 'REJECTED'].includes(req.status) && (
-                                        <span className="text-sm text-gray-500 italic text-center py-2">Action completed</span>
+                                    {['APPROVED', 'FILED'].includes(req.status) && (
+                                        <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
+                                            <CheckCircle className="mx-auto text-green-600 mb-1" size={24} />
+                                            <p className="text-sm font-bold text-green-800 dark:text-green-300">{req.status_label}</p>
+                                        </div>
+                                    )}
+                                    {req.status === 'REJECTED' && (
+                                        <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
+                                            <XCircle className="mx-auto text-red-600 mb-1" size={24} />
+                                            <p className="text-sm font-bold text-red-800 dark:text-red-300">Rejected</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -199,6 +252,7 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                 </div>
             )}
 
+            {/* ACTION MODAL */}
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Update Status">
                 <div className="space-y-4">
                     <p className="text-gray-700 dark:text-gray-300">
@@ -226,7 +280,6 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                     </div>
 
                     <div className="flex justify-end gap-2 pt-2">
-                        {/* ✅ FIX: Changed 'outline' to 'neutral' */}
                         <Button variant="neutral" onClick={() => setModalOpen(false)}>Cancel</Button>
                         <Button 
                             variant={actionType === 'REJECTED' ? 'danger' : 'primary'} 
