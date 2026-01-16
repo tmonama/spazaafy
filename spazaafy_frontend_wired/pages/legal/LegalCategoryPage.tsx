@@ -65,12 +65,22 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
         fetchRequests();
     }, []);
 
+    
+
     const filteredRequests = useMemo(() => {
         let list = requests;
+
+        console.log("URL Category:", category);
+        console.log("Mapped Category:", CATEGORY_MAP[category || '']);
+        console.log("First Request Category:", requests[0]?.category);
 
         // 1. Filter by Category (if not dashboard overview)
         if (!isOverview) {
             const backendCategory = CATEGORY_MAP[category || ''];
+
+            // Debugging: Log what we are comparing
+            console.log("Filtering for:", backendCategory);
+            console.log("Available items:", list.map(r => r.category));
             if (backendCategory) {
                 list = list.filter(r => r.category === backendCategory);
             } else {
