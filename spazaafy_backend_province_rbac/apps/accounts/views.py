@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions, viewsets, generics
 from django.utils import timezone
-from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, AdminRequestCodeSerializer, AdminVerifiedRegistrationSerializer
+from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, AdminRequestCodeSerializer, AdminVerifiedRegistrationSerializer, LegalRequestCodeSerializer, LegalRegistrationSerializer
 import random
 from django.core.mail import send_mail, EmailMessage # <--- Import EmailMessage
 from django.conf import settings
@@ -258,3 +258,47 @@ class DeleteAccountInfoView(TemplateView):
     Simple info page used for Google Play's 'Delete account URL'.
     """
     template_name = "delete_account.html"
+
+
+class RequestLegalCodeView(generics.GenericAPIView):
+    serializer_class = LegalRequestCodeSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        
+        # Generate Code
+        code = str(random.randint(100000, 999999))
+        AdminVerificationCode.objects.update_or_create(
+            email=email,
+            defaults={'code': code, 'created_at': timezone.now()}
+        )
+
+        # Send Email
+        try:
+            message = EmailMessage(
+                subject="Spazaafy Legal Access Code",
+                to=[email],
+                from_email=settings.DEFAULT_FROM_EMAIL,
+            )
+            # Reuse your template ID or standard text
+            message.body = f"Your Legal Portal verification code is: {code}" 
+            # Or use template_id logic if you have a specific Brevo template
+            
+            message.send()
+        except Exception as e:
+            return Response({"detail": "Failed to send email."}, status=500)
+        
+        return Response({"detail": "Verification code sent to authorized email."}, status=200)
+
+class LegalRegisterView(generics.CreateAPIView):
+    serializer_class = LegalRegistrationSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)

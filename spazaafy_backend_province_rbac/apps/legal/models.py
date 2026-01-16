@@ -1,0 +1,54 @@
+from django.db import models
+from django.conf import settings
+import uuid
+
+class LegalUrgency(models.TextChoices):
+    ROUTINE = "ROUTINE", "Routine (7-14 Days)"
+    PRIORITY = "PRIORITY", "Priority (3-5 Days)"
+    URGENT = "URGENT", "Urgent (24-48 Hours)"
+    CRITICAL = "CRITICAL", "Critical (Immediate/Risk)"
+
+class LegalCategory(models.TextChoices):
+    CONTRACT = "CONTRACT", "Contract / Agreement"
+    POLICY = "POLICY", "Policy Document"
+    IP = "IP", "Intellectual Property"
+    COMPLIANCE = "COMPLIANCE", "Regulatory / Compliance"
+    DISPUTE = "DISPUTE", "Dispute / Litigation"
+    OTHER = "OTHER", "Other Advisory"
+
+class LegalStatus(models.TextChoices):
+    SUBMITTED = "SUBMITTED", "Submitted"
+    UNDER_REVIEW = "UNDER_REVIEW", "Under Review"
+    AMENDMENT_REQ = "AMENDMENT_REQ", "Amendment Required"
+    APPROVED = "APPROVED", "Approved & Executed"
+    REJECTED = "REJECTED", "Rejected"
+    FILED = "FILED", "Filed (IP/Gov)"
+
+class LegalRequest(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # 5.2 Standardised Submission Data
+    submitter_name = models.CharField(max_length=255)
+    submitter_email = models.EmailField()
+    department = models.CharField(max_length=100, help_text="e.g. Field Ops, Tech, External Partner")
+    
+    category = models.CharField(max_length=50, choices=LegalCategory.choices)
+    urgency = models.CharField(max_length=50, choices=LegalUrgency.choices, default=LegalUrgency.ROUTINE)
+    
+    title = models.CharField(max_length=255)
+    description = models.TextField(help_text="Context, risks, and desired outcome")
+    
+    # The Document
+    document_file = models.FileField(upload_to='legal_intake/%Y/%m/')
+    
+    # 5.3 Tracking & Status
+    status = models.CharField(max_length=50, choices=LegalStatus.choices, default=LegalStatus.SUBMITTED)
+    assigned_attorney = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='legal_cases')
+    
+    internal_notes = models.TextField(blank=True, help_text="Privileged legal notes")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"LEG-{str(self.id)[:8]}: {self.title}"

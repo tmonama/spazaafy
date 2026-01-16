@@ -39,6 +39,10 @@ import DeleteAccountPage from './pages/DeleteAccountPage';
 import RequestAssistancePage from './pages/RequestAssistancePage';
 import AdminAssistancePage from './pages/admin/AdminAssistancePage';
 import AdminAssistanceDetailPage from './pages/admin/AdminAssistanceDetailPage';
+import LegalRegisterPage from './pages/legal/LegalRegisterPage';
+import LegalLoginPage from './pages/legal/LegalLoginPage';
+import LegalDashboard from './pages/admin/LegalDashboard';
+import LegalIntakePage from './pages/LegalIntakePage';
 
 
 function App() {
@@ -62,6 +66,24 @@ function App() {
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/about" element={<AboutUsPage />} />
             <Route path="/delete-account" element={<DeleteAccountPage />} />
+            <Route path="/legal/submit" element={<LegalIntakePage />} />
+
+            {/* ✅ Legal Auth Routes */}
+            <Route path="/legal/register" element={<LegalRegisterPage />} />
+            <Route path="/legal/login" element={<LegalLoginPage />} />
+
+            {/* ✅ Legal Dashboard (Protected by AdminProtectedRoute) */}
+            <Route
+              path="/legal/dashboard"
+              element={
+                <AdminProtectedRoute>
+                    {/* Reuse AdminLayout or create a stripped down LegalLayout */}
+                    <AdminLayout> 
+                        <LegalDashboard />
+                    </AdminLayout>
+                </AdminProtectedRoute>
+              }
+            />
 
             {/* User Routes (Protected) */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

@@ -522,6 +522,20 @@ const auth = {
         method: 'DELETE',
       });
     },
+
+    async requestLegalCode(email: string) {
+        return request('/auth/legal/request-code', { 
+            method: 'POST', 
+            body: JSON.stringify({ email }) 
+        }, false);
+    },
+
+    async registerLegal(payload: any) {
+        return request('/auth/legal/register', { 
+            method: 'POST', 
+            body: JSON.stringify(payload) 
+        }, false);
+    }
 };
 
 const reports = {
