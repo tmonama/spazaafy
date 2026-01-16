@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import Header from '../../components/Header';
 import LegalSidebar from '../../components/LegalSidebar';
+import Header from '../../components/Header';
 import { SidebarProvider, useSidebar } from '../../components/SidebarContext';
 import { AlertsProvider } from '../../components/AlertsContext';
 
@@ -19,7 +19,7 @@ const Overlay: React.FC = () => {
 
 const LegalLayoutContent: React.FC = () => {
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <LegalSidebar />
             <div className="lg:pl-64 transition-all duration-300 ease-in-out">
                 <Header />
