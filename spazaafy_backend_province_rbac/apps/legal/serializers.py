@@ -19,3 +19,13 @@ class LegalRequestAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = LegalRequest
         fields = '__all__'
+
+    def get_file_url(self, obj):
+        # ✅ Safety Check: Only try to get URL if file exists and has a name
+        try:
+            if obj.document_file and hasattr(obj.document_file, 'name') and obj.document_file.name:
+                return obj.document_file.url
+        except Exception as e:
+            print(f"Error generating URL for LegalRequest {obj.id}: {e}")
+            return None
+        return None

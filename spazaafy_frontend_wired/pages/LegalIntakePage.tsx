@@ -9,17 +9,16 @@ const LegalIntakePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // ✅ New Helper for file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     
     if (selectedFile) {
-        // 10MB in bytes = 10 * 1024 * 1024
+        // 10MB limit
         const maxSize = 10 * 1024 * 1024;
 
         if (selectedFile.size > maxSize) {
             alert("File is too large. Maximum allowed size is 10MB.");
-            e.target.value = ""; // Clear the input
+            e.target.value = ""; 
             setFile(null);
             return;
         }
@@ -39,7 +38,6 @@ const LegalIntakePage: React.FC = () => {
         setSuccess(true);
     } catch (err: any) {
         console.error(err);
-        // Display backend error if available (e.g. validator failure)
         const msg = err.response?.data?.document_file?.[0] || "Failed to submit request.";
         alert(msg);
     } finally {
@@ -49,10 +47,13 @@ const LegalIntakePage: React.FC = () => {
 
   if (success) return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <Card className="text-center p-8 bg-white shadow-lg">
+          {/* ✅ FIX: Added 'flex flex-col items-center' to vertically stack and center horizontally */}
+          <Card className="p-8 bg-white shadow-lg flex flex-col items-center text-center">
               <h2 className="text-2xl font-bold text-green-600 mb-2">Submission Received</h2>
-              <p className="text-gray-600">The Department of Legal & Compliance will review your document.</p>
-              <Button onClick={() => window.location.reload()} className="mt-4">Submit Another</Button>
+              <p className="text-gray-600 mb-6">The Department of Legal & Compliance will review your document.</p>
+              <Button onClick={() => window.location.reload()} className="px-8">
+                Submit Another
+              </Button>
           </Card>
       </div>
   );
@@ -114,7 +115,6 @@ const LegalIntakePage: React.FC = () => {
                     <input 
                         type="file" 
                         name="document_file" 
-                        // ✅ Updated Handler
                         onChange={handleFileChange} 
                         required 
                         className="text-gray-700 mx-auto" 
