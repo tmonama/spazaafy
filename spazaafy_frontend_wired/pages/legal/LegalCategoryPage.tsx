@@ -1,13 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
-// ❌ REMOVE useParams, we don't need it anymore
-// import { useParams } from 'react-router-dom'; 
 import { legalApi } from '../../api/legalApi';
-import { useAuth } from '../../hooks/useAuth';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
-import Input from '../../components/Input';
 import Modal from '../../components/Modal';
-import { CheckCircle, XCircle, AlertTriangle, FileText, Clock } from 'lucide-react';
+import { 
+    CheckCircle, XCircle, AlertTriangle, FileText, Clock, 
+    Calendar, Filter, AlertOctagon 
+} from 'lucide-react';
 
 const CATEGORY_MAP: Record<string, string> = {
     'contracts': 'CONTRACT',
@@ -18,7 +17,7 @@ const CATEGORY_MAP: Record<string, string> = {
     'other': 'OTHER'
 };
 
-const FILTER_TABS = [
+const STATUS_TABS = [
     { label: 'Pending', value: 'SUBMITTED' },
     { label: 'In Review', value: 'UNDER_REVIEW' },
     { label: 'Amend Req.', value: 'AMENDMENT_REQ' },
@@ -27,23 +26,39 @@ const FILTER_TABS = [
     { label: 'All', value: 'ALL' }
 ];
 
-// ✅ Define the Props Interface
+const URGENCY_FILTERS = [
+    { label: 'All Urgencies', value: 'ALL' },
+    { label: 'Critical (24h)', value: 'CRITICAL' },
+    { label: 'Urgent (48h)', value: 'URGENT' },
+    { label: 'Priority (5d)', value: 'PRIORITY' },
+    { label: 'Routine (14d)', value: 'ROUTINE' }
+];
+
+// Define SLA (Service Level Agreement) in Days
+const URGENCY_SLA_DAYS: Record<string, number> = {
+    'CRITICAL': 1,
+    'URGENT': 2,
+    'PRIORITY': 5,
+    'ROUTINE': 14
+};
+
 interface LegalCategoryPageProps {
     isOverview?: boolean;
-    categoryProp?: string; // This is passed from App.tsx
+    categoryProp?: string;
 }
 
 const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = false, categoryProp }) => {
-    // ✅ USE THE PROP, NOT PARAMS
     const activeCategoryKey = categoryProp || '';
-
     const token = sessionStorage.getItem('access') || '';
     
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeFilter, setActiveFilter] = useState('SUBMITTED');
     
-    // Action Modal State
+    // Filters
+    const [activeStatusFilter, setActiveStatusFilter] = useState('SUBMITTED');
+    const [activeUrgencyFilter, setActiveUrgencyFilter] = useState('ALL');
+    
+    // Modal State
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
     const [actionType, setActionType] = useState<string>(''); 
@@ -54,12 +69,6 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
         setLoading(true);
         try {
             const data = await legalApi.getAllRequests(token);
-            data.sort((a: any, b: any) => {
-                // Critical first, then newest
-                if (a.urgency === 'CRITICAL' && b.urgency !== 'CRITICAL') return -1;
-                if (b.urgency === 'CRITICAL' && a.urgency !== 'CRITICAL') return 1;
-                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-            });
             setRequests(data);
         } catch (e) {
             console.error(e);
@@ -72,33 +81,86 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
         fetchRequests();
     }, []);
 
-    const filteredRequests = useMemo(() => {
-        let list = requests;
+    // --- Helper: Calculate Deadline & Time Left ---
+    const getDeadlineData = (created_at: string, urgency: string) => {
+        const daysAllowed = URGENCY_SLA_DAYS[urgency] || 14;
+        const createdDate = new Date(created_at);
+        const deadlineDate = new Date(createdDate);
+        deadlineDate.setDate(createdDate.getDate() + daysAllowed);
+        
+        const now = new Date();
+        const diffMs = deadlineDate.getTime() - now.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        
+        let label = '';
+        let colorClass = '';
+        let isOverdue = false;
 
-        // ✅ 1. Filter by Category (using the prop)
+        if (diffMs < 0) {
+            isOverdue = true;
+            label = `Overdue by ${Math.abs(diffDays)}d ${Math.abs(diffHours)}h`;
+            colorClass = 'text-red-600 bg-red-50 border-red-200';
+        } else if (diffDays === 0) {
+            label = `${diffHours} hours left`;
+            colorClass = 'text-orange-600 bg-orange-50 border-orange-200';
+        } else {
+            label = `${diffDays} days left`;
+            colorClass = 'text-gray-600 bg-gray-100 border-gray-200';
+        }
+
+        return { deadlineDate, diffMs, label, colorClass, isOverdue };
+    };
+
+    const filteredAndSortedRequests = useMemo(() => {
+        let list = [...requests];
+
+        // 1. Filter by Category
         if (!isOverview) {
-            const backendCategory = CATEGORY_MAP[activeCategoryKey];
-            
-            // Debugging (Check your console to see this work now)
-            console.log(`Page: ${activeCategoryKey}, Looking for: ${backendCategory}`);
+            const mapKey = activeCategoryKey?.toLowerCase();
+            const targetCategory = CATEGORY_MAP[mapKey];
 
-            if (backendCategory) {
-                list = list.filter(r => r.category === backendCategory);
+            if (!targetCategory) return [];
+
+            list = list.filter(r => {
+                const apiValue = r.category?.toUpperCase() || '';
+                const target = targetCategory.toUpperCase();
+                return apiValue === target;
+            });
+        }
+
+        // 2. Filter by Status Tab
+        if (activeStatusFilter !== 'ALL') {
+            if (activeStatusFilter === 'APPROVED_FILED') {
+                list = list.filter(r => r.status === 'APPROVED' || r.status === 'FILED');
             } else {
-                return [];
+                list = list.filter(r => r.status === activeStatusFilter);
             }
         }
 
-        // 2. Filter by Tab Status
-        if (activeFilter === 'ALL') return list;
-        
-        if (activeFilter === 'APPROVED_FILED') {
-            return list.filter(r => r.status === 'APPROVED' || r.status === 'FILED');
+        // 3. Filter by Urgency
+        if (activeUrgencyFilter !== 'ALL') {
+            list = list.filter(r => r.urgency === activeUrgencyFilter);
         }
 
-        return list.filter(r => r.status === activeFilter);
+        // 4. SORT by Time Left (Ascending: Overdue -> Urgent -> Safe)
+        // Completed items pushed to bottom
+        list.sort((a, b) => {
+            const isAComplete = ['APPROVED', 'FILED', 'REJECTED'].includes(a.status);
+            const isBComplete = ['APPROVED', 'FILED', 'REJECTED'].includes(b.status);
 
-    }, [requests, activeCategoryKey, isOverview, activeFilter]);
+            if (isAComplete && !isBComplete) return 1;
+            if (!isAComplete && isBComplete) return -1;
+
+            const deadlineA = getDeadlineData(a.created_at, a.urgency).diffMs;
+            const deadlineB = getDeadlineData(b.created_at, b.urgency).diffMs;
+
+            return deadlineA - deadlineB; // Lowest time (including negative/overdue) first
+        });
+
+        return list;
+
+    }, [requests, activeCategoryKey, isOverview, activeStatusFilter, activeUrgencyFilter]);
 
     const openActionModal = (request: any, type: string) => {
         setSelectedRequest(request);
@@ -147,133 +209,174 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{pageTitle}</h1>
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Total Records: {filteredRequests.length}
-                </div>
             </div>
 
-            <Card className="p-1">
-                <div className="flex flex-wrap gap-2 p-2">
-                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400 self-center mr-2">Filter by status:</span>
-                    {FILTER_TABS.map((tab) => (
+            {/* FILTERS CONTAINER */}
+            <Card className="p-4 space-y-4">
+                {/* 1. Status Tabs */}
+                <div className="flex flex-wrap gap-2 border-b border-gray-100 pb-4">
+                    <span className="text-sm font-bold text-gray-500 self-center mr-2 uppercase tracking-wide text-xs">Status:</span>
+                    {STATUS_TABS.map((tab) => (
                         <button
                             key={tab.value}
-                            onClick={() => setActiveFilter(tab.value)}
-                            className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
-                                activeFilter === tab.value
+                            onClick={() => setActiveStatusFilter(tab.value)}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                                activeStatusFilter === tab.value
                                     ? 'bg-green-600 text-white shadow-sm'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
                             }`}
                         >
                             {tab.label}
                         </button>
                     ))}
                 </div>
+
+                {/* 2. Urgency Dropdown/Chips */}
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-bold text-gray-500 self-center mr-2 uppercase tracking-wide text-xs">Urgency:</span>
+                    {URGENCY_FILTERS.map((urg) => (
+                        <button
+                            key={urg.value}
+                            onClick={() => setActiveUrgencyFilter(urg.value)}
+                            className={`flex items-center px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
+                                activeUrgencyFilter === urg.value
+                                    ? 'bg-gray-800 text-white border-gray-800'
+                                    : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400'
+                            }`}
+                        >
+                            {urg.value === 'CRITICAL' && <AlertOctagon size={12} className="mr-1" />}
+                            {urg.label}
+                        </button>
+                    ))}
+                </div>
             </Card>
 
-            {filteredRequests.length === 0 ? (
+            {filteredAndSortedRequests.length === 0 ? (
                 <div className="p-12 text-center border-2 border-dashed border-gray-200 rounded-lg">
-                    <p className="text-gray-500 dark:text-gray-400 text-lg">No documents found with status: <strong>{activeFilter.replace('_', ' ')}</strong></p>
+                    <p className="text-gray-500 text-lg">No documents found matching filters.</p>
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {filteredRequests.map((req) => (
-                        <div key={req.id} className={`p-6 rounded-lg bg-white dark:bg-gray-800 shadow-sm border-l-4 ${
-                            req.urgency === 'CRITICAL' ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'
-                        }`}>
-                            <div className="flex flex-col lg:flex-row justify-between gap-6">
-                                <div className="flex-1">
-                                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold border ${getStatusStyle(req.status)}`}>
-                                            {req.status_label}
-                                        </span>
-                                        <span className="text-xs font-mono text-gray-400">{req.id.slice(0, 8)}</span>
-                                        {req.urgency === 'CRITICAL' && (
-                                            <span className="flex items-center px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-200">
-                                                <AlertTriangle size={12} className="mr-1" /> CRITICAL
+                    {filteredAndSortedRequests.map((req) => {
+                        const deadlineData = getDeadlineData(req.created_at, req.urgency);
+                        const isComplete = ['APPROVED', 'FILED', 'REJECTED'].includes(req.status);
+
+                        return (
+                            <div key={req.id} className={`p-6 rounded-lg bg-white shadow-sm border-l-4 ${
+                                req.urgency === 'CRITICAL' ? 'border-red-600' : 
+                                req.urgency === 'URGENT' ? 'border-orange-500' : 
+                                'border-gray-200'
+                            }`}>
+                                <div className="flex flex-col lg:flex-row justify-between gap-6">
+                                    <div className="flex-1">
+                                        <div className="flex flex-wrap items-center gap-3 mb-3">
+                                            {/* Status Badge */}
+                                            <span className={`px-2 py-1 rounded text-xs font-bold border ${getStatusStyle(req.status)}`}>
+                                                {req.status_label}
                                             </span>
+                                            
+                                            {/* ID */}
+                                            <span className="text-xs font-mono text-gray-400">#{req.id.slice(0, 8)}</span>
+                                            
+                                            {/* Category */}
+                                            <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                                                {req.category_label}
+                                            </span>
+
+                                            {/* TIME LEFT BADGE (Only for active items) */}
+                                            {!isComplete && (
+                                                <span className={`flex items-center px-2 py-1 rounded text-xs font-bold border ${deadlineData.colorClass}`}>
+                                                    <Clock size={12} className="mr-1" /> {deadlineData.label}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <h3 className="text-xl font-bold text-gray-900 mb-1">{req.title}</h3>
+                                        
+                                        <div className="text-sm text-gray-600 mb-4 flex flex-wrap gap-x-6 gap-y-1">
+                                            <span className="flex items-center"><FileText size={14} className="mr-1 text-gray-400"/> {req.submitter_name} ({req.department})</span>
+                                            <span className="flex items-center"><Calendar size={14} className="mr-1 text-gray-400"/> Submitted: {new Date(req.created_at).toLocaleDateString()}</span>
+                                        </div>
+
+                                        <div className="bg-gray-50 p-4 rounded-md border border-gray-100 text-sm text-gray-700 mb-4">
+                                            <strong>Context:</strong> {req.description}
+                                        </div>
+
+                                        {req.file_url ? (
+                                            <a href={req.file_url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                                📄 View Attached Document
+                                            </a>
+                                        ) : (
+                                            <span className="text-red-500 text-sm italic">No file attached</span>
                                         )}
-                                        <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                                            {req.category_label}
-                                        </span>
                                     </div>
 
-                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{req.title}</h3>
-                                    
-                                    <div className="text-sm text-gray-600 dark:text-gray-400 mb-4 flex flex-wrap gap-x-4">
-                                        <span className="flex items-center"><FileText size={14} className="mr-1"/> {req.submitter_name} ({req.department})</span>
-                                        <span className="flex items-center"><Clock size={14} className="mr-1"/> {new Date(req.created_at).toLocaleDateString()}</span>
+                                    <div className="flex flex-col gap-3 min-w-[200px] border-t lg:border-t-0 lg:border-l border-gray-200 pt-4 lg:pt-0 lg:pl-6 justify-center">
+                                        
+                                        {/* Actions logic */}
+                                        {req.status === 'SUBMITTED' && (
+                                            <Button onClick={() => openActionModal(req, 'UNDER_REVIEW')}>
+                                                Start Review
+                                            </Button>
+                                        )}
+
+                                        {(req.status === 'UNDER_REVIEW' || req.status === 'AMENDMENT_REQ') && (
+                                            <>
+                                                <Button variant="neutral" size="sm" onClick={() => openActionModal(req, 'AMENDMENT_REQ')}>
+                                                    Request Amendment
+                                                </Button>
+                                                <Button variant="primary" size="sm" onClick={() => openActionModal(req, 'APPROVED')}>
+                                                    Approve &amp; Sign
+                                                </Button>
+                                                <Button variant="secondary" size="sm" onClick={() => openActionModal(req, 'FILED')}>
+                                                    Mark as Filed
+                                                </Button>
+                                                <Button variant="danger" size="sm" onClick={() => openActionModal(req, 'REJECTED')}>
+                                                    Reject
+                                                </Button>
+                                            </>
+                                        )}
+                                        
+                                        {isComplete && (
+                                            <div className="text-center p-3 bg-gray-50 rounded border border-gray-200">
+                                                {req.status === 'APPROVED' || req.status === 'FILED' ? 
+                                                    <CheckCircle className="mx-auto text-green-600 mb-1" size={24} /> : 
+                                                    <XCircle className="mx-auto text-red-600 mb-1" size={24} />
+                                                }
+                                                <p className="text-sm font-bold text-gray-700">{req.status_label}</p>
+                                            </div>
+                                        )}
                                     </div>
-
-                                    <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md border border-gray-100 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 mb-4">
-                                        <strong>Context:</strong> {req.description}
-                                    </div>
-
-                                    {req.file_url ? (
-                                        <a href={req.file_url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
-                                            📄 View Attached Document
-                                        </a>
-                                    ) : (
-                                        <span className="text-red-500 text-sm italic">No file attached</span>
-                                    )}
-                                </div>
-
-                                <div className="flex flex-col gap-3 min-w-[200px] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 pt-4 lg:pt-0 lg:pl-6 justify-center">
-                                    {req.status === 'SUBMITTED' && (
-                                        <Button onClick={() => openActionModal(req, 'UNDER_REVIEW')}>
-                                            Start Review
-                                        </Button>
-                                    )}
-
-                                    {(req.status === 'UNDER_REVIEW' || req.status === 'AMENDMENT_REQ') && (
-                                        <>
-                                            <Button variant="neutral" size="sm" onClick={() => openActionModal(req, 'AMENDMENT_REQ')}>
-                                                Request Amendment
-                                            </Button>
-                                            <Button variant="primary" size="sm" onClick={() => openActionModal(req, 'APPROVED')}>
-                                                Approve &amp; Sign
-                                            </Button>
-                                            <Button variant="secondary" size="sm" onClick={() => openActionModal(req, 'FILED')}>
-                                                Mark as Filed
-                                            </Button>
-                                            <Button variant="danger" size="sm" onClick={() => openActionModal(req, 'REJECTED')}>
-                                                Reject
-                                            </Button>
-                                        </>
-                                    )}
-                                    
-                                    {['APPROVED', 'FILED', 'REJECTED'].includes(req.status) && (
-                                        <span className="text-sm text-gray-500 italic text-center py-2">Action completed</span>
-                                    )}
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
+            {/* ACTION MODAL */}
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Update Status">
                 <div className="space-y-4">
-                    <p className="text-gray-700 dark:text-gray-300">
+                    <p className="text-gray-700">
                         Changing status of <strong>{selectedRequest?.title}</strong> to: <br/>
                         <span className="font-bold text-lg">{actionType.replace('_', ' ')}</span>
                     </p>
 
                     {(actionType === 'AMENDMENT_REQ' || actionType === 'REJECTED') && (
-                        <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-3 rounded text-sm border border-yellow-200 dark:border-yellow-700">
+                        <div className="bg-yellow-50 text-yellow-800 p-3 rounded text-sm border border-yellow-200">
                             ⚠️ <strong>Requirement:</strong> You must provide a reason/instruction. This will be emailed to the submitter.
                         </div>
                     )}
 
                     <div className="mt-2">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                             Legal Note / Reason / Instruction
                         </label>
                         <textarea
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
                             rows={4}
-                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-3 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            className="w-full rounded-md border border-gray-300 p-3 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             placeholder="Enter detailed comments here..."
                         ></textarea>
                     </div>
