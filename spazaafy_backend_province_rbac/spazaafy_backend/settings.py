@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'django_filters',
     'apps.core','apps.accounts','apps.shops','apps.compliance','apps.support.apps.SupportConfig','apps.visits','apps.reports',
     'apps.password_reset',
+    'apps.legal',
     'storages',
     'anymail',
 ]
