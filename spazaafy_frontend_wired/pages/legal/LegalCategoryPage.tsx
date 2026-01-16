@@ -76,28 +76,36 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
 
         // 1. Filter by Category
         if (!isOverview) {
-            // ✅ Use activeCategoryKey from props
-            const backendCategory = CATEGORY_MAP[activeCategoryKey];
-            
-            if (backendCategory) {
-                list = list.filter(r => r.category === backendCategory);
-            } else {
-                // If map fails, return empty list (or show all if you prefer, but empty is safer)
-                return [];
-            }
+            const mapKey = activeCategoryKey?.toLowerCase(); // e.g. 'policies'
+            const targetCategory = CATEGORY_MAP[mapKey]; // e.g. 'POLICY'
+
+            if (!targetCategory) return [];
+
+            list = list.filter(r => {
+                // Handle both "POLICY" (Key) and "Policy Document" (Label)
+                const apiValue = r.category?.toUpperCase() || '';
+                const apiLabel = r.category_label?.toUpperCase() || '';
+                const target = targetCategory.toUpperCase();
+
+                // Check if API value matches target OR if API label contains target word (fallback)
+                // For POLICY, check if value is POLICY
+                return apiValue === target;
+            });
         }
 
         // 2. Filter by Tab Status
-        if (activeFilter === 'ALL') return list;
-        
-        if (activeFilter === 'APPROVED_FILED') {
-            return list.filter(r => r.status === 'APPROVED' || r.status === 'FILED');
+        if (activeFilter !== 'ALL') {
+            if (activeFilter === 'APPROVED_FILED') {
+                list = list.filter(r => r.status === 'APPROVED' || r.status === 'FILED');
+            } else {
+                list = list.filter(r => r.status === activeFilter);
+            }
         }
 
-        return list.filter(r => r.status === activeFilter);
+        return list;
 
     }, [requests, activeCategoryKey, isOverview, activeFilter]);
-
+    
     // ... (Keep existing modal handlers: openActionModal, submitAction) ...
     const openActionModal = (request: any, type: string) => {
         setSelectedRequest(request);
