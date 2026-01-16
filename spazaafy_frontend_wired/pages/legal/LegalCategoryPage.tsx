@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+// import { useParams } from 'react-router-dom'; // ❌ REMOVED
 import { legalApi } from '../../api/legalApi';
 import { useAuth } from '../../hooks/useAuth';
 import Card from '../../components/Card';
@@ -17,26 +17,33 @@ const CATEGORY_MAP: Record<string, string> = {
     'other': 'OTHER'
 };
 
-// Define available tabs for filtering
 const FILTER_TABS = [
     { label: 'Pending', value: 'SUBMITTED' },
     { label: 'In Review', value: 'UNDER_REVIEW' },
     { label: 'Amend Req.', value: 'AMENDMENT_REQ' },
-    { label: 'Approved/Filed', value: 'APPROVED_FILED' }, // Custom composite filter
+    { label: 'Approved/Filed', value: 'APPROVED_FILED' },
     { label: 'Rejected', value: 'REJECTED' },
     { label: 'All', value: 'ALL' }
 ];
 
-const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = false }) => {
-    const { category } = useParams();
+// ✅ Interface for Props
+interface LegalCategoryPageProps {
+    isOverview?: boolean;
+    categoryProp?: string; // This comes from App.tsx
+}
+
+const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = false, categoryProp }) => {
+    // ❌ REMOVED: const { category } = useParams();
+    
+    // ✅ USE PROP
+    const activeCategoryKey = categoryProp || '';
+
     const token = sessionStorage.getItem('access') || '';
     
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    // ✅ 1. Add Filter State (Default to 'SUBMITTED' aka Pending, or 'ALL')
     const [activeFilter, setActiveFilter] = useState('SUBMITTED');
     
-    // Action Modal State
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
     const [actionType, setActionType] = useState<string>(''); 
@@ -47,7 +54,6 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
         setLoading(true);
         try {
             const data = await legalApi.getAllRequests(token);
-            // Sort: Critical first, then newest
             data.sort((a: any, b: any) => {
                 if (a.urgency === 'CRITICAL' && b.urgency !== 'CRITICAL') return -1;
                 if (b.urgency === 'CRITICAL' && a.urgency !== 'CRITICAL') return 1;
@@ -65,25 +71,18 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
         fetchRequests();
     }, []);
 
-    
-
     const filteredRequests = useMemo(() => {
         let list = requests;
 
-        console.log("URL Category:", category);
-        console.log("Mapped Category:", CATEGORY_MAP[category || '']);
-        console.log("First Request Category:", requests[0]?.category);
-
-        // 1. Filter by Category (if not dashboard overview)
+        // 1. Filter by Category
         if (!isOverview) {
-            const backendCategory = CATEGORY_MAP[category || ''];
-
-            // Debugging: Log what we are comparing
-            console.log("Filtering for:", backendCategory);
-            console.log("Available items:", list.map(r => r.category));
+            // ✅ Use activeCategoryKey from props
+            const backendCategory = CATEGORY_MAP[activeCategoryKey];
+            
             if (backendCategory) {
                 list = list.filter(r => r.category === backendCategory);
             } else {
+                // If map fails, return empty list (or show all if you prefer, but empty is safer)
                 return [];
             }
         }
@@ -97,7 +96,7 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
 
         return list.filter(r => r.status === activeFilter);
 
-    }, [requests, category, isOverview, activeFilter]);
+    }, [requests, activeCategoryKey, isOverview, activeFilter]);
 
     // ... (Keep existing modal handlers: openActionModal, submitAction) ...
     const openActionModal = (request: any, type: string) => {
@@ -139,7 +138,9 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
 
     if (loading) return <div className="text-center p-12 text-gray-500">Loading Legal Records...</div>;
 
-    const pageTitle = isOverview ? "Legal Overview" : (category ? category.charAt(0).toUpperCase() + category.slice(1) : "Requests");
+    const pageTitle = isOverview 
+        ? "Legal Overview" 
+        : (activeCategoryKey ? activeCategoryKey.charAt(0).toUpperCase() + activeCategoryKey.slice(1) : "Requests");
 
     return (
         <div className="space-y-6">
@@ -147,7 +148,6 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{pageTitle}</h1>
             </div>
 
-            {/* ✅ 2. Filter Tabs (Styled like Admin Portal) */}
             <Card className="p-1">
                 <div className="flex flex-wrap gap-2 p-2">
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400 self-center mr-2">Filter by status:</span>
@@ -174,7 +174,6 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
             ) : (
                 <div className="space-y-4">
                     {filteredRequests.map((req) => (
-                        // Matches DocumentReviewItem style
                         <div key={req.id} className={`p-6 rounded-lg bg-white dark:bg-gray-800 shadow-sm border-l-4 ${
                             req.urgency === 'CRITICAL' ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'
                         }`}>
@@ -206,7 +205,6 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                                         <strong>Context:</strong> {req.description}
                                     </div>
 
-                                    {/* Download/View Link */}
                                     {req.file_url ? (
                                         <a href={req.file_url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
                                             📄 View Attached Document
@@ -216,7 +214,6 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                                     )}
                                 </div>
 
-                                {/* ACTION WORKFLOW */}
                                 <div className="flex flex-col gap-3 min-w-[200px] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 pt-4 lg:pt-0 lg:pl-6 justify-center">
                                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 lg:hidden">Actions</p>
 
@@ -243,17 +240,8 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                                         </>
                                     )}
                                     
-                                    {['APPROVED', 'FILED'].includes(req.status) && (
-                                        <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
-                                            <CheckCircle className="mx-auto text-green-600 mb-1" size={24} />
-                                            <p className="text-sm font-bold text-green-800 dark:text-green-300">{req.status_label}</p>
-                                        </div>
-                                    )}
-                                    {req.status === 'REJECTED' && (
-                                        <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
-                                            <XCircle className="mx-auto text-red-600 mb-1" size={24} />
-                                            <p className="text-sm font-bold text-red-800 dark:text-red-300">Rejected</p>
-                                        </div>
+                                    {['APPROVED', 'FILED', 'REJECTED'].includes(req.status) && (
+                                        <span className="text-sm text-gray-500 italic text-center py-2">Action completed</span>
                                     )}
                                 </div>
                             </div>
@@ -262,7 +250,6 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                 </div>
             )}
 
-            {/* ACTION MODAL */}
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Update Status">
                 <div className="space-y-4">
                     <p className="text-gray-700 dark:text-gray-300">
