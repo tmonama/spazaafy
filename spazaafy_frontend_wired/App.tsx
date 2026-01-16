@@ -2,7 +2,7 @@ import React from 'react';
 import { AlertsProvider } from './components/AlertsContext';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute'; // Ensure this is imported
+import ProtectedRoute from './components/ProtectedRoute'; 
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import Header from './components/Header';
 
@@ -41,7 +41,7 @@ import AdminAssistancePage from './pages/admin/AdminAssistancePage';
 import AdminAssistanceDetailPage from './pages/admin/AdminAssistanceDetailPage';
 import LegalRegisterPage from './pages/legal/LegalRegisterPage';
 import LegalLoginPage from './pages/legal/LegalLoginPage';
-import LegalDashboard from './pages/legal/LegalDashboard';
+// import LegalDashboard from './pages/legal/LegalDashboard'; // ❌ Unused, remove this
 import LegalIntakePage from './pages/LegalIntakePage';
 import LegalLayout from './pages/legal/LegalLayout';
 import LegalCategoryPage from './pages/legal/LegalCategoryPage';
@@ -86,13 +86,13 @@ function App() {
                 {/* Dashboard Overview */}
                 <Route path="dashboard" element={<LegalCategoryPage isOverview={true} />} />
                 
-                {/* Dynamic Categories */}
-                <Route path="contracts" element={<LegalCategoryPage />} />
-                <Route path="policies" element={<LegalCategoryPage />} />
-                <Route path="ip" element={<LegalCategoryPage />} />
-                <Route path="compliance" element={<LegalCategoryPage />} />
-                <Route path="disputes" element={<LegalCategoryPage />} />
-                <Route path="other" element={<LegalCategoryPage />} />
+                {/* ✅ FIXED: Added categoryProp to these routes */}
+                <Route path="contracts" element={<LegalCategoryPage categoryProp="contracts" />} />
+                <Route path="policies" element={<LegalCategoryPage categoryProp="policies" />} />
+                <Route path="ip" element={<LegalCategoryPage categoryProp="ip" />} />
+                <Route path="compliance" element={<LegalCategoryPage categoryProp="compliance" />} />
+                <Route path="disputes" element={<LegalCategoryPage categoryProp="disputes" />} />
+                <Route path="other" element={<LegalCategoryPage categoryProp="other" />} />
             </Route>
 
 
