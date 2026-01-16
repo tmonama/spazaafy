@@ -1,6 +1,13 @@
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 import uuid
+
+# ✅ 1. Define the Validator
+def validate_file_size(value):
+    limit = 10 * 1024 * 1024  # 10 MB
+    if value.size > limit:
+        raise ValidationError('File too large. Size should not exceed 10 MB.')
 
 class LegalUrgency(models.TextChoices):
     ROUTINE = "ROUTINE", "Routine (7-14 Days)"
@@ -39,7 +46,13 @@ class LegalRequest(models.Model):
     description = models.TextField(help_text="Context, risks, and desired outcome")
     
     # The Document
-    document_file = models.FileField(upload_to='legal_intake/%Y/%m/')
+    # ✅ 2. Update FileField: 
+    # - upload_to: Organizes files in S3 folders (legal_intake/2024/01/...)
+    # - validators: Enforces the 10MB limit
+    document_file = models.FileField(
+        upload_to='legal_intake/%Y/%m/', 
+        validators=[validate_file_size]
+    )
     
     # 5.3 Tracking & Status
     status = models.CharField(max_length=50, choices=LegalStatus.choices, default=LegalStatus.SUBMITTED)

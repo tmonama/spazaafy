@@ -5,10 +5,10 @@ import { useAuth } from '../../hooks/useAuth';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
-import Modal from '../../components/Modal'; // Ensure you have this generic modal component
-import { CheckCircle, XCircle, AlertCircle, FileText, Clock } from 'lucide-react';
+import Modal from '../../components/Modal';
+// ✅ FIX: Added AlertTriangle to imports
+import { CheckCircle, XCircle, AlertCircle, FileText, Clock, AlertTriangle } from 'lucide-react';
 
-// Map URL slugs to Backend ENUMs
 const CATEGORY_MAP: Record<string, string> = {
     'contracts': 'CONTRACT',
     'policies': 'POLICY',
@@ -20,15 +20,12 @@ const CATEGORY_MAP: Record<string, string> = {
 
 const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = false }) => {
     const { category } = useParams();
-    const { user } = useAuth();
-    // In real app, useAuth should provide the token or axios instance handles it.
-    // For now assuming token is in storage or handled by api client.
+    // Assuming token logic is handled by API client or auth hook internally now
     const token = sessionStorage.getItem('access') || '';
     
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     
-    // Action Modal State
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
     const [actionType, setActionType] = useState<string>(''); 
@@ -39,7 +36,6 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
         setLoading(true);
         try {
             const data = await legalApi.getAllRequests(token);
-            // Sort: Critical first, then newest
             data.sort((a: any, b: any) => {
                 if (a.urgency === 'CRITICAL' && b.urgency !== 'CRITICAL') return -1;
                 if (b.urgency === 'CRITICAL' && a.urgency !== 'CRITICAL') return 1;
@@ -74,7 +70,6 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
     const submitAction = async () => {
         if (!selectedRequest) return;
         
-        // Strict Validation: Reason required for Rejection or Amendment
         if ((actionType === 'AMENDMENT_REQ' || actionType === 'REJECTED') && !note.trim()) {
             alert("A reason is strictly required for this action.");
             return;
@@ -126,7 +121,6 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
             ) : (
                 <div className="space-y-4">
                     {filteredRequests.map((req) => (
-                        // Matches DocumentReviewItem style
                         <div key={req.id} className={`p-6 rounded-lg bg-white dark:bg-gray-800 shadow-sm border-l-4 ${
                             req.urgency === 'CRITICAL' ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'
                         }`}>
@@ -139,6 +133,7 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                                         <span className="text-xs font-mono text-gray-400">{req.id.slice(0, 8)}</span>
                                         {req.urgency === 'CRITICAL' && (
                                             <span className="flex items-center px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-200">
+                                                {/* ✅ AlertTriangle is now imported */}
                                                 <AlertTriangle size={12} className="mr-1" /> CRITICAL
                                             </span>
                                         )}
@@ -158,7 +153,6 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                                         <strong>Context:</strong> {req.description}
                                     </div>
 
-                                    {/* Download/View Link */}
                                     {req.file_url ? (
                                         <a href={req.file_url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
                                             📄 View Attached Document
@@ -168,47 +162,35 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                                     )}
                                 </div>
 
-                                {/* ACTION WORKFLOW */}
                                 <div className="flex flex-col gap-3 min-w-[200px] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 pt-4 lg:pt-0 lg:pl-6 justify-center">
                                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 lg:hidden">Actions</p>
 
-                                    {/* 1. INITIAL STATE: TAKE REVIEW */}
                                     {req.status === 'SUBMITTED' && (
                                         <Button onClick={() => openActionModal(req, 'UNDER_REVIEW')}>
                                             Start Review
                                         </Button>
                                     )}
 
-                                    {/* 2. REVIEW STATE: DECIDE */}
                                     {(req.status === 'UNDER_REVIEW' || req.status === 'AMENDMENT_REQ') && (
                                         <>
-                                            <Button variant="outline" onClick={() => openActionModal(req, 'AMENDMENT_REQ')}>
+                                            {/* ✅ FIX: Changed 'outline' to 'neutral' */}
+                                            <Button variant="neutral" size="sm" onClick={() => openActionModal(req, 'AMENDMENT_REQ')}>
                                                 Request Amendment
                                             </Button>
-                                            <Button variant="primary" onClick={() => openActionModal(req, 'APPROVED')}>
+                                            <Button variant="primary" size="sm" onClick={() => openActionModal(req, 'APPROVED')}>
                                                 Approve &amp; Sign
                                             </Button>
-                                            <Button variant="secondary" onClick={() => openActionModal(req, 'FILED')}>
+                                            <Button variant="secondary" size="sm" onClick={() => openActionModal(req, 'FILED')}>
                                                 Mark as Filed
                                             </Button>
-                                            <Button variant="danger" onClick={() => openActionModal(req, 'REJECTED')}>
+                                            <Button variant="danger" size="sm" onClick={() => openActionModal(req, 'REJECTED')}>
                                                 Reject
                                             </Button>
                                         </>
                                     )}
-
-                                    {/* 3. FINAL STATES */}
-                                    {['APPROVED', 'FILED'].includes(req.status) && (
-                                        <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
-                                            <CheckCircle className="mx-auto text-green-600 mb-1" size={24} />
-                                            <p className="text-sm font-bold text-green-800 dark:text-green-300">{req.status_label}</p>
-                                        </div>
-                                    )}
-                                    {req.status === 'REJECTED' && (
-                                        <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
-                                            <XCircle className="mx-auto text-red-600 mb-1" size={24} />
-                                            <p className="text-sm font-bold text-red-800 dark:text-red-300">Rejected</p>
-                                        </div>
+                                    
+                                    {['APPROVED', 'FILED', 'REJECTED'].includes(req.status) && (
+                                        <span className="text-sm text-gray-500 italic text-center py-2">Action completed</span>
                                     )}
                                 </div>
                             </div>
@@ -217,7 +199,6 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                 </div>
             )}
 
-            {/* ACTION MODAL */}
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Update Status">
                 <div className="space-y-4">
                     <p className="text-gray-700 dark:text-gray-300">
@@ -245,7 +226,8 @@ const LegalCategoryPage: React.FC<{ isOverview?: boolean }> = ({ isOverview = fa
                     </div>
 
                     <div className="flex justify-end gap-2 pt-2">
-                        <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+                        {/* ✅ FIX: Changed 'outline' to 'neutral' */}
+                        <Button variant="neutral" onClick={() => setModalOpen(false)}>Cancel</Button>
                         <Button 
                             variant={actionType === 'REJECTED' ? 'danger' : 'primary'} 
                             onClick={submitAction}
