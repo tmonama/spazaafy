@@ -41,8 +41,10 @@ import AdminAssistancePage from './pages/admin/AdminAssistancePage';
 import AdminAssistanceDetailPage from './pages/admin/AdminAssistanceDetailPage';
 import LegalRegisterPage from './pages/legal/LegalRegisterPage';
 import LegalLoginPage from './pages/legal/LegalLoginPage';
-import LegalDashboard from './pages/admin/LegalDashboard';
+import LegalDashboard from './pages/legal/LegalDashboard';
 import LegalIntakePage from './pages/LegalIntakePage';
+import LegalLayout from './pages/legal/LegalLayout';
+import LegalCategoryPage from './pages/legal/LegalCategoryPage';
 
 
 function App() {
@@ -72,18 +74,27 @@ function App() {
             <Route path="/legal/register" element={<LegalRegisterPage />} />
             <Route path="/legal/login" element={<LegalLoginPage />} />
 
-            {/* ✅ Legal Dashboard (Protected by AdminProtectedRoute) */}
+            {/* LEGAL ADMIN PORTAL */}
             <Route
-              path="/legal/dashboard"
-              element={
-                <AdminProtectedRoute>
-                    {/* Reuse AdminLayout or create a stripped down LegalLayout */}
-                    <AdminLayout> 
-                        <LegalDashboard />
-                    </AdminLayout>
-                </AdminProtectedRoute>
-              }
-            />
+                path="/legal"
+                element={
+                  <AdminProtectedRoute>
+                    <LegalLayout />
+                  </AdminProtectedRoute>
+                }
+              >
+                {/* Dashboard Overview */}
+                <Route path="dashboard" element={<LegalCategoryPage isOverview={true} />} />
+                
+                {/* Dynamic Categories */}
+                <Route path="contracts" element={<LegalCategoryPage />} />
+                <Route path="policies" element={<LegalCategoryPage />} />
+                <Route path="ip" element={<LegalCategoryPage />} />
+                <Route path="compliance" element={<LegalCategoryPage />} />
+                <Route path="disputes" element={<LegalCategoryPage />} />
+                <Route path="other" element={<LegalCategoryPage />} />
+            </Route>
+
 
             {/* User Routes (Protected) */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
