@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { hrApi } from '../../api/hrApi';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
-import { ArrowLeft, User, FileText, CheckSquare, Square, Mail, Calendar, XCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, User, FileText, CheckSquare, Square, Mail, Calendar, XCircle, CheckCircle, Clock } from 'lucide-react';
 
 const HiringDetailPage: React.FC = () => {
     const { id } = useParams();
