@@ -114,6 +114,7 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
                 # Fallback if API fails (e.g. bad credentials)
                 meeting_link = "https://meet.google.com/"
                 location_text = "Google Meet (Link pending)"
+                print(f"Google Calendar Error: {e}")
         else:
             location_text = location_input
             app.interview_location = location_input
