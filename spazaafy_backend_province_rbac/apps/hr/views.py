@@ -64,8 +64,13 @@ class HiringRequestViewSet(viewsets.ModelViewSet):
     def open_applications(self, request, pk=None):
         req = self.get_object()
         days = int(request.data.get('days', 7))
+        description = request.data.get('job_description', '')
         req.status = 'OPEN'
         req.application_deadline = timezone.now() + timezone.timedelta(days=days)
+
+        if description:
+            req.job_description = description
+            
         req.save()
         
         # Generate link (Frontend will handle the URL structure)

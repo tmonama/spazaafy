@@ -46,11 +46,11 @@ export const hrApi = {
             headers: { Authorization: `Bearer ${token}` }
         });
     },
-    openApplications: async (id: string, days: number, token: string) => {
+    openApplications: async (id: string, days: number, description: string, token: string) => {
         return request(`/hr/admin/hiring/${id}/open_applications/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ days })
+            body: JSON.stringify({ days, job_description: description })
         });
     },
     getApplications: async (token: string) => {

@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { hrApi } from '../../api/hrApi';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
-import { ArrowLeft, User, FileText, CheckSquare, Square, Mail, Calendar, XCircle, CheckCircle, Clock } from 'lucide-react';
+import Modal from '../../components/Modal'; // ✅ Import Modal
+import Input from '../../components/Input'; // ✅ Import Input
+import { ArrowLeft, User, FileText, CheckSquare, Square, Mail, Calendar, XCircle, CheckCircle, Clock, Copy, Link as LinkIcon } from 'lucide-react';
 
 const HiringDetailPage: React.FC = () => {
     const { id } = useParams();
@@ -13,19 +15,21 @@ const HiringDetailPage: React.FC = () => {
     const [job, setJob] = useState<any>(null);
     const [applications, setApplications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-
-    // Multi-select State
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [copied, setCopied] = useState(false);
+
+    // Modal State
+    const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
+    const [targetAppId, setTargetAppId] = useState<string | null>(null);
+    const [interviewDate, setInterviewDate] = useState('');
+    const [interviewNotes, setInterviewNotes] = useState('');
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Fetch Job Details
             const jobData = await hrApi.getHiringRequestById(id!, token);
             setJob(jobData);
 
-            // Fetch All Applications (In a real app, you might want an endpoint to filter by job ID on the backend)
-            // For now, we fetch all and filter client side as per previous logic, or update API to support ?job=id
             const allApps = await hrApi.getApplications(token);
             setApplications(allApps.filter((a: any) => a.hiring_request === id));
         } catch (e) {
@@ -38,6 +42,56 @@ const HiringDetailPage: React.FC = () => {
     useEffect(() => {
         if (id) fetchData();
     }, [id]);
+
+    // --- Actions ---
+
+    const copyLink = () => {
+        const url = `${window.location.origin}/jobs/${id}/apply`;
+        navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleReject = async (appId: string) => {
+        if (!window.confirm("Reject this candidate?")) return;
+        await hrApi.bulkUpdateApplications([appId], 'REJECTED', token);
+        fetchData();
+    };
+
+    const handleHire = async (appId: string) => {
+        if (!window.confirm("Confirm hiring this candidate? This will create an employee profile.")) return;
+        await hrApi.selectCandidate(appId, token);
+        fetchData();
+        alert("Candidate hired successfully.");
+    };
+
+    const openInterviewModal = (appId: string) => {
+        setTargetAppId(appId);
+        setInterviewDate('');
+        setInterviewNotes('');
+        setIsInterviewModalOpen(true);
+    };
+
+    const submitInterview = async () => {
+        if (!targetAppId) return;
+        await hrApi.scheduleInterview(targetAppId, interviewDate, interviewNotes, token);
+        setIsInterviewModalOpen(false);
+        fetchData();
+        alert("Interview scheduled.");
+    };
+
+    const handleBulkStatus = async (status: string) => {
+        if (selectedIds.size === 0) return;
+        if (!window.confirm(`Mark ${selectedIds.size} applicants as ${status}?`)) return;
+        
+        try {
+            await hrApi.bulkUpdateApplications(Array.from(selectedIds), status, token);
+            setSelectedIds(new Set());
+            fetchData();
+        } catch (e) {
+            alert("Failed to update status");
+        }
+    };
 
     // --- Selection Logic ---
     const toggleSelectAll = () => {
@@ -55,25 +109,11 @@ const HiringDetailPage: React.FC = () => {
         setSelectedIds(newSet);
     };
 
-    // --- Bulk Actions ---
-    const handleBulkStatus = async (status: string) => {
-        if (!window.confirm(`Mark ${selectedIds.size} applicants as ${status}?`)) return;
-        
-        try {
-            await hrApi.bulkUpdateApplications(Array.from(selectedIds), status, token);
-            setSelectedIds(new Set()); // Reset selection
-            fetchData(); // Refresh list
-        } catch (e) {
-            alert("Failed to update status");
-        }
-    };
-
     if (loading) return <div className="p-8 text-center">Loading Job Details...</div>;
     if (!job) return <div className="p-8 text-center text-red-500">Job not found.</div>;
 
     return (
         <div className="p-6">
-            {/* Header */}
             <div className="flex items-center mb-6">
                 <button onClick={() => navigate('/hr/hiring')} className="mr-4 p-2 rounded-full hover:bg-gray-100">
                     <ArrowLeft size={24} />
@@ -84,27 +124,43 @@ const HiringDetailPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Job Details Card */}
             <Card className="p-6 mb-8 bg-white shadow-sm border-l-4 border-blue-500">
-                <h3 className="font-bold text-lg mb-2">Job Description</h3>
-                <p className="text-gray-700 whitespace-pre-wrap">{job.job_description || "No description provided."}</p>
-                
-                <div className="mt-4 flex gap-4 text-sm text-gray-600">
-                    <span className="flex items-center"><Calendar size={14} className="mr-1"/> Posted: {new Date(job.created_at).toLocaleDateString()}</span>
-                    {job.application_deadline && (
-                        <span className="flex items-center text-orange-600 font-bold">
-                            <Clock size={14} className="mr-1"/> Deadline: {new Date(job.application_deadline).toLocaleDateString()}
-                        </span>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h3 className="font-bold text-lg mb-2">Job Description</h3>
+                        <p className="text-gray-700 whitespace-pre-wrap">{job.job_description || "No description provided."}</p>
+                        
+                        <div className="mt-4 flex gap-4 text-sm text-gray-600">
+                            <span className="flex items-center"><Calendar size={14} className="mr-1"/> Posted: {new Date(job.created_at).toLocaleDateString()}</span>
+                            {job.application_deadline && (
+                                <span className="flex items-center text-orange-600 font-bold">
+                                    <Clock size={14} className="mr-1"/> Deadline: {new Date(job.application_deadline).toLocaleDateString()}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ✅ SHARE LINK BOX */}
+                    {job.status === 'OPEN' && (
+                        <div className="bg-gray-50 p-3 rounded border border-gray-200 w-64">
+                            <p className="text-xs font-bold text-gray-500 mb-1 uppercase">Share Public Link</p>
+                            <div className="flex items-center gap-2">
+                                <code className="flex-1 text-xs bg-white border p-1 rounded truncate">
+                                    .../jobs/{job.id}/apply
+                                </code>
+                                <button onClick={copyLink} className="text-blue-600 hover:text-blue-800">
+                                    {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
+                                </button>
+                            </div>
+                        </div>
                     )}
                 </div>
             </Card>
 
-            {/* Applicants Section */}
             <div className="mb-4 flex justify-between items-center">
                 <h2 className="text-xl font-bold">Applicants ({applications.length})</h2>
             </div>
 
-            {/* BULK ACTION BAR */}
             {selectedIds.size > 0 && (
                 <div className="mb-4 bg-blue-50 border border-blue-200 p-3 rounded-lg flex items-center justify-between animate-fade-in">
                     <span className="font-bold text-blue-800 text-sm">{selectedIds.size} Selected</span>
@@ -167,24 +223,23 @@ const HiringDetailPage: React.FC = () => {
                                         </a>
                                     </td>
                                     <td className="px-6 py-4 text-sm font-medium flex gap-2">
-                                        {/* Individual Actions */}
                                         <button 
-                                            onClick={() => {/* Open Interview Modal */}} 
-                                            className="text-purple-600 hover:text-purple-900" 
+                                            onClick={() => openInterviewModal(app.id)} 
+                                            className="text-purple-600 hover:text-purple-900 p-1" 
                                             title="Interview"
                                         >
                                             <Calendar size={18} />
                                         </button>
                                         <button 
-                                            onClick={() => {/* Handle Hire Logic */}} 
-                                            className="text-green-600 hover:text-green-900" 
+                                            onClick={() => handleHire(app.id)} 
+                                            className="text-green-600 hover:text-green-900 p-1" 
                                             title="Hire"
                                         >
                                             <CheckCircle size={18} />
                                         </button>
                                         <button 
-                                            onClick={() => handleBulkStatus('REJECTED')} // Reusing bulk logic for single
-                                            className="text-red-600 hover:text-red-900" 
+                                            onClick={() => handleReject(app.id)} 
+                                            className="text-red-600 hover:text-red-900 p-1" 
                                             title="Reject"
                                         >
                                             <XCircle size={18} />
@@ -196,6 +251,31 @@ const HiringDetailPage: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
+            {/* ✅ INTERVIEW MODAL */}
+            <Modal isOpen={isInterviewModalOpen} onClose={() => setIsInterviewModalOpen(false)} title="Schedule Interview">
+                <div className="space-y-4">
+                    <Input 
+                        type="datetime-local" 
+                        id="date" 
+                        label="Date & Time" 
+                        value={interviewDate} 
+                        onChange={e => setInterviewDate(e.target.value)} 
+                        required 
+                    />
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Notes / Instructions</label>
+                        <textarea 
+                            className="w-full border rounded-md p-2" 
+                            rows={3} 
+                            value={interviewNotes} 
+                            onChange={e => setInterviewNotes(e.target.value)}
+                            placeholder="e.g. Please bring your ID and code examples."
+                        />
+                    </div>
+                    <Button onClick={submitInterview} className="w-full">Send Invite</Button>
+                </div>
+            </Modal>
         </div>
     );
 };
