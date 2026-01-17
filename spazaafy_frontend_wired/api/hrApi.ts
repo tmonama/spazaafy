@@ -31,6 +31,14 @@ export const hrApi = {
             body: JSON.stringify(data)
         });
     },
+    // ✅ NEW: Public Fetch Methods
+    getPublicJobDetails: async (id: string) => {
+        return request(`/hr/public/jobs/${id}/`);
+    },
+
+    getPublicTrainingDetails: async (id: string) => {
+        return request(`/hr/public/training/${id}/`);
+    },
 
     // --- Admin (Hiring) ---
     getHiringRequests: async (token: string) => {

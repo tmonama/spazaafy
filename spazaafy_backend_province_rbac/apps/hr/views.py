@@ -36,6 +36,18 @@ class PublicTrainingSignupView(generics.CreateAPIView):
     serializer_class = TrainingSignupSerializer
     permission_classes = [permissions.AllowAny]
 
+class PublicJobDetailView(generics.RetrieveAPIView):
+    """ Allows public to view job details before applying """
+    queryset = HiringRequest.objects.filter(status='OPEN')
+    serializer_class = HiringRequestSerializer
+    permission_classes = [permissions.AllowAny]
+
+class PublicTrainingDetailView(generics.RetrieveAPIView):
+    """ Allows public to view training details before signing up """
+    queryset = TrainingSession.objects.all()
+    serializer_class = TrainingSessionSerializer
+    permission_classes = [permissions.AllowAny]
+
 
 # --- ADMIN VIEWS ---
 
