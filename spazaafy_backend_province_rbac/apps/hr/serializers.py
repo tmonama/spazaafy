@@ -8,10 +8,19 @@ class HiringRequestSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class JobApplicationSerializer(serializers.ModelSerializer):
-    cv_url = serializers.FileField(source='cv_file', read_only=True)
+    # Use SerializerMethodField for safety
+    cv_url = serializers.SerializerMethodField()
+
     class Meta:
         model = JobApplication
         fields = '__all__'
+
+    def get_cv_url(self, obj):
+        try:
+            if obj.cv_file and hasattr(obj.cv_file, 'name') and obj.cv_file.name:
+                return obj.cv_file.url
+        except Exception:
+            return None
 
 class EmployeeSerializer(serializers.ModelSerializer):
     photo_url = serializers.ImageField(source='profile_picture', read_only=True)
