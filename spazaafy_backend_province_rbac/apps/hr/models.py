@@ -85,6 +85,9 @@ class JobApplication(models.Model):
     
     # Interview details
     interview_date = models.DateTimeField(null=True, blank=True)
+    interview_type = models.CharField(max_length=20, choices=[('ONLINE', 'Online'), ('IN_PERSON', 'In Person')], default='ONLINE')
+    interview_location = models.CharField(max_length=500, blank=True, null=True) # For physical address
+    interview_link = models.URLField(blank=True, null=True) # For Google Meet
     interview_notes = models.TextField(blank=True)
     
     is_selected = models.BooleanField(default=False)

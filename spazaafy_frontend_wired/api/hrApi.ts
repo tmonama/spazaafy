@@ -58,11 +58,11 @@ export const hrApi = {
             headers: { Authorization: `Bearer ${token}` }
         });
     },
-    scheduleInterview: async (appId: string, date_time: string, notes: string, token: string) => {
+    scheduleInterview: async (appId: string, date_time: string, type: string, location: string, notes: string, token: string) => {
         return request(`/hr/admin/applications/${appId}/schedule_interview/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ date_time, notes })
+            body: JSON.stringify({ date_time, type, location, notes })
         });
     },
     selectCandidate: async (appId: string, token: string) => {

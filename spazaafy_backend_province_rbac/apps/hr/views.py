@@ -6,6 +6,9 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup
 from .serializers import *
+import random
+import string
+from apps.core.google_calendar import create_google_meet_event
 
 # --- PUBLIC VIEWS ---
 
@@ -70,7 +73,7 @@ class HiringRequestViewSet(viewsets.ModelViewSet):
 
         if description:
             req.job_description = description
-            
+
         req.save()
         
         # Generate link (Frontend will handle the URL structure)
@@ -84,32 +87,78 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def schedule_interview(self, request, pk=None):
         app = self.get_object()
-        date_time = request.data.get('date_time')
+        date_time = request.data.get('date_time') # Ensure this is ISO format from frontend
         notes = request.data.get('notes')
-        
+        i_type = request.data.get('type', 'ONLINE')
+        location_input = request.data.get('location', '')
+
+        meeting_link = ""
+        location_text = ""
+
+        if i_type == 'ONLINE':
+            # ✅ CALL REAL GOOGLE API
+            print("Generating Google Meet link...")
+            generated_link = create_google_meet_event(
+                summary=f"Interview: {app.hiring_request.role_title} - {app.first_name} {app.last_name}",
+                description=f"Interview for Spazaafy.\n\nNotes: {notes}",
+                start_time_iso=date_time,
+                attendee_email=app.email
+            )
+            
+            if generated_link:
+                meeting_link = generated_link
+                location_text = f"Google Meet: {meeting_link}"
+                app.interview_link = meeting_link
+                app.interview_location = "Online"
+            else:
+                # Fallback if API fails (e.g. bad credentials)
+                meeting_link = "https://meet.google.com/"
+                location_text = "Google Meet (Link pending)"
+        else:
+            location_text = location_input
+            app.interview_location = location_input
+            app.interview_link = ""
+
         app.interview_date = date_time
+        app.interview_type = i_type
         app.interview_notes = notes
+        app.status = 'INTERVIEWING'
+        app.save()
+
         app.hiring_request.status = 'INTERVIEWING'
         app.hiring_request.save()
-        app.save()
         
-        # Send Email
+        # Send Email (same as before)
         send_mail(
             subject=f"Interview Invitation: {app.hiring_request.role_title}",
-            message=f"Dear {app.first_name},\n\nYou are invited for an interview on {date_time}.\n\nNotes: {notes}",
+            message=f"""Dear {app.first_name},
+
+            We are pleased to invite you for an interview.
+
+            Date: {date_time}
+            Format: {i_type}
+            Location/Link: {location_text}
+
+            Notes: {notes}
+
+            A calendar invitation has also been sent to your email address.
+
+            Regards,
+            Spazaafy HR""",
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[app.email],
             fail_silently=True
         )
-        return Response({'status': 'Scheduled'})
+        
+        return Response({'status': 'Scheduled', 'link': meeting_link})
 
     @action(detail=True, methods=['post'])
     def select_candidate(self, request, pk=None):
         app = self.get_object()
         app.is_selected = True
+        app.status = 'SELECTED'
         app.save()
         
-        # Update Request Status
         req = app.hiring_request
         req.status = 'SELECTED'
         req.save()
@@ -124,10 +173,30 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
             role_title=req.role_title,
             status='ONBOARDING'
         )
+
+        # ✅ Hired Email
+        send_mail(
+            subject="Congratulations! Job Offer from Spazaafy",
+            message=f"""Dear {app.first_name},
+
+            We are delighted to inform you that you have been selected for the position of {req.role_title}!
+
+            Welcome to the team. We are excited to have you on board.
+
+            Next Steps:
+            You will receive further communication shortly regarding your contract, onboarding process, and training schedule.
+
+            Congratulations again!
+
+            Regards,
+            Spazaafy HR Team""",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[app.email],
+            fail_silently=True
+        )
         
         return Response({'status': 'Selected & Profile Created'})
-    
-    # ✅ 3. Add Bulk Status Update Action
+
     @action(detail=False, methods=['post'])
     def bulk_update_status(self, request):
         ids = request.data.get('ids', [])
@@ -136,14 +205,31 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
         if not ids or not new_status:
             return Response({"detail": "Missing IDs or Status"}, status=400)
             
-        # Update records
-        count = JobApplication.objects.filter(id__in=ids).update(status=new_status)
+        apps_to_update = JobApplication.objects.filter(id__in=ids)
         
-        # Optional: Send emails if status is REJECTED (using your utils)
-        # if new_status == 'REJECTED':
-        #     ... send rejection emails ...
-            
-        return Response({'detail': f'Updated {count} applications.'})
+        # ✅ Rejection Email Logic
+        if new_status == 'REJECTED':
+            for app in apps_to_update:
+                if app.status != 'REJECTED': # Don't spam if already rejected
+                    send_mail(
+                        subject=f"Update on your application: {app.hiring_request.role_title}",
+                        message=f"""Dear {app.first_name},
+
+                        Thank you for your interest in the {app.hiring_request.role_title} position at Spazaafy and for taking the time to apply.
+
+                        We regret to inform you that we will not be proceeding with your application at this time. We received many qualified applicants and the decision was a difficult one.
+
+                        We wish you all the best in your future endeavors.
+
+                        Regards,
+                        Spazaafy HR Team""",
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[app.email],
+                        fail_silently=True
+                    )
+
+        apps_to_update.update(status=new_status)
+        return Response({'detail': f'Updated {len(ids)} applications.'})
 
 class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.all()
