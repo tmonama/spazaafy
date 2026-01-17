@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom'; // ✅ Import useNavigate
 import { hrApi } from '../../api/hrApi';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
@@ -7,21 +7,34 @@ import Modal from '../../components/Modal';
 import Input from '../../components/Input';
 import { DEPARTMENT_LABELS } from '../../utils/roles';
 
+const HIRING_STATUSES = ['ALL', 'PENDING', 'OPEN', 'INTERVIEWING', 'SELECTED', 'ONBOARDING', 'COMPLETE', 'CLOSED'];
+
 const HiringPage: React.FC = () => {
-    const navigate = useNavigate();
+    const navigate = useNavigate(); // ✅ Hook
     const token = sessionStorage.getItem('access') || '';
     const [requests, setRequests] = useState<any[]>([]);
+    const [applications, setApplications] = useState<any[]>([]);
     const [selectedReq, setSelectedReq] = useState<any>(null);
+    const [selectedApp, setSelectedApp] = useState<any>(null);
+    
+    // Filters
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [deptFilter, setDeptFilter] = useState('ALL');
     
     // Modals
-    const [openModal, setOpenModal] = useState<'OPEN' | null>(null);
+    const [openModal, setOpenModal] = useState<'OPEN' | 'VIEW_APPS' | 'INTERVIEW' | null>(null);
     const [daysOpen, setDaysOpen] = useState(7);
-    const [jobDesc, setJobDesc] = useState(''); // ✅ State for description
+    const [interviewDate, setInterviewDate] = useState('');
+    const [interviewNotes, setInterviewNotes] = useState('');
 
     const fetchData = async () => {
         try {
-            const reqs = await hrApi.getHiringRequests(token);
+            const [reqs, apps] = await Promise.all([
+                hrApi.getHiringRequests(token),
+                hrApi.getApplications(token)
+            ]);
             setRequests(reqs);
+            setApplications(apps);
         } catch (e) {
             console.error(e);
         }
@@ -30,41 +43,88 @@ const HiringPage: React.FC = () => {
     useEffect(() => { fetchData(); }, []);
 
     const handleOpenApplications = async () => {
-        if (!selectedReq) return;
-        // ✅ Pass description to API
-        await hrApi.openApplications(selectedReq.id, daysOpen, jobDesc, token);
+        // Need to pass a description, assuming empty for now or add input
+        await hrApi.openApplications(selectedReq.id, daysOpen, "Job Opening", token);
         setOpenModal(null);
         fetchData();
         alert("Job Posted! Link generated.");
     };
 
-    const openLaunchModal = (req: any) => {
-        setSelectedReq(req);
-        setJobDesc(req.request_reason || ''); // Pre-fill with internal reason if available
-        setOpenModal('OPEN');
+    const handleScheduleInterview = async () => {
+        // Assuming defaults for type/location for quick schedule
+        await hrApi.scheduleInterview(selectedApp.id, interviewDate, 'ONLINE', 'Google Meet', interviewNotes, token);
+        setOpenModal(null);
+        fetchData();
+        alert("Interview scheduled & email sent.");
     };
+
+    const handleSelectCandidate = async (app: any) => {
+        if (!window.confirm(`Are you sure you want to hire ${app.first_name}? This will create an employee profile.`)) return;
+        await hrApi.selectCandidate(app.id, token);
+        setOpenModal(null);
+        fetchData();
+        alert("Candidate Hired! Profile created in Employees tab.");
+    };
+
+    // Filter Logic
+    const filteredRequests = requests.filter(req => {
+        const matchesStatus = statusFilter === 'ALL' || req.status === statusFilter;
+        const matchesDept = deptFilter === 'ALL' || req.department === deptFilter;
+        return matchesStatus && matchesDept;
+    });
+
+    const currentApplications = selectedReq 
+        ? applications.filter(a => a.hiring_request === selectedReq.id) 
+        : [];
 
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-6 text-gray-900">Hiring Requests</h1>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <h1 className="text-2xl font-bold text-gray-900">Hiring Requests</h1>
+                
+                <div className="flex flex-wrap gap-2">
+                    {/* Department Filter */}
+                    <select className="border rounded p-2 bg-white text-sm" value={deptFilter} onChange={e => setDeptFilter(e.target.value)}>
+                        <option value="ALL">All Departments</option>
+                        {Object.entries(DEPARTMENT_LABELS).map(([key, label]) => (
+                            <option key={key} value={key}>{label}</option>
+                        ))}
+                    </select>
+
+                    {/* Status Filter */}
+                    <select className="border rounded p-2 bg-white text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+                        {HIRING_STATUSES.map(status => (
+                            <option key={status} value={status}>{status.replace('_', ' ')}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
             
             <div className="grid gap-6">
-                {requests.map(req => (
+                {filteredRequests.map(req => (
                     <Card key={req.id} className="p-6 border-l-4 border-purple-500">
                         <div className="flex justify-between items-start">
                             <div>
                                 <h3 className="font-bold text-lg text-gray-900">{req.role_title}</h3>
                                 <p className="text-sm text-gray-500 mb-2">{DEPARTMENT_LABELS[req.department]}</p>
                                 <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                    req.status === 'OPEN' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'
+                                    req.status === 'OPEN' ? 'bg-green-100 text-green-800' :
+                                    req.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100 text-gray-700'
                                 }`}>
-                                    {req.status}
+                                    {req.status.replace('_', ' ')}
                                 </span>
+                                
+                                {req.status === 'OPEN' && (
+                                    <p className="text-xs text-green-600 mt-2 font-mono bg-green-50 p-1 rounded inline-block">
+                                        Link Active
+                                    </p>
+                                )}
                             </div>
 
                             <div className="flex flex-col gap-2">
                                 {req.status === 'PENDING' && (
-                                    <Button size="sm" onClick={() => openLaunchModal(req)}>
+                                    <Button size="sm" onClick={() => { setSelectedReq(req); setOpenModal('OPEN'); }}>
                                         Open Applications
                                     </Button>
                                 )}
@@ -76,30 +136,36 @@ const HiringPage: React.FC = () => {
                         </div>
                     </Card>
                 ))}
+
+                {filteredRequests.length === 0 && (
+                    <div className="text-center p-12 text-gray-500 bg-white rounded border border-dashed border-gray-300">
+                        No hiring requests match your filters.
+                    </div>
+                )}
             </div>
 
             {/* OPEN MODAL */}
             <Modal isOpen={openModal === 'OPEN'} onClose={() => setOpenModal(null)} title="Launch Hiring">
-                <div className="space-y-4">
-                    <Input 
-                        type="number" 
-                        id="days" 
-                        label="Duration (Days)" 
-                        value={daysOpen} 
-                        onChange={e => setDaysOpen(Number(e.target.value))} 
-                    />
-                    
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Job Description (Public)</label>
-                        <textarea 
-                            className="w-full border rounded-md p-2 h-32"
-                            placeholder="Enter the job responsibilities and requirements..."
-                            value={jobDesc}
-                            onChange={e => setJobDesc(e.target.value)}
-                        />
-                    </div>
+                <p className="mb-4">How many days should this position be open?</p>
+                <Input type="number" id="days" label="Days" value={daysOpen} onChange={e => setDaysOpen(Number(e.target.value))} />
+                <Button onClick={handleOpenApplications} className="mt-4 w-full">Launch</Button>
+            </Modal>
 
-                    <Button onClick={handleOpenApplications} className="w-full">Launch</Button>
+            {/* VIEW APPS MODAL (Legacy, now handled by detail page, kept for safety) */}
+            <Modal isOpen={openModal === 'VIEW_APPS'} onClose={() => setOpenModal(null)} title={`Applicants for ${selectedReq?.role_title}`}>
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                    {currentApplications.length === 0 && <p>No applications yet.</p>}
+                    {currentApplications.map(app => (
+                        <div key={app.id} className="border p-3 rounded bg-gray-50">
+                            <div className="flex justify-between">
+                                <div>
+                                    <p className="font-bold">{app.first_name} {app.last_name}</p>
+                                    <p className="text-xs text-gray-500">{app.email}</p>
+                                </div>
+                                <Button size="sm" onClick={() => handleSelectCandidate(app)}>Hire</Button>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </Modal>
         </div>

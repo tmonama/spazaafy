@@ -1,37 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // ✅ Import useNavigate
+import { useNavigate } from 'react-router-dom';
 import { hrApi } from '../../api/hrApi';
 import { DEPARTMENT_LABELS } from '../../utils/roles';
 
+const EMPLOYEE_STATUSES = ['ALL', 'ONBOARDING', 'EMPLOYED', 'SUSPENDED', 'NOTICE', 'RESIGNED', 'RETIRED'];
+
 const EmployeesPage: React.FC = () => {
-    const navigate = useNavigate(); // ✅ Hook
+    const navigate = useNavigate();
     const token = sessionStorage.getItem('access') || '';
     const [employees, setEmployees] = useState<any[]>([]);
+    
+    // Filters
     const [filterDept, setFilterDept] = useState('ALL');
+    const [filterStatus, setFilterStatus] = useState('ALL');
 
     useEffect(() => {
         hrApi.getEmployees(token).then(setEmployees);
     }, []);
 
-    const filtered = filterDept === 'ALL' ? employees : employees.filter(e => e.department === filterDept);
+    const filtered = employees.filter(e => {
+        const matchesDept = filterDept === 'ALL' || e.department === filterDept;
+        const matchesStatus = filterStatus === 'ALL' || e.status === filterStatus;
+        return matchesDept && matchesStatus;
+    });
 
     return (
         <div className="p-6">
-            <div className="flex justify-between mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h1 className="text-2xl font-bold text-gray-900">Employees</h1>
-                <select className="border rounded p-2 bg-white" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-                    <option value="ALL">All Departments</option>
-                    {Object.entries(DEPARTMENT_LABELS).map(([key, label]) => (
-                        <option key={key} value={key}>{label}</option>
-                    ))}
-                </select>
+                
+                <div className="flex flex-wrap gap-2">
+                    {/* Department Filter */}
+                    <select className="border rounded p-2 bg-white text-sm" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
+                        <option value="ALL">All Departments</option>
+                        {Object.entries(DEPARTMENT_LABELS).map(([key, label]) => (
+                            <option key={key} value={key}>{label}</option>
+                        ))}
+                    </select>
+
+                    {/* Status Filter */}
+                    <select className="border rounded p-2 bg-white text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                        {EMPLOYEE_STATUSES.map(status => (
+                            <option key={status} value={status}>{status.replace('_', ' ')}</option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filtered.map(emp => (
                     <div 
                         key={emp.id} 
-                        // ✅ Clickable Card
                         onClick={() => navigate(`/hr/employees/${emp.id}`)} 
                         className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-all hover:border-purple-300"
                     >
@@ -51,6 +70,7 @@ const EmployeesPage: React.FC = () => {
                             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
                                 emp.status === 'EMPLOYED' ? 'bg-green-100 text-green-800' : 
                                 emp.status === 'ONBOARDING' ? 'bg-blue-100 text-blue-800' : 
+                                emp.status === 'SUSPENDED' ? 'bg-red-100 text-red-800' :
                                 'bg-gray-100 text-gray-600'
                             }`}>
                                 {emp.status.replace('_', ' ')}
@@ -59,6 +79,12 @@ const EmployeesPage: React.FC = () => {
                     </div>
                 ))}
             </div>
+
+            {filtered.length === 0 && (
+                <div className="text-center p-12 text-gray-500">
+                    No employees found matching filters.
+                </div>
+            )}
         </div>
     );
 };
