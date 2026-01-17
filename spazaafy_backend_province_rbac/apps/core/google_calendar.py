@@ -55,9 +55,10 @@ def create_google_meet_event(summary, description, start_time_iso, attendee_emai
                 'dateTime': end_dt.isoformat(),
                 'timeZone': 'Africa/Johannesburg',
             },
-            'attendees': [
-                {'email': attendee_email},
-            ],
+            #'attendees': [
+            #    {'email': attendee_email},
+            #],
+            
             # This magic Request ID triggers Meet link generation
             'conferenceData': {
                 'createRequest': {
