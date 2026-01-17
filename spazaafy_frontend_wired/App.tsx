@@ -59,6 +59,7 @@ import JobRequestForm from './pages/JobRequestForm';
 import JobApplicationForm from './pages/JobApplicationForm';
 import TrainingSignupForm from './pages/TrainingSignupForm';
 import TrainingDetailPage from './pages/hr/TrainingDetailPage';
+import HiringDetailPage from './pages/hr/HiringDetailPage';
 
 
 function App() {
@@ -96,6 +97,7 @@ function App() {
             {/* HR PORTAL (Protected) */}
             <Route path="/hr" element={<AdminProtectedRoute><HRLayout /></AdminProtectedRoute>}>
                 <Route path="hiring" element={<HiringPage />} />
+                <Route path="hiring/:id" element={<HiringDetailPage />} />
                 <Route path="employees" element={<EmployeesPage />} />
                 <Route path="onboarding" element={<OnboardingPage />} />
                 {/* ✅ Training Routes */}

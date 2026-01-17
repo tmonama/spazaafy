@@ -4,6 +4,15 @@ from django.utils import timezone
 import uuid
 from datetime import timedelta
 
+class ApplicationStatus(models.TextChoices):
+    PENDING = 'PENDING', 'Pending Review'
+    SHORTLISTED = 'SHORTLISTED', 'Shortlisted'
+    INTERVIEWING = 'INTERVIEWING', 'Interviewing'
+    SELECTED = 'SELECTED', 'Selected / Hired'
+    REJECTED = 'REJECTED', 'Rejected'
+
+
+
 # --- CONSTANTS FROM PDF ---
 DEPARTMENTS = [
     ('EXECUTIVE', 'Executive & Leadership'),
@@ -67,6 +76,12 @@ class JobApplication(models.Model):
     phone = models.CharField(max_length=20)
     cv_file = models.FileField(upload_to='hr/cvs/%Y/%m/')
     cover_letter = models.TextField(blank=True)
+
+    status = models.CharField(
+        max_length=20, 
+        choices=ApplicationStatus.choices, 
+        default=ApplicationStatus.PENDING
+    )
     
     # Interview details
     interview_date = models.DateTimeField(null=True, blank=True)

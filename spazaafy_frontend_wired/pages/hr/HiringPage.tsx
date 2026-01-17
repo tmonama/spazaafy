@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { hrApi } from '../../api/hrApi';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
@@ -7,6 +8,7 @@ import Input from '../../components/Input';
 import { DEPARTMENT_LABELS } from '../../utils/roles';
 
 const HiringPage: React.FC = () => {
+    const navigate = useNavigate();
     const token = sessionStorage.getItem('access') || '';
     const [requests, setRequests] = useState<any[]>([]);
     const [applications, setApplications] = useState<any[]>([]);
@@ -84,7 +86,7 @@ const HiringPage: React.FC = () => {
                                     </Button>
                                 )}
                                 
-                                <Button size="sm" variant="outline" onClick={() => { setSelectedReq(req); setOpenModal('VIEW_APPS'); }}>
+                                <Button size="sm" variant="outline" onClick={() => navigate(`/hr/hiring/${req.id}`)}>
                                     View Applications ({req.application_count})
                                 </Button>
                             </div>

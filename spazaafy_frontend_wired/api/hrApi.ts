@@ -64,6 +64,21 @@ export const hrApi = {
         });
     },
 
+    getHiringRequestById: async (id: string, token: string) => {
+        return request(`/hr/admin/hiring/${id}/`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+
+    // ✅ Bulk Update Applications
+    bulkUpdateApplications: async (ids: string[], status: string, token: string) => {
+        return request(`/hr/admin/applications/bulk_update_status/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ ids, status })
+        });
+    },
+
     // --- Admin (Employees) ---
     getEmployees: async (token: string) => {
         return request('/hr/admin/employees/', {

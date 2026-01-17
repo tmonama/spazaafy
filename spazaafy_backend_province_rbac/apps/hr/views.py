@@ -109,6 +109,24 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
         )
         
         return Response({'status': 'Selected & Profile Created'})
+    
+    # ✅ 3. Add Bulk Status Update Action
+    @action(detail=False, methods=['post'])
+    def bulk_update_status(self, request):
+        ids = request.data.get('ids', [])
+        new_status = request.data.get('status')
+        
+        if not ids or not new_status:
+            return Response({"detail": "Missing IDs or Status"}, status=400)
+            
+        # Update records
+        count = JobApplication.objects.filter(id__in=ids).update(status=new_status)
+        
+        # Optional: Send emails if status is REJECTED (using your utils)
+        # if new_status == 'REJECTED':
+        #     ... send rejection emails ...
+            
+        return Response({'detail': f'Updated {count} applications.'})
 
 class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.all()
