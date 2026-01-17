@@ -1,0 +1,101 @@
+import { API_BASE } from './mockApi'; 
+
+async function request(url: string, options: RequestInit = {}) {
+    const res = await fetch(`${API_BASE}${url}`, options);
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `HTTP ${res.status}`);
+    }
+    return res.json();
+}
+
+export const hrApi = {
+    // --- Public ---
+    submitJobRequest: async (data: any) => {
+        return request('/hr/public/request-hiring/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+    },
+    submitApplication: async (formData: FormData) => {
+        return request('/hr/public/apply/', {
+            method: 'POST',
+            body: formData // Browser handles boundary
+        });
+    },
+    signupTraining: async (data: any) => {
+        return request('/hr/public/training-signup/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+    },
+
+    // --- Admin (Hiring) ---
+    getHiringRequests: async (token: string) => {
+        return request('/hr/admin/hiring/', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+    openApplications: async (id: string, days: number, token: string) => {
+        return request(`/hr/admin/hiring/${id}/open_applications/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ days })
+        });
+    },
+    getApplications: async (token: string) => {
+        return request('/hr/admin/applications/', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+    scheduleInterview: async (appId: string, date_time: string, notes: string, token: string) => {
+        return request(`/hr/admin/applications/${appId}/schedule_interview/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ date_time, notes })
+        });
+    },
+    selectCandidate: async (appId: string, token: string) => {
+        return request(`/hr/admin/applications/${appId}/select_candidate/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+
+    // --- Admin (Employees) ---
+    getEmployees: async (token: string) => {
+        return request('/hr/admin/employees/', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+    updateEmployeeStatus: async (id: string, status: string, token: string) => {
+        return request(`/hr/admin/employees/${id}/`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ status })
+        });
+    },
+
+    // --- Admin (Training) ---
+    getTrainings: async (token: string) => {
+        return request('/hr/admin/training/', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+    createTraining: async (data: any, token: string) => {
+        return request('/hr/admin/training/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(data)
+        });
+    },
+    markAttendance: async (sessionId: string, employeeIds: string[], token: string) => {
+        return request(`/hr/admin/training/${sessionId}/mark_attendance/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ employee_ids: employeeIds })
+        });
+    }
+};

@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'apps.core','apps.accounts','apps.shops','apps.compliance','apps.support.apps.SupportConfig','apps.visits','apps.reports',
     'apps.password_reset',
     'apps.legal',
+    'apps.hr',
     'storages',
     'anymail',
 ]

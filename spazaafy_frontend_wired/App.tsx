@@ -46,6 +46,19 @@ import LegalIntakePage from './pages/LegalIntakePage';
 import LegalLayout from './pages/legal/LegalLayout';
 import LegalCategoryPage from './pages/legal/LegalCategoryPage';
 
+import HRRegisterPage from './pages/hr/auth/HRRegisterPage';
+import HRLoginPage from './pages/hr/auth/HRLoginPage';
+import HRLayout from './pages/hr/HRLayout';
+import HiringPage from './pages/hr/HiringPage';
+import EmployeesPage from './pages/hr/EmployeesPage';
+import TrainingPage from './pages/hr/TrainingPage';
+import OnboardingPage from './pages/hr/OnboardingPage';
+
+// Public Forms
+import JobRequestForm from './pages/JobRequestForm';
+import JobApplicationForm from './pages/JobApplicationForm';
+import TrainingSignupForm from './pages/TrainingSignupForm';
+
 
 function App() {
   return (
@@ -69,6 +82,23 @@ function App() {
             <Route path="/about" element={<AboutUsPage />} />
             <Route path="/delete-account" element={<DeleteAccountPage />} />
             <Route path="/legal/submit" element={<LegalIntakePage />} />
+
+            {/* HR PUBLIC ROUTES */}
+            <Route path="/jobs/request" element={<JobRequestForm />} />
+            <Route path="/jobs/:id/apply" element={<JobApplicationForm />} />
+            <Route path="/training/signup" element={<TrainingSignupForm />} />
+
+            {/* HR AUTH */}
+            <Route path="/hr/register" element={<HRRegisterPage />} />
+            <Route path="/hr/login" element={<HRLoginPage />} />
+
+            {/* HR PORTAL (Protected) */}
+            <Route path="/hr" element={<AdminProtectedRoute><HRLayout /></AdminProtectedRoute>}>
+                <Route path="hiring" element={<HiringPage />} />
+                <Route path="employees" element={<EmployeesPage />} />
+                <Route path="onboarding" element={<OnboardingPage />} />
+                <Route path="training" element={<TrainingPage />} />
+            </Route>
 
             {/* ✅ Legal Auth Routes */}
             <Route path="/legal/register" element={<LegalRegisterPage />} />
