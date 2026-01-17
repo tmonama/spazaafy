@@ -9,6 +9,7 @@ from .serializers import *
 import random
 import string
 from apps.core.google_calendar import create_google_meet_event
+from rest_framework.parsers import MultiPartParser, FormParser
 
 # --- PUBLIC VIEWS ---
 
