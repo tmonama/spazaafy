@@ -3,6 +3,7 @@ import os
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from django.conf import settings
+import json
 
 # Path to the JSON key you downloaded
 SERVICE_ACCOUNT_FILE = os.path.join(settings.BASE_DIR, 'service_account.json')
