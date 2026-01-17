@@ -24,6 +24,7 @@ urlpatterns = [
     path("delete-account/", DeleteAccountInfoView.as_view(), name="delete-account-info"),
     path('api/legal/submit/', include('apps.legal.urls_public')),
     path('api/legal/admin/', include('apps.legal.urls_admin')), 
+    path('api/hr/',       include('apps.hr.urls')),
 ]
 
 # ✅ 2. Add this block at the end of the file
