@@ -58,6 +58,7 @@ import OnboardingPage from './pages/hr/OnboardingPage';
 import JobRequestForm from './pages/JobRequestForm';
 import JobApplicationForm from './pages/JobApplicationForm';
 import TrainingSignupForm from './pages/TrainingSignupForm';
+import TrainingDetailPage from './pages/hr/TrainingDetailPage';
 
 
 function App() {
@@ -97,7 +98,9 @@ function App() {
                 <Route path="hiring" element={<HiringPage />} />
                 <Route path="employees" element={<EmployeesPage />} />
                 <Route path="onboarding" element={<OnboardingPage />} />
+                {/* ✅ Training Routes */}
                 <Route path="training" element={<TrainingPage />} />
+                <Route path="training/:sessionId" element={<TrainingDetailPage />} /> 
             </Route>
 
             {/* ✅ Legal Auth Routes */}

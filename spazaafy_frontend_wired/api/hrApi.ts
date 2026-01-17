@@ -97,5 +97,10 @@ export const hrApi = {
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ employee_ids: employeeIds })
         });
-    }
+    },
+    getTrainingById: async (id: string, token: string) => {
+        return request(`/hr/admin/training/${id}/`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { hrApi } from '../../api/hrApi';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
@@ -7,6 +8,7 @@ import Input from '../../components/Input';
 import { Users, Calendar, Link as LinkIcon, Copy, CheckCircle } from 'lucide-react';
 
 const TrainingPage: React.FC = () => {
+    const navigate = useNavigate();
     const token = sessionStorage.getItem('access') || '';
     const [sessions, setSessions] = useState<any[]>([]);
     
@@ -81,7 +83,7 @@ const TrainingPage: React.FC = () => {
                                     <p className="text-2xl font-bold text-purple-600">{s.signup_count}</p>
                                     <p className="text-xs text-gray-500">Signups</p>
                                 </div>
-                                <Button size="sm" variant="outline" onClick={() => openDetails(s)}>
+                                <Button size="sm" variant="outline" onClick={() => navigate(`/hr/training/${s.id}`)}>
                                     View Details
                                 </Button>
                             </div>
