@@ -19,13 +19,14 @@ class EmployeeSerializer(serializers.ModelSerializer):
         model = Employee
         fields = '__all__'
 
-class TrainingSessionSerializer(serializers.ModelSerializer):
-    signup_count = serializers.IntegerField(source='signups.count', read_only=True)
-    class Meta:
-        model = TrainingSession
-        fields = '__all__'
-
 class TrainingSignupSerializer(serializers.ModelSerializer):
     class Meta:
         model = TrainingSignup
+        fields = '__all__'
+
+class TrainingSessionSerializer(serializers.ModelSerializer):
+    signup_count = serializers.IntegerField(source='signups.count', read_only=True)
+    signups = TrainingSignupSerializer(many=True, read_only=True)
+    class Meta:
+        model = TrainingSession
         fields = '__all__'
