@@ -126,4 +126,20 @@ export const hrApi = {
             headers: { Authorization: `Bearer ${token}` }
         });
     },
+    getEmployeeById: async (id: string, token: string) => {
+        return request(`/hr/admin/employees/${id}/`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+
+    // ✅ Upload Profile Photo
+    uploadEmployeePhoto: async (id: string, file: File, token: string) => {
+        const formData = new FormData();
+        formData.append('photo', file);
+        return request(`/hr/admin/employees/${id}/upload_photo/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }, // No Content-Type for FormData
+            body: formData
+        });
+    }
 };

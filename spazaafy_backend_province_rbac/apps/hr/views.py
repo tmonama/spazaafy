@@ -232,10 +232,36 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
         apps_to_update.update(status=new_status)
         return Response({'detail': f'Updated {len(ids)} applications.'})
 
+# apps/hr/views.py
+
 class EmployeeViewSet(viewsets.ModelViewSet):
-    queryset = Employee.objects.all()
+    queryset = Employee.objects.all().order_by('-joined_at')
     serializer_class = EmployeeSerializer
     permission_classes = [permissions.IsAdminUser]
+
+    # ✅ Handle Status Updates (Fail/Complete Onboarding)
+    @action(detail=True, methods=['patch'])
+    def update_status(self, request, pk=None):
+        emp = self.get_object()
+        new_status = request.data.get('status')
+        
+        # If failing, we might want to store a reason (add a notes field later if needed)
+        # For now, just update status
+        emp.status = new_status
+        emp.save()
+        
+        return Response({'status': 'Updated'})
+
+    # ✅ Handle Profile Picture Upload
+    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
+    def upload_photo(self, request, pk=None):
+        emp = self.get_object()
+        file = request.data.get('photo')
+        if file:
+            emp.profile_picture = file
+            emp.save()
+            return Response({'status': 'Photo Uploaded'})
+        return Response({'detail': 'No file provided'}, status=400)
 
 class TrainingViewSet(viewsets.ModelViewSet):
     queryset = TrainingSession.objects.all().order_by('-date_time')

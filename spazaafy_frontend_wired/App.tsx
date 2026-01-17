@@ -60,6 +60,7 @@ import JobApplicationForm from './pages/JobApplicationForm';
 import TrainingSignupForm from './pages/TrainingSignupForm';
 import TrainingDetailPage from './pages/hr/TrainingDetailPage';
 import HiringDetailPage from './pages/hr/HiringDetailPage';
+import EmployeeDetailPage from './pages/hr/EmployeeDetailPage';
 
 
 function App() {
@@ -100,6 +101,7 @@ function App() {
                 <Route path="hiring/:id" element={<HiringDetailPage />} />
                 <Route path="employees" element={<EmployeesPage />} />
                 <Route path="onboarding" element={<OnboardingPage />} />
+                <Route path="employees/:id" element={<EmployeeDetailPage />} />
                 {/* ✅ Training Routes */}
                 <Route path="training" element={<TrainingPage />} />
                 <Route path="training/:sessionId" element={<TrainingDetailPage />} /> 
