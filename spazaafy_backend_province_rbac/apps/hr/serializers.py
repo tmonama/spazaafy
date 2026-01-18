@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup, HRComplaint
+from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup, HRComplaint, Announcement
 
 class HiringRequestSerializer(serializers.ModelSerializer):
     application_count = serializers.IntegerField(source='applications.count', read_only=True)
@@ -47,4 +47,9 @@ class HRComplaintSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = HRComplaint
+        fields = '__all__'
+
+class AnnouncementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Announcement
         fields = '__all__'

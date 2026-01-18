@@ -47,13 +47,18 @@ class EmployeeStatus(models.TextChoices):
     PENDING_TERMINATION = 'PENDING_TERMINATION', 'Under Legal Review (Termination)'
     NOTICE_GIVEN = 'NOTICE_GIVEN', 'Notice Period'
     TERMINATED = 'TERMINATED', 'Terminated'
+    RESIGNATION_REQUESTED = 'RESIGNATION_REQUESTED', 'Resignation Requested'
     RESIGNED = 'RESIGNED', 'Resigned'
     RETIRED = 'RETIRED', 'Retired'
 
 class Employee(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # Link to user account if they have system access (optional but good practice)
-    user_account = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    user_account = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='employee_profile')
+    
+    # ✅ Resignation fields
+    resignation_reason = models.TextField(blank=True, null=True)
+    resignation_date = models.DateField(blank=True, null=True)
     
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
@@ -69,6 +74,16 @@ class Employee(models.Model):
     # Date tracking for auto-deletion
     status_changed_at = models.DateTimeField(auto_now=True)
     joined_at = models.DateTimeField(auto_now_add=True)
+
+class Announcement(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    date_posted = models.DateTimeField(auto_now_add=True)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    
+    class Meta:
+        ordering = ['-date_posted']
 
 # ✅ NEW MODEL: HR COMPLAINTS
 class ComplaintType(models.TextChoices):

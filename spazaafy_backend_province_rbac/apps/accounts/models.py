@@ -11,6 +11,7 @@ class User(AbstractUser):
         CONSUMER="CONSUMER","Consumer"
         OWNER="OWNER","Spaza Owner"
         ADMIN="ADMIN","Admin"
+        EMPLOYEE="EMPLOYEE","Employee"
     role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.CONSUMER)
     phone = models.CharField(max_length=30, blank=True)
     province = models.ForeignKey(Province, null=True, blank=True, on_delete=models.SET_NULL,

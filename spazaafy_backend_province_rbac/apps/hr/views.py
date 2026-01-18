@@ -5,14 +5,15 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
 from apps.legal.models import LegalRequest, LegalCategory, LegalUrgency
-from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup, HRComplaint
+from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup, HRComplaint, Announcement
 from .serializers import (
     HiringRequestSerializer, 
     JobApplicationSerializer, 
     EmployeeSerializer, 
     TrainingSessionSerializer, 
     TrainingSignupSerializer,
-    HRComplaintSerializer
+    HRComplaintSerializer,
+    AnnouncementSerializer
 )
 import random
 import string
@@ -330,3 +331,72 @@ class TrainingViewSet(viewsets.ModelViewSet):
         session.save()
         
         return Response({'status': 'Attendance Recorded'})
+
+class EmployeePortalViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    # GET /api/hr/portal/me/
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        try:
+            employee = request.user.employee_profile
+            serializer = EmployeeSerializer(employee)
+            return Response(serializer.data)
+        except Employee.DoesNotExist:
+            return Response({"detail": "No employee profile linked to this user."}, status=404)
+
+    # GET /api/hr/portal/announcements/
+    @action(detail=False, methods=['get'])
+    def announcements(self, request):
+        anns = Announcement.objects.all()[:10] # Top 10
+        return Response(AnnouncementSerializer(anns, many=True).data)
+
+    # POST /api/hr/portal/resign/
+    @action(detail=False, methods=['post'])
+    def resign(self, request):
+        try:
+            employee = request.user.employee_profile
+            reason = request.data.get('reason')
+            date = request.data.get('date')
+            
+            employee.status = 'RESIGNATION_REQUESTED'
+            employee.resignation_reason = reason
+            employee.resignation_date = date
+            employee.save()
+            
+            # Notify HR via Email
+            send_mail(
+                subject=f"Resignation Request: {employee.first_name} {employee.last_name}",
+                message=f"Reason: {reason}\nProposed Date: {date}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=['hr@spazaafy.co.za'],
+                fail_silently=True
+            )
+            
+            return Response({'status': 'Request Submitted'})
+        except Employee.DoesNotExist:
+            return Response({"detail": "Profile not found"}, 404)
+
+    # GET /api/hr/portal/complaints/
+    @action(detail=False, methods=['get'])
+    def my_complaints(self, request):
+        try:
+            employee = request.user.employee_profile
+            complaints = HRComplaint.objects.filter(complainant=employee)
+            return Response(HRComplaintSerializer(complaints, many=True).data)
+        except:
+            return Response([])
+
+    # POST /api/hr/portal/complaints/
+    @action(detail=False, methods=['post'])
+    def file_complaint(self, request):
+        try:
+            employee = request.user.employee_profile
+            HRComplaint.objects.create(
+                complainant=employee,
+                type=request.data.get('type', 'GRIEVANCE'),
+                description=request.data.get('description')
+            )
+            return Response({'status': 'Complaint Filed'})
+        except:
+             return Response({"detail": "Error"}, 400)
