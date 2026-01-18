@@ -68,7 +68,11 @@ class Employee(models.Model):
     department = models.CharField(max_length=50, choices=DEPARTMENTS)
     role_title = models.CharField(max_length=255)
     
-    status = models.CharField(max_length=20, choices=EmployeeStatus.choices, default=EmployeeStatus.ONBOARDING)
+    status = models.CharField(
+        max_length=50, 
+        choices=EmployeeStatus.choices, 
+        default=EmployeeStatus.ONBOARDING
+    )
     profile_picture = models.ImageField(upload_to='hr/profiles/', null=True, blank=True)
     
     # Date tracking for auto-deletion
