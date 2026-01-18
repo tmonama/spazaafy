@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../../components/Card';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
-// You might need to add these request methods to your API client if not there
 import { API_BASE } from '../../api/mockApi';
+
+// ✅ Define allowed exceptions here on frontend too
+const ALLOWED_EXCEPTIONS = ['spazaafy@gmail.com', 'tappdevelops@gmail.com'];
 
 const EmployeeRegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -26,7 +28,13 @@ const EmployeeRegisterPage: React.FC = () => {
     setLoading(true);
     setError('');
 
-    if (!email.endsWith('@spazaafy.co.za')) {
+    const emailLower = email.toLowerCase().trim();
+
+    // ✅ Updated Validation Logic
+    const isAllowedDomain = emailLower.endsWith('@spazaafy.co.za');
+    const isException = ALLOWED_EXCEPTIONS.includes(emailLower);
+
+    if (!isAllowedDomain && !isException) {
         setError("Email must be a valid @spazaafy.co.za address.");
         setLoading(false);
         return;
@@ -36,7 +44,7 @@ const EmployeeRegisterPage: React.FC = () => {
         const res = await fetch(`${API_BASE}/hr/auth/employee/request_access/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ first_name: firstName, last_name: lastName, email })
+            body: JSON.stringify({ first_name: firstName, last_name: lastName, email: emailLower })
         });
         
         const data = await res.json();
@@ -66,7 +74,7 @@ const EmployeeRegisterPage: React.FC = () => {
             body: JSON.stringify({ 
                 first_name: firstName, 
                 last_name: lastName, 
-                email, 
+                email: email.toLowerCase().trim(), 
                 code, 
                 password 
             })
