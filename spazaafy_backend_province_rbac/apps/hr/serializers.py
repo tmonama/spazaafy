@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup
+from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup, HRComplaint
 
 class HiringRequestSerializer(serializers.ModelSerializer):
     application_count = serializers.IntegerField(source='applications.count', read_only=True)
@@ -38,4 +38,13 @@ class TrainingSessionSerializer(serializers.ModelSerializer):
     signups = TrainingSignupSerializer(many=True, read_only=True)
     class Meta:
         model = TrainingSession
+        fields = '__all__'
+
+class HRComplaintSerializer(serializers.ModelSerializer):
+    # Using source with read_only=True allows getting names without crashing if fields are null
+    complainant_name = serializers.CharField(source='complainant.first_name', read_only=True)
+    respondent_name = serializers.CharField(source='respondent.first_name', read_only=True)
+
+    class Meta:
+        model = HRComplaint
         fields = '__all__'
