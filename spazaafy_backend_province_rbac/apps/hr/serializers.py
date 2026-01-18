@@ -1,5 +1,15 @@
 from rest_framework import serializers
 from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup, HRComplaint, Announcement
+from apps.accounts.models import AdminVerificationCode
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+ALLOWED_EMPLOYEE_EXCEPTIONS = [
+    'spazaafy@gmail.com',
+    'tappdevelops@gmail.com'
+]
 
 class HiringRequestSerializer(serializers.ModelSerializer):
     application_count = serializers.IntegerField(source='applications.count', read_only=True)
@@ -53,3 +63,43 @@ class AnnouncementSerializer(serializers.ModelSerializer):
     class Meta:
         model = Announcement
         fields = '__all__'
+
+class EmployeeRegisterRequestSerializer(serializers.Serializer):
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        email = value.lower().strip()
+        
+        # ✅ Check Whitelist first
+        if email in ALLOWED_EMPLOYEE_EXCEPTIONS:
+            return email
+            
+        # Then check Domain
+        if not email.endswith('@spazaafy.co.za'):
+            raise serializers.ValidationError("Email must belong to the @spazaafy.co.za domain or be on the exception list.")
+        
+        return email
+
+class EmployeeRegisterConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+    password = serializers.CharField(write_only=True)
+    first_name = serializers.CharField() # Added to ensure we can link correct employee
+    last_name = serializers.CharField()
+
+    def validate(self, attrs):
+        email = attrs.get('email').lower().strip()
+        code = attrs.get('code')
+        
+        # Verify Code
+        try:
+            record = AdminVerificationCode.objects.get(email=email)
+            if record.code != code:
+                raise serializers.ValidationError("Invalid verification code.")
+        except AdminVerificationCode.DoesNotExist:
+            raise serializers.ValidationError("No verification code found. Please restart.")
+            
+        validate_password(attrs.get('password'))
+        return attrs
