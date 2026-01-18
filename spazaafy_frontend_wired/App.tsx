@@ -65,6 +65,14 @@ import TrainingDetailPage from './pages/hr/TrainingDetailPage';
 import HiringDetailPage from './pages/hr/HiringDetailPage';
 import EmployeeDetailPage from './pages/hr/EmployeeDetailPage';
 
+import EmployeeLayout from './pages/employee/EmployeeLayout'; // Make this similar to HRLayout but using EmployeeSidebar
+import EmployeeDashboard from './pages/employee/EmployeeDashboard';
+import EmployeeProfilePage from './pages/employee/EmployeeProfilePage';
+import EmployeeEmailPage from './pages/employee/EmployeeEmailPage';
+import EmployeeResignationPage from './pages/employee/EmployeeResignationPage'; // Similar to termination but submit form
+import EmployeeRegisterPage from './pages/employee/EmployeeRegisterPage';
+import EmployeeLoginPage from './pages/employee/EmployeeLoginPage';
+
 
 function App() {
   return (
@@ -88,6 +96,16 @@ function App() {
             <Route path="/about" element={<AboutUsPage />} />
             <Route path="/delete-account" element={<DeleteAccountPage />} />
             <Route path="/legal/submit" element={<LegalIntakePage />} />
+
+            <Route path="/employee/register" element={<EmployeeRegisterPage />} />
+            <Route path="/employee/login" element={<EmployeeLoginPage />} />
+
+            <Route path="/employee" element={<ProtectedRoute><EmployeeLayout /></ProtectedRoute>}>
+                <Route path="dashboard" element={<EmployeeDashboard />} />
+                <Route path="profile" element={<EmployeeProfilePage />} />
+                <Route path="email" element={<EmployeeEmailPage />} />
+                
+            </Route>
 
             {/* HR PUBLIC ROUTES */}
             <Route path="/jobs/request" element={<JobRequestForm />} />

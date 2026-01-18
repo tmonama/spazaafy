@@ -1,10 +1,12 @@
 from rest_framework import viewsets, generics, permissions, status
+from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
 from apps.legal.models import LegalRequest, LegalCategory, LegalUrgency
+from apps.accounts.models import AdminVerificationCode
 from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup, HRComplaint, Announcement
 from .serializers import (
     HiringRequestSerializer, 
@@ -19,6 +21,102 @@ import random
 import string
 from apps.core.google_calendar import create_google_meet_event
 from rest_framework.parsers import MultiPartParser, FormParser
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class EmployeeRegisterInitView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        first_name = request.data.get('first_name', '').strip()
+        last_name = request.data.get('last_name', '').strip()
+        email = request.data.get('email', '').strip().lower()
+
+        # 1. Validate Email Domain
+        if not email.endswith('@spazaafy.co.za'):
+            return Response({"detail": "Registration is restricted to @spazaafy.co.za emails."}, status=400)
+
+        # 2. Check if Employee Record Exists (and isn't already claimed)
+        try:
+            employee = Employee.objects.get(
+                first_name__iexact=first_name, 
+                last_name__iexact=last_name
+            )
+            if employee.user_account:
+                return Response({"detail": "This employee profile is already registered. Please log in."}, status=400)
+        except Employee.DoesNotExist:
+            return Response({"detail": "No employee record found matching this name. Contact HR."}, status=404)
+        except Employee.MultipleObjectsReturned:
+            return Response({"detail": "Multiple records found. Please contact HR to resolve duplication."}, status=400)
+
+        # 3. Generate & Send OTP
+        code = str(random.randint(100000, 999999))
+        AdminVerificationCode.objects.update_or_create(
+            email=email,
+            defaults={'code': code, 'created_at': timezone.now()}
+        )
+
+        try:
+            send_mail(
+                "Spazaafy Employee Verification",
+                f"Your verification code is: {code}",
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False
+            )
+        except Exception as e:
+            return Response({"detail": "Failed to send email code."}, status=500)
+
+        return Response({"detail": "Verification code sent to your email."}, status=200)
+
+class EmployeeRegisterCompleteView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip().lower()
+        code = request.data.get('code')
+        password = request.data.get('password')
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
+
+        # 1. Verify Code
+        try:
+            verification = AdminVerificationCode.objects.get(email=email)
+            if verification.code != code:
+                return Response({"detail": "Invalid code."}, status=400)
+        except AdminVerificationCode.DoesNotExist:
+            return Response({"detail": "Verification code not found or expired."}, status=400)
+
+        # 2. Find Employee Record Again
+        try:
+            employee = Employee.objects.get(first_name__iexact=first_name, last_name__iexact=last_name)
+        except Employee.DoesNotExist:
+            return Response({"detail": "Employee record not found."}, status=404)
+
+        # 3. Create User Account
+        try:
+            user = User.objects.create_user(
+                username=email,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                role='EMPLOYEE',
+                is_active=True 
+            )
+            
+            # 4. Link User to Employee Record
+            employee.user_account = user
+            employee.email = email # Update employee record with the registered email
+            employee.save()
+            
+            # Cleanup code
+            verification.delete()
+            
+            return Response({"detail": "Account created successfully."}, status=201)
+        except Exception as e:
+            return Response({"detail": f"Error creating account: {str(e)}"}, status=400)
 
 # --- PUBLIC VIEWS ---
 

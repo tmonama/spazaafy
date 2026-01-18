@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     PublicHiringRequestView, PublicJobApplicationView, PublicTrainingSignupView,
     HiringRequestViewSet, JobApplicationViewSet, EmployeeViewSet, TrainingViewSet,
-    PublicJobDetailView, PublicTrainingDetailView, HRComplaintViewSet, EmployeePortalViewSet
+    PublicJobDetailView, PublicTrainingDetailView, HRComplaintViewSet, EmployeePortalViewSet, EmployeeRegisterInitView, EmployeeRegisterCompleteView
 )
 
 # Admin Router
@@ -23,6 +23,9 @@ urlpatterns = [
 
     path('public/jobs/<uuid:pk>/', PublicJobDetailView.as_view()),
     path('public/training/<uuid:pk>/', PublicTrainingDetailView.as_view()),
+
+    path('public/employee/register-init/', EmployeeRegisterInitView.as_view()),
+    path('public/employee/register-complete/', EmployeeRegisterCompleteView.as_view()),
     
     # Admin Endpoints
     path('admin/', include(router.urls)),

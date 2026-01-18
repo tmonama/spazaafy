@@ -4,6 +4,7 @@ export enum UserRole {
   CONSUMER = 'consumer',
   SHOP_OWNER = 'shop_owner',
   ADMIN = 'admin',
+  EMPLOYEE = 'employee',
 }
 
 declare global {
