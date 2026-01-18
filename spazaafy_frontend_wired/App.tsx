@@ -55,6 +55,7 @@ import TrainingPage from './pages/hr/TrainingPage';
 import OnboardingPage from './pages/hr/OnboardingPage';
 import TerminationsPage from './pages/hr/TerminationsPage'; // ✅ New
 import ComplaintsPage from './pages/hr/ComplaintsPage'; 
+import ResignationsPage from './pages/hr/ResignationsPage'; 
 
 // Public Forms
 import JobRequestForm from './pages/JobRequestForm';
@@ -110,7 +111,7 @@ function App() {
                 <Route path="terminations" element={<TerminationsPage />} />
                 <Route path="complaints" element={<ComplaintsPage />} />
                 {/* Reuse TerminationsPage logic for Resignations if desired, or duplicate component */}
-                <Route path="resignations" element={<TerminationsPage />} /> 
+                 <Route path="resignations" element={<ResignationsPage />} />
             </Route>
 
             {/* ✅ Legal Auth Routes */}
