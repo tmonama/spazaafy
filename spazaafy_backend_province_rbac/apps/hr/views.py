@@ -17,7 +17,8 @@ from .serializers import (
     HRComplaintSerializer,
     AnnouncementSerializer,
     EmployeeRegisterRequestSerializer, 
-    EmployeeRegisterConfirmSerializer
+    EmployeeRegisterConfirmSerializer,
+    HRComplaintSerializer
 )
 import random
 import string

@@ -60,6 +60,8 @@ class HRComplaintSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class AnnouncementSerializer(serializers.ModelSerializer):
+    author_name = serializers.CharField(source='author.get_full_name', read_only=True)
+    
     class Meta:
         model = Announcement
         fields = '__all__'
