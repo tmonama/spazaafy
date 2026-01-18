@@ -6,7 +6,14 @@ from django.core.mail import send_mail
 from django.conf import settings
 from apps.legal.models import LegalRequest, LegalCategory, LegalUrgency
 from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup, HRComplaint
-from .serializers import *
+from .serializers import (
+    HiringRequestSerializer, 
+    JobApplicationSerializer, 
+    EmployeeSerializer, 
+    TrainingSessionSerializer, 
+    TrainingSignupSerializer,
+    HRComplaintSerializer
+)
 import random
 import string
 from apps.core.google_calendar import create_google_meet_event
