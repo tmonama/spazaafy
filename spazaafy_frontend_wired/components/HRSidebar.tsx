@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useSidebar } from './SidebarContext';
-import { Users, Briefcase, GraduationCap, UserPlus } from 'lucide-react';
+import { Users, Briefcase, GraduationCap, UserPlus, FileWarning, UserMinus, MessageSquare } from 'lucide-react';
 
 const HRSidebar: React.FC = () => {
   const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
@@ -42,6 +42,15 @@ const HRSidebar: React.FC = () => {
         </NavLink>
         <NavLink to="/hr/training" className={getNavLinkClass} onClick={handleLinkClick}>
             <GraduationCap className="h-5 w-5 mr-3" /> Training
+        </NavLink>
+        <NavLink to="/hr/resignations" className={getNavLinkClass}>
+            <FileWarning className="h-5 w-5 mr-3" /> Resignations
+        </NavLink>
+        <NavLink to="/hr/terminations" className={getNavLinkClass}>
+            <UserMinus className="h-5 w-5 mr-3" /> Terminations
+        </NavLink>
+        <NavLink to="/hr/complaints" className={getNavLinkClass}>
+            <MessageSquare className="h-5 w-5 mr-3" /> Complaints
         </NavLink>
       </nav>
     </aside>

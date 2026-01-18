@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup
+from apps.legal.models import LegalRequest, LegalCategory, LegalUrgency
+from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup, HRComplaint
 from .serializers import *
 import random
 import string
@@ -263,6 +264,48 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             emp.save()
             return Response({'status': 'Photo Uploaded'})
         return Response({'detail': 'No file provided'}, status=400)
+    
+    @action(detail=True, methods=['post'])
+    def initiate_termination(self, request, pk=None):
+        emp = self.get_object()
+        reason = request.data.get('reason')
+        
+        if not reason:
+            return Response({"detail": "Reason is required"}, status=400)
+
+        # 1. Update Employee Status
+        emp.status = 'PENDING_TERMINATION'
+        emp.save()
+        
+        # 2. Automatically Create Legal Request
+        LegalRequest.objects.create(
+            title=f"Termination Review: {emp.first_name} {emp.last_name}",
+            description=f"HR Request for Termination.\nReason: {reason}",
+            category=LegalCategory.TERMINATION,
+            urgency=LegalUrgency.CRITICAL,
+            submitter_name="HR Department",
+            submitter_email="hr@spazaafy.co.za",
+            department="HR",
+            related_employee_id=str(emp.id)
+        )
+        
+        return Response({'status': 'Sent to Legal'})
+
+    @action(detail=True, methods=['post'])
+    def finalize_termination(self, request, pk=None):
+        emp = self.get_object()
+        if emp.status != 'NOTICE_GIVEN':
+            return Response({"detail": "Employee must be in 'Notice Given' stage first."}, status=400)
+            
+        emp.status = 'TERMINATED'
+        emp.save()
+        return Response({'status': 'Terminated'})
+
+# ✅ New ViewSet for Complaints
+class HRComplaintViewSet(viewsets.ModelViewSet):
+    queryset = HRComplaint.objects.all()
+    serializer_class = HRComplaintSerializer
+    permission_classes = [permissions.IsAdminUser]
 
 class TrainingViewSet(viewsets.ModelViewSet):
     queryset = TrainingSession.objects.all().order_by('-date_time')

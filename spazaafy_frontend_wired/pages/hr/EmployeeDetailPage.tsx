@@ -59,6 +59,21 @@ const EmployeeDetailPage: React.FC = () => {
         'RETIRED': 'bg-purple-100 text-purple-800',
     }[emp.status] || 'bg-gray-100';
 
+    const handleTerminate = async () => {
+        const reason = prompt("Please provide a strong legal reason for termination request:");
+        if (!reason) return;
+        
+        await hrApi.initiateTermination(id!, reason, token);
+        fetchData();
+        alert("Sent to Legal for Review. Status: PENDING TERMINATION");
+    };
+
+    const handleFinalize = async () => {
+        if(!window.confirm("Confirm final termination? This is irreversible.")) return;
+        await hrApi.finalizeTermination(id!, token);
+        fetchData();
+    }
+
     return (
         <div className="p-4 max-w-6xl mx-auto"> {/* ✅ Wider Container */}
             
@@ -165,6 +180,33 @@ const EmployeeDetailPage: React.FC = () => {
                             <Button variant="outline" onClick={() => handleStatusChange('RESIGNED')}>Resign</Button>
                             <Button variant="outline" onClick={() => handleStatusChange('RETIRED')}>Retire</Button>
                         </div>
+                    </Card>
+
+                    <Card className="p-6">
+                        <h3 className="text-lg font-bold mb-4 text-red-700">Termination Zone</h3>
+                        
+                        {emp.status === 'EMPLOYED' && (
+                            <Button variant="danger" onClick={handleTerminate} className="w-full">
+                                Initiate Termination (Send to Legal)
+                            </Button>
+                        )}
+
+                        {emp.status === 'PENDING_TERMINATION' && (
+                            <div className="bg-yellow-50 p-3 rounded text-yellow-800 text-center border border-yellow-200">
+                                ⚠️ Under Legal Review. Please wait for Legal Authority decision.
+                            </div>
+                        )}
+
+                        {emp.status === 'NOTICE_GIVEN' && (
+                            <div className="space-y-2">
+                                <div className="bg-green-50 p-2 text-green-800 text-center text-sm rounded">
+                                    Legal Approved. Employee is on notice.
+                                </div>
+                                <Button variant="danger" onClick={handleFinalize} className="w-full">
+                                    Finalize Termination
+                                </Button>
+                            </div>
+                        )}
                     </Card>
                 </div>
             </div>

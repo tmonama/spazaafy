@@ -53,6 +53,8 @@ import HiringPage from './pages/hr/HiringPage';
 import EmployeesPage from './pages/hr/EmployeesPage';
 import TrainingPage from './pages/hr/TrainingPage';
 import OnboardingPage from './pages/hr/OnboardingPage';
+import TerminationsPage from './pages/hr/TerminationsPage'; // ✅ New
+import ComplaintsPage from './pages/hr/ComplaintsPage'; 
 
 // Public Forms
 import JobRequestForm from './pages/JobRequestForm';
@@ -105,6 +107,10 @@ function App() {
                 {/* ✅ Training Routes */}
                 <Route path="training" element={<TrainingPage />} />
                 <Route path="training/:sessionId" element={<TrainingDetailPage />} /> 
+                <Route path="terminations" element={<TerminationsPage />} />
+                <Route path="complaints" element={<ComplaintsPage />} />
+                {/* Reuse TerminationsPage logic for Resignations if desired, or duplicate component */}
+                <Route path="resignations" element={<TerminationsPage />} /> 
             </Route>
 
             {/* ✅ Legal Auth Routes */}
@@ -129,6 +135,8 @@ function App() {
                 <Route path="ip" element={<LegalCategoryPage categoryProp="ip" />} />
                 <Route path="compliance" element={<LegalCategoryPage categoryProp="compliance" />} />
                 <Route path="disputes" element={<LegalCategoryPage categoryProp="disputes" />} />
+                <Route path="terminations" element={<LegalCategoryPage categoryProp="termination" />} />
+                <Route path="other" element={<LegalCategoryPage categoryProp="other" />} />
                 <Route path="other" element={<LegalCategoryPage categoryProp="other" />} />
             </Route>
 

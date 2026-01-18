@@ -141,5 +141,21 @@ export const hrApi = {
             headers: { Authorization: `Bearer ${token}` }, // No Content-Type for FormData
             body: formData
         });
+    },
+    initiateTermination: async (id: string, reason: string, token: string) => {
+        return request(`/hr/admin/employees/${id}/initiate_termination/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ reason })
+        });
+    },
+    finalizeTermination: async (id: string, token: string) => {
+        return request(`/hr/admin/employees/${id}/finalize_termination/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+    getComplaints: async (token: string) => {
+        return request('/hr/admin/complaints/', { headers: { Authorization: `Bearer ${token}` } });
     }
 };

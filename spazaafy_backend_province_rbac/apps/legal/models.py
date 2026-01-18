@@ -21,6 +21,8 @@ class LegalCategory(models.TextChoices):
     IP = "IP", "Intellectual Property"
     COMPLIANCE = "COMPLIANCE", "Regulatory / Compliance"
     DISPUTE = "DISPUTE", "Dispute / Litigation"
+    # ✅ NEW CATEGORY
+    TERMINATION = "TERMINATION", "Termination / Resignation Review"
     OTHER = "OTHER", "Other Advisory"
 
 class LegalStatus(models.TextChoices):
@@ -40,6 +42,8 @@ class LegalRequest(models.Model):
     department = models.CharField(max_length=100, help_text="e.g. Field Ops, Tech, External Partner")
     
     category = models.CharField(max_length=50, choices=LegalCategory.choices)
+    # ✅ NEW: Link to HR Employee (Optional, only for termination cases)
+    related_employee_id = models.CharField(max_length=100, blank=True, null=True, help_text="ID of the employee if this is a HR matter")
     urgency = models.CharField(max_length=50, choices=LegalUrgency.choices, default=LegalUrgency.ROUTINE)
     
     title = models.CharField(max_length=255)

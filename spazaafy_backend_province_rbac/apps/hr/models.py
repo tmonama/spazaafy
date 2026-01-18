@@ -44,8 +44,50 @@ class EmployeeStatus(models.TextChoices):
     EMPLOYED = 'EMPLOYED', 'Employed'
     SUSPENDED = 'SUSPENDED', 'Suspended'
     NOTICE = 'NOTICE', 'On Notice'
+    PENDING_TERMINATION = 'PENDING_TERMINATION', 'Under Legal Review (Termination)'
+    NOTICE_GIVEN = 'NOTICE_GIVEN', 'Notice Period'
+    TERMINATED = 'TERMINATED', 'Terminated'
     RESIGNED = 'RESIGNED', 'Resigned'
     RETIRED = 'RETIRED', 'Retired'
+
+class Employee(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # Link to user account if they have system access (optional but good practice)
+    user_account = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=20)
+    
+    department = models.CharField(max_length=50, choices=DEPARTMENTS)
+    role_title = models.CharField(max_length=255)
+    
+    status = models.CharField(max_length=20, choices=EmployeeStatus.choices, default=EmployeeStatus.ONBOARDING)
+    profile_picture = models.ImageField(upload_to='hr/profiles/', null=True, blank=True)
+    
+    # Date tracking for auto-deletion
+    status_changed_at = models.DateTimeField(auto_now=True)
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+# ✅ NEW MODEL: HR COMPLAINTS
+class ComplaintType(models.TextChoices):
+    GRIEVANCE = 'GRIEVANCE', 'Grievance'
+    MISCONDUCT = 'MISCONDUCT', 'Misconduct'
+    HARASSMENT = 'HARASSMENT', 'Harassment'
+    OTHER = 'OTHER', 'Other'
+
+class HRComplaint(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    complainant = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='complaints_filed')
+    respondent = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='complaints_against')
+    
+    type = models.CharField(max_length=50, choices=ComplaintType.choices)
+    description = models.TextField()
+    status = models.CharField(max_length=20, default='OPEN') # OPEN, INVESTIGATING, RESOLVED
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class HiringRequest(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -92,26 +134,6 @@ class JobApplication(models.Model):
     
     is_selected = models.BooleanField(default=False)
     submitted_at = models.DateTimeField(auto_now_add=True)
-
-class Employee(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    # Link to user account if they have system access (optional but good practice)
-    user_account = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
-    
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
-    phone = models.CharField(max_length=20)
-    
-    department = models.CharField(max_length=50, choices=DEPARTMENTS)
-    role_title = models.CharField(max_length=255)
-    
-    status = models.CharField(max_length=20, choices=EmployeeStatus.choices, default=EmployeeStatus.ONBOARDING)
-    profile_picture = models.ImageField(upload_to='hr/profiles/', null=True, blank=True)
-    
-    # Date tracking for auto-deletion
-    status_changed_at = models.DateTimeField(auto_now=True)
-    joined_at = models.DateTimeField(auto_now_add=True)
 
 class TrainingSession(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

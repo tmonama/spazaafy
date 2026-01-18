@@ -8,7 +8,8 @@ import {
   Scale, 
   AlertTriangle, 
   FileCheck, 
-  HelpCircle 
+  HelpCircle,
+  UserMinus 
 } from 'lucide-react';
 
 const LegalSidebar: React.FC = () => {
@@ -35,6 +36,7 @@ const LegalSidebar: React.FC = () => {
     { path: '/legal/compliance', label: 'Compliance', icon: Scale },
     { path: '/legal/disputes', label: 'Disputes', icon: AlertTriangle },
     { path: '/legal/other', label: 'Advisory / Other', icon: HelpCircle },
+    { path: '/legal/terminations', label: 'Terminations & Resignations', icon: UserMinus },
   ];
 
   return (

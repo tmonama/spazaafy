@@ -7,6 +7,7 @@ from .models import LegalRequest
 from .serializers import LegalRequestPublicSerializer, LegalRequestAdminSerializer
 from django.core.mail import send_mail
 from django.conf import settings
+from apps.hr.models import Employee 
 
 # 5.2 Public Intake Form Endpoint
 class PublicLegalSubmissionView(generics.CreateAPIView):
@@ -40,19 +41,54 @@ class LegalAdminViewSet(viewsets.ModelViewSet):
         note = request.data.get('note', '')
 
         if new_status:
+            # 1. Update the Legal Request itself
             instance.status = new_status
             if note:
+                # Append note to history rather than overwriting
                 instance.internal_notes += f"\n[{new_status}]: {note}"
             instance.save()
             
-            # Notify Submitter of decision
-            send_mail(
-                subject=f"Legal Review Update: {instance.title}",
-                message=f"Status changed to: {instance.get_status_display()}.\n\nNote: {note}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[instance.submitter_email],
-                fail_silently=True
-            )
+            # 2. HR TERMINATION WORKFLOW INTEGRATION
+            # If this is a Termination request, automatically update the Employee status in HR
+            if instance.category == 'TERMINATION' and instance.related_employee_id:
+                # Lazy import to avoid circular dependencies between apps
+                from apps.hr.models import Employee 
+                
+                try:
+                    emp = Employee.objects.get(id=instance.related_employee_id)
+                    
+                    if new_status == 'APPROVED':
+                        # Legal Approved -> Move to Notice Period (Step 2 of Termination)
+                        emp.status = 'NOTICE_GIVEN'
+                        emp.save()
+                    
+                    elif new_status == 'REJECTED':
+                        # Legal Rejected -> Revert to Normal Employment
+                        emp.status = 'EMPLOYED'
+                        emp.save()
+                        
+                except Employee.DoesNotExist:
+                    print(f"Warning: Linked Employee {instance.related_employee_id} not found.")
+
+            # 3. Notify Submitter (HR or Partner) via Email
+            if instance.submitter_email:
+                send_mail(
+                    subject=f"Legal Review Update: {instance.title}",
+                    message=f"""
+                    The status of your legal request has changed.
+                    
+                    New Status: {instance.get_status_display()}
+                    
+                    Legal Note/Instruction:
+                    {note}
+                    
+                    Please log in to the portal for more details.
+                    """,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[instance.submitter_email],
+                    fail_silently=True
+                )
             
             return Response(LegalRequestAdminSerializer(instance).data)
+            
         return Response({"detail": "Status required"}, status=400)
