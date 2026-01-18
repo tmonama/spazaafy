@@ -21,10 +21,13 @@ const EmployeeLoginPage: React.FC = () => {
     try {
       const user = await login(email, password);
       
-      // ✅ CHANGE: Allow 'admin' role to access Employee Portal too
-      if (user.role === 'employee' || user.role === 'admin') {
+      // ✅ FIX: Normalize role to uppercase to match Django backend ("ADMIN", "EMPLOYEE")
+      const role = user.role ? user.role.toUpperCase() : '';
+
+      if (role === 'EMPLOYEE' || role === 'ADMIN') {
          navigate('/employee/dashboard');
       } else {
+         // Log user out if they don't have permission to be here
          setError("Access Denied: Only employees and staff can access this portal.");
       }
     } catch (err: any) {
