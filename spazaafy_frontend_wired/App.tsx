@@ -72,6 +72,7 @@ import EmployeeEmailPage from './pages/employee/EmployeeEmailPage';
 import EmployeeResignationPage from './pages/employee/EmployeeResignationPage'; // Similar to termination but submit form
 import EmployeeRegisterPage from './pages/employee/EmployeeRegisterPage';
 import EmployeeLoginPage from './pages/employee/EmployeeLoginPage';
+import EmployeeComplaintsPage from './pages/employee/EmployeeComplaintsPage';
 
 
 function App() {
@@ -100,11 +101,21 @@ function App() {
             <Route path="/employee/register" element={<EmployeeRegisterPage />} />
             <Route path="/employee/login" element={<EmployeeLoginPage />} />
 
-            <Route path="/employee" element={<ProtectedRoute><EmployeeLayout /></ProtectedRoute>}>
+            {/* --- ✅ EMPLOYEE PORTAL (Protected) --- */}
+            <Route 
+                path="/employee" 
+                element={
+                    <ProtectedRoute>
+                        <EmployeeLayout />
+                    </ProtectedRoute>
+                }
+            >
+                <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<EmployeeDashboard />} />
                 <Route path="profile" element={<EmployeeProfilePage />} />
                 <Route path="email" element={<EmployeeEmailPage />} />
-                
+                <Route path="complaints" element={<EmployeeComplaintsPage />} />
+                <Route path="resign" element={<EmployeeResignationPage />} />
             </Route>
 
             {/* HR PUBLIC ROUTES */}
