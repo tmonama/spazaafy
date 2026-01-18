@@ -15,7 +15,9 @@ from .serializers import (
     TrainingSessionSerializer, 
     TrainingSignupSerializer,
     HRComplaintSerializer,
-    AnnouncementSerializer
+    AnnouncementSerializer,
+    EmployeeRegisterRequestSerializer, 
+    EmployeeRegisterConfirmSerializer
 )
 import random
 import string
@@ -117,6 +119,95 @@ class EmployeeRegisterCompleteView(APIView):
             return Response({"detail": "Account created successfully."}, status=201)
         except Exception as e:
             return Response({"detail": f"Error creating account: {str(e)}"}, status=400)
+        
+class EmployeeRegistrationView(viewsets.ViewSet):
+    permission_classes = [permissions.AllowAny]
+
+    @action(detail=False, methods=['post'])
+    def request_access(self, request):
+        serializer = EmployeeRegisterRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        # 1. Match HR Record
+        try:
+            employee = Employee.objects.get(
+                first_name__iexact=data['first_name'],
+                last_name__iexact=data['last_name']
+            )
+        except Employee.DoesNotExist:
+            return Response({"detail": "No employee record found with this name. Please contact HR."}, status=404)
+        except Employee.MultipleObjectsReturned:
+            return Response({"detail": "Multiple records found. Please contact HR to resolve duplicate names."}, status=400)
+
+        # 2. Check if already registered
+        if employee.user_account:
+            return Response({"detail": "This employee is already registered. Please log in."}, status=400)
+
+        # 3. Generate Code
+        code = str(random.randint(100000, 999999))
+        AdminVerificationCode.objects.update_or_create(
+            email=data['email'],
+            defaults={'code': code}
+        )
+
+        # 4. Send Email
+        try:
+            send_mail(
+                subject="Spazaafy Employee Portal Code",
+                message=f"Your verification code is: {code}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[data['email']],
+                fail_silently=False
+            )
+        except Exception as e:
+            print(e)
+            return Response({"detail": "Failed to send email."}, status=500)
+
+        return Response({"detail": "Verification code sent."})
+
+    @action(detail=False, methods=['post'])
+    def complete_registration(self, request):
+        serializer = EmployeeRegisterConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        # 1. Find Employee Again (to link)
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
+        
+        try:
+            employee = Employee.objects.get(
+                first_name__iexact=first_name,
+                last_name__iexact=last_name
+            )
+        except Employee.DoesNotExist:
+            return Response({"detail": "Employee record not found."}, status=404)
+
+        # 2. Create User
+        try:
+            user = User.objects.create_user(
+                username=data['email'],
+                email=data['email'],
+                password=data['password'],
+                first_name=employee.first_name,
+                last_name=employee.last_name,
+                role='EMPLOYEE',
+                is_active=True
+            )
+        except Exception:
+            return Response({"detail": "User with this email already exists."}, status=400)
+
+        # 3. Link User to Employee
+        employee.user_account = user
+        # Update email in HR record to match the confirmed one
+        employee.email = data['email'] 
+        employee.save()
+        
+        # Cleanup
+        AdminVerificationCode.objects.filter(email=data['email']).delete()
+
+        return Response({"detail": "Registration complete. Please log in."})
 
 # --- PUBLIC VIEWS ---
 
