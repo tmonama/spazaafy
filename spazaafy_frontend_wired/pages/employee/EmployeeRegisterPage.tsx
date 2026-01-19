@@ -6,7 +6,7 @@ import Button from '../../components/Button';
 import { API_BASE } from '../../api/mockApi';
 
 // ✅ Define allowed exceptions here on frontend too
-const ALLOWED_EXCEPTIONS = ['spazaafy@gmail.com', 'tappdevelops@gmail.com'];
+const ALLOWED_EXCEPTIONS = ['spazaafy@gmail.com', 'tappdevelops@gmail.com', 'thakgalangmonama@gmail.com'];
 
 const EmployeeRegisterPage: React.FC = () => {
   const navigate = useNavigate();
