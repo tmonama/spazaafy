@@ -157,5 +157,23 @@ export const hrApi = {
     },
     getComplaints: async (token: string) => {
         return request('/hr/admin/complaints/', { headers: { Authorization: `Bearer ${token}` } });
+    },
+    getAnnouncements: async (token: string) => {
+        return request('/hr/admin/announcements/', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+    createAnnouncement: async (data: { title: string; content: string }, token: string) => {
+        return request('/hr/admin/announcements/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(data)
+        });
+    },
+    deleteAnnouncement: async (id: string, token: string) => {
+        return request(`/hr/admin/announcements/${id}/`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` }
+        });
     }
 };

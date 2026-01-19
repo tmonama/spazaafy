@@ -590,3 +590,15 @@ class EmployeePortalViewSet(viewsets.ViewSet):
             return Response({'status': 'Complaint Filed'})
         except:
              return Response({"detail": "Error"}, 400)
+        
+class AnnouncementViewSet(viewsets.ModelViewSet):
+    """
+    Allows HR Admins to manage company-wide announcements.
+    """
+    queryset = Announcement.objects.all().order_by('-date_posted')
+    serializer_class = AnnouncementSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def perform_create(self, serializer):
+        # Automatically set the author to the logged-in HR user
+        serializer.save(author=self.request.user)

@@ -64,6 +64,7 @@ import TrainingSignupForm from './pages/TrainingSignupForm';
 import TrainingDetailPage from './pages/hr/TrainingDetailPage';
 import HiringDetailPage from './pages/hr/HiringDetailPage';
 import EmployeeDetailPage from './pages/hr/EmployeeDetailPage';
+import AnnouncementsPage from './pages/hr/AnnouncementsPage';
 
 import EmployeeLayout from './pages/employee/EmployeeLayout'; // Make this similar to HRLayout but using EmployeeSidebar
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
@@ -141,6 +142,7 @@ function App() {
                 <Route path="complaints" element={<ComplaintsPage />} />
                 {/* Reuse TerminationsPage logic for Resignations if desired, or duplicate component */}
                  <Route path="resignations" element={<ResignationsPage />} />
+                 <Route path="announcements" element={<AnnouncementsPage />} />
             </Route>
 
             {/* ✅ Legal Auth Routes */}

@@ -4,7 +4,7 @@ from .views import (
     PublicHiringRequestView, PublicJobApplicationView, PublicTrainingSignupView,
     HiringRequestViewSet, JobApplicationViewSet, EmployeeViewSet, TrainingViewSet,
     PublicJobDetailView, PublicTrainingDetailView, HRComplaintViewSet, 
-    EmployeePortalViewSet, EmployeeRegistrationView
+    EmployeePortalViewSet, EmployeeRegistrationView, AnnouncementViewSet
 )
 
 # --- Admin Router (Prefix: /api/hr/admin/...) ---
@@ -14,6 +14,7 @@ router.register(r'applications', JobApplicationViewSet, basename='hr-application
 router.register(r'employees', EmployeeViewSet, basename='hr-employees')
 router.register(r'training', TrainingViewSet, basename='hr-training')
 router.register(r'admin/complaints', HRComplaintViewSet, basename='hr-complaints')
+router.register(r'admin/announcements', AnnouncementViewSet, basename='hr-announcements')
 
 # --- Employee Portal Router (Prefix: /api/hr/portal/...) ---
 portal_router = DefaultRouter()
