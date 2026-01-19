@@ -3,8 +3,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     PublicHiringRequestView, PublicJobApplicationView, PublicTrainingSignupView,
     HiringRequestViewSet, JobApplicationViewSet, EmployeeViewSet, TrainingViewSet,
-    PublicJobDetailView, PublicTrainingDetailView, HRComplaintViewSet, 
-    EmployeePortalViewSet, EmployeeRegistrationView, AnnouncementViewSet
+    PublicJobDetailView, PublicTrainingDetailView, HRComplaintViewSet, AnnouncementViewSet,
+    EmployeePortalViewSet, EmployeeRegistrationView
 )
 
 # --- Admin Router (Prefix: /api/hr/admin/...) ---
