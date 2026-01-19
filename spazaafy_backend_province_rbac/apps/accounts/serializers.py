@@ -169,6 +169,9 @@ class LoginSerializer(serializers.Serializer):
         email = (attrs.get("email") or "").strip().lower()
         password = attrs.get("password")
         user = authenticate(request=self.context.get('request'), username=email, password=password)
+
+        # ✅ FORCE RELOAD from DB to be safe
+        user = User.objects.get(pk=user.pk) 
         
         if not user:
             try:
@@ -206,6 +209,7 @@ class UserSerializer(serializers.ModelSerializer):
 ALLOWED_LEGAL_EMAILS = [
     'spazaafy@gmail.com',
     'legal.internal@spazaafy.co.za',
+    'thakgalangmonama@gmail.com',
     'compliance.internal@spazaafy.co.za',
     'contracts.internal@spazaafy.co.za',
     'legal.director.internal@spazaafy.co.za',
