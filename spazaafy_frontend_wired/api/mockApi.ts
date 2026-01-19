@@ -107,6 +107,7 @@ function toUserRole(apiRole?: string): UserRole {
   if (r === 'owner') return UserRole.SHOP_OWNER;
   if (r === 'consumer') return UserRole.CONSUMER;
   if (r === 'admin') return UserRole.ADMIN;
+  if (r === 'employee') return UserRole.EMPLOYEE;
   return UserRole.CONSUMER;
 }
 
