@@ -13,8 +13,8 @@ router.register(r'hiring', HiringRequestViewSet, basename='hr-hiring')
 router.register(r'applications', JobApplicationViewSet, basename='hr-applications')
 router.register(r'employees', EmployeeViewSet, basename='hr-employees')
 router.register(r'training', TrainingViewSet, basename='hr-training')
-router.register(r'admin/complaints', HRComplaintViewSet, basename='hr-complaints')
-router.register(r'admin/announcements', AnnouncementViewSet, basename='hr-announcements')
+router.register(r'complaints', HRComplaintViewSet, basename='hr-complaints')
+router.register(r'announcements', AnnouncementViewSet, basename='hr-announcements')
 
 # --- Employee Portal Router (Prefix: /api/hr/portal/...) ---
 portal_router = DefaultRouter()
