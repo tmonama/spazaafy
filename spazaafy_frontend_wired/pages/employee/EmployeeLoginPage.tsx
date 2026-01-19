@@ -24,7 +24,7 @@ const EmployeeLoginPage: React.FC = () => {
       // ✅ FIX: Normalize role to uppercase to match Django backend ("ADMIN", "EMPLOYEE")
       const role = user.role ? user.role.toUpperCase() : '';
 
-      if (role === 'EMPLOYEE' || role === 'ADMIN') {
+      if (role === 'Employee' || role === 'Admin') {
          navigate('/employee/dashboard');
       } else {
          // Log user out if they don't have permission to be here
