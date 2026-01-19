@@ -8,7 +8,8 @@ User = get_user_model()
 
 ALLOWED_EMPLOYEE_EXCEPTIONS = [
     'spazaafy@gmail.com',
-    'tappdevelops@gmail.com'
+    'tappdevelops@gmail.com',
+    'thakgalangmonama@gmail.com',
 ]
 
 class HiringRequestSerializer(serializers.ModelSerializer):
