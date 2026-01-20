@@ -59,6 +59,7 @@ class Employee(models.Model):
     # ✅ Resignation fields
     resignation_reason = models.TextField(blank=True, null=True)
     resignation_date = models.DateField(blank=True, null=True)
+    notice_period_end_date = models.DateField(blank=True, null=True)
     
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
