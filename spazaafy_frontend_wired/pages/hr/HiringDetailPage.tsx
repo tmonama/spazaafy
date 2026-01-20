@@ -5,7 +5,11 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
-import { ArrowLeft, FileText, CheckSquare, Square, Calendar, XCircle, CheckCircle, Clock, Copy, MapPin, Video } from 'lucide-react';
+import { 
+    ArrowLeft, FileText, CheckSquare, Square, Calendar, 
+    XCircle, CheckCircle, Clock, Copy, MapPin, Video, Edit 
+} from 'lucide-react';
+import { DEPARTMENT_LABELS } from '../../utils/roles';
 
 const HiringDetailPage: React.FC = () => {
     const { id } = useParams();
@@ -16,13 +20,16 @@ const HiringDetailPage: React.FC = () => {
     const [applications, setApplications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-    const [copied, setCopied] = useState('');
+    const [copied, setCopied] = useState(false);
 
-    // Modal State
+    // --- Edit Modal State ---
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editDesc, setEditDesc] = useState('');
+    const [editDeadline, setEditDeadline] = useState('');
+
+    // --- Interview Modal State ---
     const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
     const [targetAppId, setTargetAppId] = useState<string | null>(null);
-    
-    // Interview Form State
     const [interviewDate, setInterviewDate] = useState('');
     const [interviewType, setInterviewType] = useState('ONLINE'); // ONLINE | IN_PERSON
     const [interviewLocation, setInterviewLocation] = useState('');
@@ -33,6 +40,14 @@ const HiringDetailPage: React.FC = () => {
         try {
             const jobData = await hrApi.getHiringRequestById(id!, token);
             setJob(jobData);
+            
+            // Pre-fill edit state
+            setEditDesc(jobData.job_description || '');
+            if (jobData.application_deadline) {
+                // Format for datetime-local input (YYYY-MM-DDTHH:mm)
+                setEditDeadline(jobData.application_deadline.slice(0, 16)); 
+            }
+
             const allApps = await hrApi.getApplications(token);
             setApplications(allApps.filter((a: any) => a.hiring_request === id));
         } catch (e) {
@@ -42,12 +57,31 @@ const HiringDetailPage: React.FC = () => {
         }
     };
 
-    useEffect(() => { if (id) fetchData(); }, [id]);
+    useEffect(() => {
+        if (id) fetchData();
+    }, [id]);
 
-    const copyText = (text: string, label: string) => {
-        navigator.clipboard.writeText(text);
-        setCopied(label);
-        setTimeout(() => setCopied(''), 2000);
+    // --- Actions ---
+
+    const copyLink = () => {
+        const url = `${window.location.origin}/jobs/${id}/apply`;
+        navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleUpdateJob = async () => {
+        try {
+            await hrApi.updateHiringRequest(id!, { 
+                job_description: editDesc,
+                application_deadline: editDeadline 
+            }, token);
+            setIsEditModalOpen(false);
+            fetchData(); // Refresh to show new details
+            alert("Job details updated successfully.");
+        } catch (e) {
+            alert("Failed to update job details.");
+        }
     };
 
     const handleReject = async (appId: string) => {
@@ -57,9 +91,10 @@ const HiringDetailPage: React.FC = () => {
     };
 
     const handleHire = async (appId: string) => {
-        if (!window.confirm("Hire this candidate? An offer email will be sent.")) return;
+        if (!window.confirm("Confirm hiring this candidate? This will create an employee profile.")) return;
         await hrApi.selectCandidate(appId, token);
         fetchData();
+        alert("Candidate hired successfully.");
     };
 
     const openInterviewModal = (appId: string) => {
@@ -91,9 +126,13 @@ const HiringDetailPage: React.FC = () => {
         }
     };
 
+    // --- Selection Logic ---
     const toggleSelectAll = () => {
-        if (selectedIds.size === applications.length) setSelectedIds(new Set());
-        else setSelectedIds(new Set(applications.map(a => a.id)));
+        if (selectedIds.size === applications.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(applications.map(a => a.id)));
+        }
     };
 
     const toggleSelectOne = (appId: string) => {
@@ -108,43 +147,61 @@ const HiringDetailPage: React.FC = () => {
 
     return (
         <div className="p-6">
+            {/* Page Header */}
             <div className="flex items-center mb-6">
                 <button onClick={() => navigate('/hr/hiring')} className="mr-4 p-2 rounded-full hover:bg-gray-100">
                     <ArrowLeft size={24} />
                 </button>
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">{job.role_title}</h1>
-                    <p className="text-sm text-gray-500">{job.department} • {job.status}</p>
+                    <p className="text-sm text-gray-500">
+                        {DEPARTMENT_LABELS[job.department] || job.department} • {job.status}
+                    </p>
                 </div>
             </div>
 
-            <Card className="p-6 mb-8 bg-white shadow-sm border-l-4 border-blue-500">
+            {/* Job Details Card */}
+            <Card className="p-6 mb-8 bg-white shadow-sm border-l-4 border-blue-500 relative">
                 <div className="flex justify-between items-start">
-                    <div className="flex-1">
+                    <div className="flex-1 pr-4">
                         <h3 className="font-bold text-lg mb-2">Job Description</h3>
                         <p className="text-gray-700 whitespace-pre-wrap">{job.job_description || "No description provided."}</p>
+                        
                         <div className="mt-4 flex gap-4 text-sm text-gray-600">
-                            <span className="flex items-center"><Calendar size={14} className="mr-1"/> Posted: {new Date(job.created_at).toLocaleDateString()}</span>
+                            <span className="flex items-center">
+                                <Calendar size={14} className="mr-1"/> 
+                                Posted: {new Date(job.created_at).toLocaleDateString()}
+                            </span>
                             {job.application_deadline && (
                                 <span className="flex items-center text-orange-600 font-bold">
-                                    <Clock size={14} className="mr-1"/> Deadline: {new Date(job.application_deadline).toLocaleDateString()}
+                                    <Clock size={14} className="mr-1"/> 
+                                    Deadline: {new Date(job.application_deadline).toLocaleDateString()}
                                 </span>
                             )}
                         </div>
                     </div>
-                    {job.status === 'OPEN' && (
-                        <div className="bg-gray-50 p-3 rounded border border-gray-200 w-64 ml-4">
-                            <p className="text-xs font-bold text-gray-500 mb-1 uppercase">Share Public Link</p>
-                            <div className="flex items-center gap-2">
-                                <code className="flex-1 text-xs bg-white border p-1 rounded truncate">
-                                    {window.location.origin}/jobs/{job.id}/apply
-                                </code>
-                                <button onClick={() => copyText(`${window.location.origin}/jobs/${job.id}/apply`, 'link')} className="text-blue-600 hover:text-blue-800">
-                                    {copied === 'link' ? <CheckCircle size={16} /> : <Copy size={16} />}
-                                </button>
+
+                    <div className="flex flex-col items-end gap-3">
+                        {/* Edit Button */}
+                        <Button size="sm" variant="outline" onClick={() => setIsEditModalOpen(true)}>
+                            <Edit size={16} className="mr-1" /> Edit Details
+                        </Button>
+
+                        {/* Share Link Box */}
+                        {job.status === 'OPEN' && (
+                            <div className="bg-gray-50 p-3 rounded border border-gray-200 w-64">
+                                <p className="text-xs font-bold text-gray-500 mb-1 uppercase">Share Public Link</p>
+                                <div className="flex items-center gap-2">
+                                    <code className="flex-1 text-xs bg-white border p-1 rounded truncate">
+                                        {window.location.origin}/jobs/{job.id}/apply
+                                    </code>
+                                    <button onClick={copyLink} className="text-blue-600 hover:text-blue-800">
+                                        {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </Card>
 
@@ -152,16 +209,19 @@ const HiringDetailPage: React.FC = () => {
                 <h2 className="text-xl font-bold">Applicants ({applications.length})</h2>
             </div>
 
+            {/* Bulk Actions */}
             {selectedIds.size > 0 && (
                 <div className="mb-4 bg-blue-50 border border-blue-200 p-3 rounded-lg flex items-center justify-between animate-fade-in">
                     <span className="font-bold text-blue-800 text-sm">{selectedIds.size} Selected</span>
                     <div className="flex gap-2">
-                        <Button size="sm" variant="danger" onClick={() => handleBulkStatus('REJECTED')}>Reject Selected</Button>
+                        <Button size="sm" variant="outline" onClick={() => handleBulkStatus('SHORTLISTED')}>Shortlist</Button>
+                        <Button size="sm" variant="danger" onClick={() => handleBulkStatus('REJECTED')}>Reject</Button>
                         <Button size="sm" variant="secondary" onClick={() => setSelectedIds(new Set())}>Clear</Button>
                     </div>
                 </div>
             )}
 
+            {/* Applications Table */}
             <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -172,14 +232,16 @@ const HiringDetailPage: React.FC = () => {
                                 </button>
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interview Details</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CV</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                         {applications.length === 0 ? (
-                            <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">No applications yet.</td></tr>
+                            <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-500">No applications yet.</td></tr>
                         ) : (
                             applications.map((app) => (
                                 <tr key={app.id} className={selectedIds.has(app.id) ? "bg-blue-50" : "hover:bg-gray-50"}>
@@ -190,10 +252,11 @@ const HiringDetailPage: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="text-sm font-medium text-gray-900">{app.first_name} {app.last_name}</div>
-                                        <div className="text-xs text-gray-500">{app.email}</div>
-                                        <a href={app.cv_url} target="_blank" rel="noreferrer" className="text-blue-600 text-xs hover:underline flex items-center mt-1">
-                                            <FileText size={12} className="mr-1" /> View CV
-                                        </a>
+                                        <div className="text-xs text-gray-500">Applied: {new Date(app.submitted_at).toLocaleDateString()}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-sm text-gray-900">{app.email}</div>
+                                        <div className="text-xs text-gray-500">{app.phone}</div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -206,7 +269,7 @@ const HiringDetailPage: React.FC = () => {
                                         </span>
                                     </td>
                                     
-                                    {/* ✅ Interview Details & Link Copy */}
+                                    {/* Interview Details */}
                                     <td className="px-6 py-4">
                                         {app.status === 'INTERVIEWING' && app.interview_date ? (
                                             <div className="text-xs">
@@ -218,8 +281,11 @@ const HiringDetailPage: React.FC = () => {
                                                 {app.interview_link && (
                                                     <div className="flex items-center gap-1 mt-1 bg-gray-100 p-1 rounded border border-gray-300 max-w-[150px]">
                                                         <span className="truncate flex-1 font-mono text-[10px]">{app.interview_link}</span>
-                                                        <button onClick={() => copyText(app.interview_link, app.id)} className="text-blue-600">
-                                                            {copied === app.id ? <CheckCircle size={12}/> : <Copy size={12}/>}
+                                                        <button onClick={() => {
+                                                            navigator.clipboard.writeText(app.interview_link);
+                                                            alert("Link copied!");
+                                                        }} className="text-blue-600">
+                                                            <Copy size={12}/>
                                                         </button>
                                                     </div>
                                                 )}
@@ -232,14 +298,34 @@ const HiringDetailPage: React.FC = () => {
                                         )}
                                     </td>
 
+                                    {/* CV */}
+                                    <td className="px-6 py-4">
+                                        <a href={app.cv_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-900 flex items-center">
+                                            <FileText size={16} className="mr-1" /> View
+                                        </a>
+                                    </td>
+
+                                    {/* Actions */}
                                     <td className="px-6 py-4 text-sm font-medium flex gap-2">
-                                        <button onClick={() => openInterviewModal(app.id)} className="text-purple-600 hover:text-purple-900 p-1" title="Interview">
+                                        <button 
+                                            onClick={() => openInterviewModal(app.id)} 
+                                            className="text-purple-600 hover:text-purple-900 p-1" 
+                                            title="Schedule Interview"
+                                        >
                                             <Calendar size={18} />
                                         </button>
-                                        <button onClick={() => handleHire(app.id)} className="text-green-600 hover:text-green-900 p-1" title="Hire">
+                                        <button 
+                                            onClick={() => handleHire(app.id)} 
+                                            className="text-green-600 hover:text-green-900 p-1" 
+                                            title="Hire"
+                                        >
                                             <CheckCircle size={18} />
                                         </button>
-                                        <button onClick={() => handleReject(app.id)} className="text-red-600 hover:text-red-900 p-1" title="Reject">
+                                        <button 
+                                            onClick={() => handleReject(app.id)} 
+                                            className="text-red-600 hover:text-red-900 p-1" 
+                                            title="Reject"
+                                        >
                                             <XCircle size={18} />
                                         </button>
                                     </td>
@@ -250,7 +336,34 @@ const HiringDetailPage: React.FC = () => {
                 </table>
             </div>
 
-            {/* ✅ INTERVIEW MODAL WITH LOCATION/TYPE */}
+            {/* ✅ EDIT JOB MODAL */}
+            <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Job Details">
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold mb-1">Job Description</label>
+                        <textarea 
+                            className="w-full border rounded-md p-2 h-40 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            value={editDesc}
+                            onChange={e => setEditDesc(e.target.value)}
+                        />
+                    </div>
+                    
+                    <Input 
+                        type="datetime-local" 
+                        id="deadline" 
+                        label="Application Deadline" 
+                        value={editDeadline} 
+                        onChange={e => setEditDeadline(e.target.value)} 
+                    />
+                    
+                    <div className="flex justify-end gap-2 mt-4">
+                        <Button variant="secondary" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+                        <Button onClick={handleUpdateJob}>Save Changes</Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* ✅ INTERVIEW MODAL */}
             <Modal isOpen={isInterviewModalOpen} onClose={() => setIsInterviewModalOpen(false)} title="Schedule Interview">
                 <div className="space-y-4">
                     <Input 

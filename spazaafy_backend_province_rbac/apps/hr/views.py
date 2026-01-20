@@ -440,16 +440,36 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAdminUser]
 
     # ✅ Handle Status Updates (Fail/Complete Onboarding)
+    # apps/hr/views.py
+
     @action(detail=True, methods=['patch'])
     def update_status(self, request, pk=None):
         emp = self.get_object()
         new_status = request.data.get('status')
+        reason = request.data.get('reason', '')
+        notice_days = request.data.get('notice_days') # Optional int
+
+        if new_status == 'NOTICE':
+            # This status now means "Resigned with Notice"
+            emp.status = 'NOTICE'
+            if notice_days:
+                emp.notice_period_end_date = timezone.now().date() + timezone.timedelta(days=int(notice_days))
+            if reason:
+                emp.resignation_reason = reason
         
-        # If failing, we might want to store a reason (add a notes field later if needed)
-        # For now, just update status
-        emp.status = new_status
+        elif new_status == 'EMPLOYED':
+            # Restore status logic
+            emp.status = 'EMPLOYED'
+            emp.notice_period_end_date = None
+            emp.resignation_reason = None
+            
+        else:
+            # Standard update (Suspended, Retired, etc.)
+            emp.status = new_status
+            if reason:
+                emp.resignation_reason = reason
+
         emp.save()
-        
         return Response({'status': 'Updated'})
 
     # ✅ Handle Profile Picture Upload
