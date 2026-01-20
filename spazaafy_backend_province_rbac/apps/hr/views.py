@@ -1,5 +1,6 @@
 from rest_framework import viewsets, generics, permissions, status
 from rest_framework.views import APIView
+from django.db.models import Q
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
@@ -568,6 +569,22 @@ class TrainingViewSet(viewsets.ModelViewSet):
     serializer_class = TrainingSessionSerializer
     permission_classes = [permissions.IsAdminUser]
 
+    def perform_create(self, serializer):
+        # 1. Save the Training Session
+        training = serializer.save()
+        
+        # 2. Check if "Push to Announcements" was requested
+        post_announcement = self.request.data.get('post_announcement', False)
+        
+        if post_announcement:
+            # Create the announcement automatically
+            Announcement.objects.create(
+                title=f"Training Alert: {training.title}",
+                content=f"{training.description}\n\nDate: {training.date_time}\n\nCheck the Training tab to sign up.",
+                author=self.request.user,
+                target_departments=training.target_departments # Copy targets
+            )
+
     @action(detail=True, methods=['post'])
     def mark_attendance(self, request, pk=None):
         session = self.get_object()
@@ -593,11 +610,32 @@ class EmployeePortalViewSet(viewsets.ViewSet):
         except Employee.DoesNotExist:
             return Response({"detail": "No employee profile linked to this user."}, status=404)
 
-    # GET /api/hr/portal/announcements/
+    # ✅ UPDATED: Filter Announcements by Department
     @action(detail=False, methods=['get'])
     def announcements(self, request):
-        anns = Announcement.objects.all()[:10] # Top 10
-        return Response(AnnouncementSerializer(anns, many=True).data)
+        try:
+            employee = request.user.employee_profile
+            dept = employee.department
+            
+            # Logic: Show if target_departments is empty (ALL) OR contains my department
+            # Since JSONField filtering varies by DB, we can use a Python filter for safety 
+            # or a specific Q lookup. For broad compatibility:
+            
+            all_anns = Announcement.objects.all()
+            relevant_anns = []
+            
+            for ann in all_anns:
+                targets = ann.target_departments
+                # If list is empty (All) OR my dept is in list
+                if not targets or dept in targets:
+                    relevant_anns.append(ann)
+            
+            # Sort by date (newest first)
+            relevant_anns.sort(key=lambda x: x.date_posted, reverse=True)
+            
+            return Response(AnnouncementSerializer(relevant_anns[:10], many=True).data)
+        except Employee.DoesNotExist:
+            return Response([])
 
     # POST /api/hr/portal/resign/
     @action(detail=False, methods=['post'])

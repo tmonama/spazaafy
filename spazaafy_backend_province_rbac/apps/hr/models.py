@@ -88,6 +88,7 @@ class Announcement(models.Model):
     content = models.TextField()
     date_posted = models.DateTimeField(auto_now_add=True)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    target_departments = models.JSONField(default=list, blank=True)
     
     class Meta:
         ordering = ['-date_posted']
