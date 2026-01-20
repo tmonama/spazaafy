@@ -102,8 +102,16 @@ export const hrApi = {
         });
     },
 
+    createEmployee: async (data: any, token: string) => {
+        return request('/hr/admin/employees/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(data)
+        });
+    },
+
     updateEmployeeStatus: async (id: string, status: string, token: string, extraData: any = {}) => {
-        return request(`/hr/admin/employees/${id}/`, { // Assuming using standard PATCH on viewset, or custom action
+        return request(`/hr/admin/employees/${id}/`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ status, ...extraData })
