@@ -8,7 +8,7 @@ import { Megaphone, Calendar, User, ArrowRight } from 'lucide-react';
 const EmployeeDashboard: React.FC = () => {
     const token = sessionStorage.getItem('access') || '';
     const [announcements, setAnnouncements] = useState<any[]>([]);
-    const [selectedAnnouncement, setSelectedAnnouncement] = useState<any>(null); // ✅ Track selected item
+    const [selectedAnnouncement, setSelectedAnnouncement] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -18,7 +18,6 @@ const EmployeeDashboard: React.FC = () => {
             .finally(() => setLoading(false));
     }, []);
 
-    // Helper to auto-linkify URLs in the text for the modal
     const renderContentWithLinks = (text: string) => {
         const urlRegex = /(https?:\/\/[^\s]+)/g;
         const parts = text.split(urlRegex);
@@ -31,6 +30,17 @@ const EmployeeDashboard: React.FC = () => {
                 part
             )
         );
+    };
+
+    // ✅ Helper for clean date format
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleString('en-ZA', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
     return (
@@ -69,7 +79,6 @@ const EmployeeDashboard: React.FC = () => {
                                 </span>
                             </div>
                             
-                            {/* ✅ Truncated Description */}
                             <p className="text-gray-600 text-sm line-clamp-3 mb-3">
                                 {a.content}
                             </p>
@@ -82,35 +91,37 @@ const EmployeeDashboard: React.FC = () => {
                 ))}
             </div>
 
-            {/* ✅ FULL DETAIL POPUP */}
+            {/* ✅ SCROLLABLE POPUP */}
             <Modal 
                 isOpen={!!selectedAnnouncement} 
                 onClose={() => setSelectedAnnouncement(null)} 
                 title={selectedAnnouncement?.title || 'Announcement'}
             >
                 {selectedAnnouncement && (
-                    <div className="space-y-4">
-                        {/* Meta Info */}
-                        <div className="flex items-center justify-between text-xs text-gray-500 border-b pb-3">
-                            <div className="flex items-center">
-                                <User size={14} className="mr-1" />
-                                <span>Posted by {selectedAnnouncement.author_name || 'HR Admin'}</span>
+                    <div className="max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="space-y-4">
+                            {/* Meta Info */}
+                            <div className="flex items-center justify-between text-xs text-gray-500 border-b pb-3 sticky top-0 bg-white z-10">
+                                <div className="flex items-center">
+                                    <User size={14} className="mr-1" />
+                                    <span>Posted by {selectedAnnouncement.author_name || 'HR Admin'}</span>
+                                </div>
+                                <div className="flex items-center">
+                                    <Calendar size={14} className="mr-1" />
+                                    <span>{formatDate(selectedAnnouncement.date_posted)}</span>
+                                </div>
                             </div>
-                            <div className="flex items-center">
-                                <Calendar size={14} className="mr-1" />
-                                <span>{new Date(selectedAnnouncement.date_posted).toLocaleString()}</span>
+
+                            {/* Full Content */}
+                            <div className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
+                                {renderContentWithLinks(selectedAnnouncement.content)}
                             </div>
-                        </div>
 
-                        {/* Full Content with formatting preserved */}
-                        <div className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
-                            {renderContentWithLinks(selectedAnnouncement.content)}
-                        </div>
-
-                        <div className="pt-4 flex justify-end">
-                            <Button variant="outline" onClick={() => setSelectedAnnouncement(null)}>
-                                Close
-                            </Button>
+                            <div className="pt-4 flex justify-end">
+                                <Button variant="outline" onClick={() => setSelectedAnnouncement(null)}>
+                                    Close
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 )}

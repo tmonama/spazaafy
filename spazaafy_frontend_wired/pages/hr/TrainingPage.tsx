@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom'; // ✅ Ensure this is imported
 import { hrApi } from '../../api/hrApi';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
-import { Calendar, Megaphone, Check } from 'lucide-react';
-import { DEPARTMENT_LABELS } from '../../utils/roles'; // ✅ Import Dept Labels
+import { Calendar, Megaphone } from 'lucide-react';
+import { DEPARTMENT_LABELS } from '../../utils/roles';
 
 const TrainingPage: React.FC = () => {
-    const navigate = useNavigate();
+    const navigate = useNavigate(); // ✅ Hook
     const token = sessionStorage.getItem('access') || '';
     const [sessions, setSessions] = useState<any[]>([]);
     const [filterStatus, setFilterStatus] = useState('ALL');
@@ -23,8 +23,8 @@ const TrainingPage: React.FC = () => {
         date_time: '', 
         description: '', 
         is_compulsory: false,
-        target_departments: [] as string[], // ✅ Array for departments
-        post_announcement: false // ✅ Flag for announcement
+        target_departments: [] as string[],
+        post_announcement: false
     });
 
     const fetchSessions = async () => {
@@ -40,11 +40,8 @@ const TrainingPage: React.FC = () => {
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        // If target_departments is empty, we assume "All" (backend logic) 
-        // or we enforce it. Here we send empty array for "All".
         await hrApi.createTraining(newSession, token);
         setCreateModalOpen(false);
-        // Reset
         setNewSession({ title: '', date_time: '', description: '', is_compulsory: false, target_departments: [], post_announcement: false });
         fetchSessions();
     };
@@ -61,8 +58,6 @@ const TrainingPage: React.FC = () => {
     };
 
     const toggleAllDepts = () => {
-        // If has any, clear. If empty, keep empty (which logic treats as All, or fill all)
-        // Let's implement: Empty = All. 
         setNewSession(prev => ({ ...prev, target_departments: [] }));
     };
 
@@ -123,6 +118,7 @@ const TrainingPage: React.FC = () => {
                                     <p className="text-xs text-gray-500">Signups</p>
                                 </div>
                                 
+                                {/* ✅ FIXED: Explicit Navigation */}
                                 <Button size="sm" variant="outline" onClick={() => navigate(`/hr/training/${s.id}`)}>
                                     View Details
                                 </Button>
@@ -150,7 +146,6 @@ const TrainingPage: React.FC = () => {
                             <textarea className="w-full border rounded p-2" rows={3} value={newSession.description} onChange={e => setNewSession({...newSession, description: e.target.value})} required />
                         </div>
 
-                        {/* ✅ Department Selector */}
                         <div>
                             <label className="block text-sm font-bold mb-2">Target Audience</label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm border p-3 rounded max-h-40 overflow-y-auto">
@@ -175,7 +170,7 @@ const TrainingPage: React.FC = () => {
                                     </label>
                                 ))}
                             </div>
-                            <p className="text-xs text-gray-400 mt-1">If "All Employees" is checked (or no specific departments selected), the training is visible to everyone.</p>
+                            <p className="text-xs text-gray-400 mt-1">If "All Employees" is checked, the training is visible to everyone.</p>
                         </div>
 
                         <div className="flex flex-col gap-2 bg-gray-50 p-3 rounded">
@@ -184,7 +179,6 @@ const TrainingPage: React.FC = () => {
                                 <span className="font-bold text-gray-700">Mark as Compulsory</span>
                             </label>
                             
-                            {/* ✅ Push to Announcements */}
                             <label className="flex items-center cursor-pointer">
                                 <input type="checkbox" checked={newSession.post_announcement} onChange={e => setNewSession({...newSession, post_announcement: e.target.checked})} className="mr-2 h-4 w-4 text-blue-600" />
                                 <div className="flex items-center">
