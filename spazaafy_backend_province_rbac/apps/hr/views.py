@@ -577,13 +577,22 @@ class TrainingViewSet(viewsets.ModelViewSet):
         post_announcement = self.request.data.get('post_announcement', False)
         
         if post_announcement:
+            frontend_url = settings.FRONTEND_URL.rstrip('/')
+            signup_link = f"{frontend_url}/training/signup?session={training.id}"
             # Create the announcement automatically
             Announcement.objects.create(
                 title=f"Training Alert: {training.title}",
-                content=f"{training.description}\n\nDate: {training.date_time}\n\nCheck the Training tab to sign up.",
-                author=self.request.user,
-                target_departments=training.target_departments # Copy targets
-            )
+                content=f"""
+                {training.description}
+
+                Date: {training.date_time}
+
+                Click the link below to register:
+                {signup_link}
+                                """,
+                                author=self.request.user,
+                                target_departments=training.target_departments
+                            )
 
     @action(detail=True, methods=['post'])
     def mark_attendance(self, request, pk=None):
