@@ -28,6 +28,21 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+def check_and_close_expired_jobs():
+    """
+    Checks for OPEN jobs where the deadline has passed and marks them CLOSED.
+    """
+    now = timezone.now()
+    # Find jobs that are OPEN but deadline is in the past
+    expired_jobs = HiringRequest.objects.filter(
+        status='OPEN', 
+        application_deadline__lt=now
+    )
+    # Bulk update them to CLOSED
+    if expired_jobs.exists():
+        count = expired_jobs.update(status='CLOSED')
+        print(f"Auto-closed {count} expired hiring requests.")
+
 class EmployeeRegisterInitView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -223,6 +238,7 @@ class PublicJobApplicationView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
 
     def create(self, request, *args, **kwargs):
+        check_and_close_expired_jobs()
         # Verify deadline
         hiring_id = request.data.get('hiring_request')
         try:
@@ -245,6 +261,12 @@ class PublicJobDetailView(generics.RetrieveAPIView):
     serializer_class = HiringRequestSerializer
     permission_classes = [permissions.AllowAny]
 
+    def get_queryset(self):
+        # ✅ Auto-close check before showing details
+        check_and_close_expired_jobs()
+        # Only show OPEN jobs to public
+        return HiringRequest.objects.filter(status='OPEN')
+
 class PublicTrainingDetailView(generics.RetrieveAPIView):
     """ Allows public to view training details before signing up """
     queryset = TrainingSession.objects.all()
@@ -263,6 +285,11 @@ class HiringRequestViewSet(viewsets.ModelViewSet):
     serializer_class = HiringRequestSerializer
     permission_classes = [permissions.IsAdminUser]
 
+    def get_queryset(self):
+        # ✅ Auto-close check whenever Admin loads the list
+        check_and_close_expired_jobs()
+        return HiringRequest.objects.all().order_by('-created_at')
+
     @action(detail=True, methods=['post'])
     def open_applications(self, request, pk=None):
         req = self.get_object()
@@ -278,6 +305,16 @@ class HiringRequestViewSet(viewsets.ModelViewSet):
         
         # Generate link (Frontend will handle the URL structure)
         return Response({'status': 'OPEN', 'deadline': req.application_deadline})
+    
+    @action(detail=True, methods=['patch'])
+    def update_status(self, request, pk=None):
+        job = self.get_object()
+        new_status = request.data.get('status')
+        if new_status:
+            job.status = new_status
+            job.save()
+        return Response(HiringRequestSerializer(job).data)
+
 
 class JobApplicationViewSet(viewsets.ModelViewSet):
     queryset = JobApplication.objects.all()
