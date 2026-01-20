@@ -6,7 +6,7 @@ import Button from '../../components/Button';
 import Card from '../../components/Card';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
-import { UserPlus, Search, Upload, FileText } from 'lucide-react';
+import { UserPlus, Search, Upload } from 'lucide-react';
 
 const EMPLOYEE_STATUSES = ['ALL', 'ONBOARDING', 'EMPLOYED', 'SUSPENDED', 'NOTICE', 'RESIGNED', 'RETIRED'];
 
@@ -36,7 +36,6 @@ const EmployeesPage: React.FC = () => {
         role_title: '',
         status: 'ONBOARDING'
     });
-    // ✅ File State
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [cvFile, setCvFile] = useState<File | null>(null);
 
@@ -61,7 +60,6 @@ const EmployeesPage: React.FC = () => {
         setCreating(true);
 
         try {
-            // ✅ Build FormData
             const formData = new FormData();
             formData.append('first_name', newEmp.first_name);
             formData.append('last_name', newEmp.last_name);
@@ -187,99 +185,102 @@ const EmployeesPage: React.FC = () => {
 
             {/* CREATE MODAL */}
             <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Add New Employee">
-                <form onSubmit={handleCreate} className="space-y-4">
-                    
-                    {/* ✅ Profile Picture Upload */}
-                    <div className="flex justify-center mb-4">
-                        <label className="cursor-pointer">
-                            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-purple-500">
-                                {photoFile ? (
-                                    <img src={URL.createObjectURL(photoFile)} alt="Preview" className="w-full h-full rounded-full object-cover" />
-                                ) : (
-                                    <Upload size={24} className="text-gray-400" />
-                                )}
-                            </div>
-                            <input type="file" className="hidden" accept="image/*" onChange={e => setPhotoFile(e.target.files?.[0] || null)} />
-                        </label>
-                        <p className="text-xs text-center text-gray-400 mt-2">Tap to upload photo</p>
-                    </div>
+                {/* ✅ Added Scroll Wrapper here */}
+                <div className="max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
+                    <form onSubmit={handleCreate} className="space-y-4">
+                        
+                        {/* Profile Picture Upload */}
+                        <div className="flex justify-center mb-4">
+                            <label className="cursor-pointer">
+                                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-purple-500">
+                                    {photoFile ? (
+                                        <img src={URL.createObjectURL(photoFile)} alt="Preview" className="w-full h-full rounded-full object-cover" />
+                                    ) : (
+                                        <Upload size={24} className="text-gray-400" />
+                                    )}
+                                </div>
+                                <input type="file" className="hidden" accept="image/*" onChange={e => setPhotoFile(e.target.files?.[0] || null)} />
+                            </label>
+                            <p className="text-xs text-center text-gray-400 mt-2">Tap to upload photo</p>
+                        </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <Input 
+                                id="fname" label="First Name" required 
+                                value={newEmp.first_name} 
+                                onChange={e => setNewEmp({...newEmp, first_name: e.target.value})} 
+                            />
+                            <Input 
+                                id="lname" label="Last Name" required 
+                                value={newEmp.last_name} 
+                                onChange={e => setNewEmp({...newEmp, last_name: e.target.value})} 
+                            />
+                        </div>
+                        
                         <Input 
-                            id="fname" label="First Name" required 
-                            value={newEmp.first_name} 
-                            onChange={e => setNewEmp({...newEmp, first_name: e.target.value})} 
+                            id="email" type="email" label="Email Address" required 
+                            value={newEmp.email} 
+                            onChange={e => setNewEmp({...newEmp, email: e.target.value})} 
+                            placeholder="name@spazaafy.co.za"
                         />
+                        
                         <Input 
-                            id="lname" label="Last Name" required 
-                            value={newEmp.last_name} 
-                            onChange={e => setNewEmp({...newEmp, last_name: e.target.value})} 
+                            id="phone" type="tel" label="Phone Number" required 
+                            value={newEmp.phone} 
+                            onChange={e => setNewEmp({...newEmp, phone: e.target.value})} 
                         />
-                    </div>
-                    
-                    <Input 
-                        id="email" type="email" label="Email Address" required 
-                        value={newEmp.email} 
-                        onChange={e => setNewEmp({...newEmp, email: e.target.value})} 
-                        placeholder="name@spazaafy.co.za"
-                    />
-                    
-                    <Input 
-                        id="phone" type="tel" label="Phone Number" required 
-                        value={newEmp.phone} 
-                        onChange={e => setNewEmp({...newEmp, phone: e.target.value})} 
-                    />
 
-                    <div>
-                        <label className="block text-sm font-bold mb-1">Department</label>
-                        <select 
-                            className="w-full border rounded p-2" 
-                            required
-                            value={newEmp.department}
-                            onChange={e => setNewEmp({...newEmp, department: e.target.value})}
-                        >
-                            <option value="">Select Department</option>
-                            {Object.entries(DEPARTMENT_LABELS).map(([k, v]) => (
-                                <option key={k} value={k}>{v}</option>
-                            ))}
-                        </select>
-                    </div>
+                        <div>
+                            <label className="block text-sm font-bold mb-1">Department</label>
+                            <select 
+                                className="w-full border rounded p-2" 
+                                required
+                                value={newEmp.department}
+                                onChange={e => setNewEmp({...newEmp, department: e.target.value})}
+                            >
+                                <option value="">Select Department</option>
+                                {Object.entries(DEPARTMENT_LABELS).map(([k, v]) => (
+                                    <option key={k} value={k}>{v}</option>
+                                ))}
+                            </select>
+                        </div>
 
-                    <Input 
-                        id="role" label="Job Title" required 
-                        value={newEmp.role_title} 
-                        onChange={e => setNewEmp({...newEmp, role_title: e.target.value})} 
-                        placeholder="e.g. Marketing Specialist"
-                    />
-
-                    <div>
-                        <label className="block text-sm font-bold mb-1">Initial Status</label>
-                        <select 
-                            className="w-full border rounded p-2" 
-                            value={newEmp.status}
-                            onChange={e => setNewEmp({...newEmp, status: e.target.value})}
-                        >
-                            <option value="ONBOARDING">Onboarding</option>
-                            <option value="EMPLOYED">Employed (Active)</option>
-                        </select>
-                    </div>
-
-                    {/* ✅ CV Upload */}
-                    <div className="border border-dashed border-gray-300 p-4 rounded text-center">
-                        <label className="block text-sm font-bold mb-1">Upload CV (PDF)</label>
-                        <input 
-                            type="file" 
-                            accept="application/pdf"
-                            onChange={e => setCvFile(e.target.files?.[0] || null)}
-                            className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                        <Input 
+                            id="role" label="Job Title" required 
+                            value={newEmp.role_title} 
+                            onChange={e => setNewEmp({...newEmp, role_title: e.target.value})} 
+                            placeholder="e.g. Marketing Specialist"
                         />
-                        {cvFile && <p className="text-xs text-green-600 mt-1">{cvFile.name}</p>}
-                    </div>
 
-                    <Button type="submit" className="w-full" disabled={creating}>
-                        {creating ? "Creating..." : "Create Employee Profile"}
-                    </Button>
-                </form>
+                        <div>
+                            <label className="block text-sm font-bold mb-1">Initial Status</label>
+                            <select 
+                                className="w-full border rounded p-2" 
+                                value={newEmp.status}
+                                onChange={e => setNewEmp({...newEmp, status: e.target.value})}
+                            >
+                                <option value="ONBOARDING">Onboarding</option>
+                                <option value="EMPLOYED">Employed (Active)</option>
+                            </select>
+                        </div>
+
+                        {/* CV Upload */}
+                        <div className="border border-dashed border-gray-300 p-4 rounded text-center">
+                            <label className="block text-sm font-bold mb-1">Upload CV (PDF)</label>
+                            <input 
+                                type="file" 
+                                accept="application/pdf"
+                                onChange={e => setCvFile(e.target.files?.[0] || null)}
+                                className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                            />
+                            {cvFile && <p className="text-xs text-green-600 mt-1">{cvFile.name}</p>}
+                        </div>
+
+                        <Button type="submit" className="w-full" disabled={creating}>
+                            {creating ? "Creating..." : "Create Employee Profile"}
+                        </Button>
+                    </form>
+                </div>
             </Modal>
         </div>
     );
