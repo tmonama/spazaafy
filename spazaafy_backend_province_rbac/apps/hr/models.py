@@ -75,6 +75,8 @@ class Employee(models.Model):
         default=EmployeeStatus.ONBOARDING
     )
     profile_picture = models.ImageField(upload_to='hr/profiles/', null=True, blank=True)
+
+    cv_file = models.FileField(upload_to='hr/employee_cvs/', null=True, blank=True) 
     
     # Date tracking for auto-deletion
     status_changed_at = models.DateTimeField(auto_now=True)

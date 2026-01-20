@@ -6,7 +6,7 @@ import Button from '../../components/Button';
 import Card from '../../components/Card';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
-import { UserPlus, Search } from 'lucide-react';
+import { UserPlus, Search, Upload, FileText } from 'lucide-react';
 
 const EMPLOYEE_STATUSES = ['ALL', 'ONBOARDING', 'EMPLOYED', 'SUSPENDED', 'NOTICE', 'RESIGNED', 'RETIRED'];
 
@@ -24,6 +24,9 @@ const EmployeesPage: React.FC = () => {
 
     // Create Modal State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [creating, setCreating] = useState(false);
+
+    // Form State
     const [newEmp, setNewEmp] = useState({
         first_name: '',
         last_name: '',
@@ -31,9 +34,11 @@ const EmployeesPage: React.FC = () => {
         phone: '',
         department: '',
         role_title: '',
-        status: 'ONBOARDING' // Default status
+        status: 'ONBOARDING'
     });
-    const [creating, setCreating] = useState(false);
+    // ✅ File State
+    const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const [cvFile, setCvFile] = useState<File | null>(null);
 
     const fetchEmployees = async () => {
         setLoading(true);
@@ -54,11 +59,29 @@ const EmployeesPage: React.FC = () => {
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         setCreating(true);
+
         try {
-            await hrApi.createEmployee(newEmp, token);
+            // ✅ Build FormData
+            const formData = new FormData();
+            formData.append('first_name', newEmp.first_name);
+            formData.append('last_name', newEmp.last_name);
+            formData.append('email', newEmp.email);
+            formData.append('phone', newEmp.phone);
+            formData.append('department', newEmp.department);
+            formData.append('role_title', newEmp.role_title);
+            formData.append('status', newEmp.status);
+
+            if (photoFile) formData.append('profile_picture', photoFile);
+            if (cvFile) formData.append('cv_file', cvFile);
+
+            await hrApi.createEmployee(formData, token);
+            
             setIsCreateModalOpen(false);
             // Reset form
             setNewEmp({ first_name: '', last_name: '', email: '', phone: '', department: '', role_title: '', status: 'ONBOARDING' });
+            setPhotoFile(null);
+            setCvFile(null);
+            
             fetchEmployees();
             alert("Employee created successfully!");
         } catch (error) {
@@ -165,6 +188,22 @@ const EmployeesPage: React.FC = () => {
             {/* CREATE MODAL */}
             <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Add New Employee">
                 <form onSubmit={handleCreate} className="space-y-4">
+                    
+                    {/* ✅ Profile Picture Upload */}
+                    <div className="flex justify-center mb-4">
+                        <label className="cursor-pointer">
+                            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-purple-500">
+                                {photoFile ? (
+                                    <img src={URL.createObjectURL(photoFile)} alt="Preview" className="w-full h-full rounded-full object-cover" />
+                                ) : (
+                                    <Upload size={24} className="text-gray-400" />
+                                )}
+                            </div>
+                            <input type="file" className="hidden" accept="image/*" onChange={e => setPhotoFile(e.target.files?.[0] || null)} />
+                        </label>
+                        <p className="text-xs text-center text-gray-400 mt-2">Tap to upload photo</p>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <Input 
                             id="fname" label="First Name" required 
@@ -223,6 +262,18 @@ const EmployeesPage: React.FC = () => {
                             <option value="ONBOARDING">Onboarding</option>
                             <option value="EMPLOYED">Employed (Active)</option>
                         </select>
+                    </div>
+
+                    {/* ✅ CV Upload */}
+                    <div className="border border-dashed border-gray-300 p-4 rounded text-center">
+                        <label className="block text-sm font-bold mb-1">Upload CV (PDF)</label>
+                        <input 
+                            type="file" 
+                            accept="application/pdf"
+                            onChange={e => setCvFile(e.target.files?.[0] || null)}
+                            className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                        />
+                        {cvFile && <p className="text-xs text-green-600 mt-1">{cvFile.name}</p>}
                     </div>
 
                     <Button type="submit" className="w-full" disabled={creating}>

@@ -35,9 +35,23 @@ class JobApplicationSerializer(serializers.ModelSerializer):
 
 class EmployeeSerializer(serializers.ModelSerializer):
     photo_url = serializers.ImageField(source='profile_picture', read_only=True)
+    cv_url = serializers.SerializerMethodField()
     class Meta:
         model = Employee
         fields = '__all__'
+
+    def get_photo_url(self, obj):
+        try:
+            if obj.profile_picture and hasattr(obj.profile_picture, 'url'):
+                return obj.profile_picture.url
+        except: return None
+
+    # ✅ Safe CV URL getter
+    def get_cv_url(self, obj):
+        try:
+            if obj.cv_file and hasattr(obj.cv_file, 'url'):
+                return obj.cv_file.url
+        except: return None
 
 class TrainingSignupSerializer(serializers.ModelSerializer):
     class Meta:

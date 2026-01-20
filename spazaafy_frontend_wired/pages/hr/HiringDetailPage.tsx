@@ -7,7 +7,7 @@ import Modal from '../../components/Modal';
 import Input from '../../components/Input';
 import { 
     ArrowLeft, FileText, CheckSquare, Square, Calendar, 
-    XCircle, CheckCircle, Clock, Copy, MapPin, Video, Edit 
+    XCircle, CheckCircle, Clock, Copy, MapPin, Video, Edit, Settings 
 } from 'lucide-react';
 import { DEPARTMENT_LABELS } from '../../utils/roles';
 
@@ -35,16 +35,16 @@ const HiringDetailPage: React.FC = () => {
     const [interviewLocation, setInterviewLocation] = useState('');
     const [interviewNotes, setInterviewNotes] = useState('');
 
+    // --- Job Status Modal ---
+    const [isJobStatusModalOpen, setIsJobStatusModalOpen] = useState(false);
+
     const fetchData = async () => {
         setLoading(true);
         try {
             const jobData = await hrApi.getHiringRequestById(id!, token);
             setJob(jobData);
-            
-            // Pre-fill edit state
             setEditDesc(jobData.job_description || '');
             if (jobData.application_deadline) {
-                // Format for datetime-local input (YYYY-MM-DDTHH:mm)
                 setEditDeadline(jobData.application_deadline.slice(0, 16)); 
             }
 
@@ -61,7 +61,24 @@ const HiringDetailPage: React.FC = () => {
         if (id) fetchData();
     }, [id]);
 
-    // --- Actions ---
+    // --- Job Actions ---
+
+    const changeJobStatus = async (status: string) => {
+        if(!window.confirm(`Change job status to ${status}?`)) return;
+        try {
+            // Using the specific update_status action or standard patch depending on API setup
+            // Assuming we use the standard PATCH endpoint logic handled by the viewset
+            await fetch(`${import.meta.env.VITE_API_BASE}/hr/admin/hiring/${id}/update_status/`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ status })
+            });
+            fetchData();
+            setIsJobStatusModalOpen(false);
+        } catch(e) {
+            alert("Failed to update status");
+        }
+    };
 
     const copyLink = () => {
         const url = `${window.location.origin}/jobs/${id}/apply`;
@@ -77,12 +94,14 @@ const HiringDetailPage: React.FC = () => {
                 application_deadline: editDeadline 
             }, token);
             setIsEditModalOpen(false);
-            fetchData(); // Refresh to show new details
+            fetchData();
             alert("Job details updated successfully.");
         } catch (e) {
             alert("Failed to update job details.");
         }
     };
+
+    // --- Applicant Actions ---
 
     const handleReject = async (appId: string) => {
         if (!window.confirm("Reject this candidate? They will receive a regret email.")) return;
@@ -148,16 +167,26 @@ const HiringDetailPage: React.FC = () => {
     return (
         <div className="p-6">
             {/* Page Header */}
-            <div className="flex items-center mb-6">
-                <button onClick={() => navigate('/hr/hiring')} className="mr-4 p-2 rounded-full hover:bg-gray-100">
-                    <ArrowLeft size={24} />
-                </button>
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{job.role_title}</h1>
-                    <p className="text-sm text-gray-500">
-                        {DEPARTMENT_LABELS[job.department] || job.department} • {job.status}
-                    </p>
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                    <button onClick={() => navigate('/hr/hiring')} className="mr-4 p-2 rounded-full hover:bg-gray-100">
+                        <ArrowLeft size={24} />
+                    </button>
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">{job.role_title}</h1>
+                        <p className="text-sm text-gray-500">
+                            {DEPARTMENT_LABELS[job.department] || job.department} • 
+                            <span className={`ml-2 px-2 py-0.5 rounded text-xs font-bold ${
+                                job.status === 'OPEN' ? 'bg-green-100 text-green-800' : 
+                                job.status === 'CLOSED' ? 'bg-red-100 text-red-800' : 'bg-gray-100'
+                            }`}>{job.status}</span>
+                        </p>
+                    </div>
                 </div>
+                
+                <Button variant="outline" size="sm" onClick={() => setIsJobStatusModalOpen(true)}>
+                    <Settings size={16} className="mr-2" /> Manage Job Status
+                </Button>
             </div>
 
             {/* Job Details Card */}
@@ -182,12 +211,10 @@ const HiringDetailPage: React.FC = () => {
                     </div>
 
                     <div className="flex flex-col items-end gap-3">
-                        {/* Edit Button */}
                         <Button size="sm" variant="outline" onClick={() => setIsEditModalOpen(true)}>
                             <Edit size={16} className="mr-1" /> Edit Details
                         </Button>
 
-                        {/* Share Link Box */}
                         {job.status === 'OPEN' && (
                             <div className="bg-gray-50 p-3 rounded border border-gray-200 w-64">
                                 <p className="text-xs font-bold text-gray-500 mb-1 uppercase">Share Public Link</p>
@@ -209,19 +236,22 @@ const HiringDetailPage: React.FC = () => {
                 <h2 className="text-xl font-bold">Applicants ({applications.length})</h2>
             </div>
 
-            {/* Bulk Actions */}
+            {/* Bulk Actions Bar */}
             {selectedIds.size > 0 && (
                 <div className="mb-4 bg-blue-50 border border-blue-200 p-3 rounded-lg flex items-center justify-between animate-fade-in">
                     <span className="font-bold text-blue-800 text-sm">{selectedIds.size} Selected</span>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                        <span className="text-xs text-blue-600 font-bold uppercase mr-2">Set Status:</span>
+                        <Button size="sm" variant="outline" onClick={() => handleBulkStatus('INTERVIEWING')}>Interviewing</Button>
                         <Button size="sm" variant="outline" onClick={() => handleBulkStatus('SHORTLISTED')}>Shortlist</Button>
                         <Button size="sm" variant="danger" onClick={() => handleBulkStatus('REJECTED')}>Reject</Button>
+                        <div className="w-px h-6 bg-blue-300 mx-2"></div>
                         <Button size="sm" variant="secondary" onClick={() => setSelectedIds(new Set())}>Clear</Button>
                     </div>
                 </div>
             )}
 
-            {/* Applications Table */}
+            {/* Applicants Table */}
             <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -269,7 +299,7 @@ const HiringDetailPage: React.FC = () => {
                                         </span>
                                     </td>
                                     
-                                    {/* Interview Details */}
+                                    {/* Interview Info */}
                                     <td className="px-6 py-4">
                                         {app.status === 'INTERVIEWING' && app.interview_date ? (
                                             <div className="text-xs">
@@ -298,36 +328,20 @@ const HiringDetailPage: React.FC = () => {
                                         )}
                                     </td>
 
-                                    {/* CV */}
+                                    {/* CV Link */}
                                     <td className="px-6 py-4">
-                                        <a href={app.cv_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-900 flex items-center">
-                                            <FileText size={16} className="mr-1" /> View
-                                        </a>
+                                        {app.cv_url ? (
+                                            <a href={app.cv_url} target="_blank" rel="noreferrer" className="text-blue-600 text-xs hover:underline flex items-center mt-1">
+                                                <FileText size={12} className="mr-1" /> View CV
+                                            </a>
+                                        ) : <span className="text-xs text-gray-400">No CV</span>}
                                     </td>
 
                                     {/* Actions */}
                                     <td className="px-6 py-4 text-sm font-medium flex gap-2">
-                                        <button 
-                                            onClick={() => openInterviewModal(app.id)} 
-                                            className="text-purple-600 hover:text-purple-900 p-1" 
-                                            title="Schedule Interview"
-                                        >
-                                            <Calendar size={18} />
-                                        </button>
-                                        <button 
-                                            onClick={() => handleHire(app.id)} 
-                                            className="text-green-600 hover:text-green-900 p-1" 
-                                            title="Hire"
-                                        >
-                                            <CheckCircle size={18} />
-                                        </button>
-                                        <button 
-                                            onClick={() => handleReject(app.id)} 
-                                            className="text-red-600 hover:text-red-900 p-1" 
-                                            title="Reject"
-                                        >
-                                            <XCircle size={18} />
-                                        </button>
+                                        <button onClick={() => openInterviewModal(app.id)} className="text-purple-600 p-1" title="Interview"><Calendar size={18}/></button>
+                                        <button onClick={() => handleHire(app.id)} className="text-green-600 p-1" title="Hire"><CheckCircle size={18}/></button>
+                                        <button onClick={() => handleReject(app.id)} className="text-red-600 p-1" title="Reject"><XCircle size={18}/></button>
                                     </td>
                                 </tr>
                             ))
@@ -336,82 +350,62 @@ const HiringDetailPage: React.FC = () => {
                 </table>
             </div>
 
-            {/* ✅ EDIT JOB MODAL */}
+            {/* JOB STATUS MODAL */}
+            <Modal isOpen={isJobStatusModalOpen} onClose={() => setIsJobStatusModalOpen(false)} title="Manage Job Status">
+                <div className="space-y-4">
+                    <p className="text-gray-600 text-sm">
+                        Change the current lifecycle status of this job posting.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                        <Button variant={job.status === 'OPEN' ? 'primary' : 'outline'} onClick={() => changeJobStatus('OPEN')}>
+                            Open (Active)
+                        </Button>
+                        <Button variant={job.status === 'CLOSED' ? 'primary' : 'outline'} onClick={() => changeJobStatus('CLOSED')}>
+                            Closed (Expired)
+                        </Button>
+                        <Button variant={job.status === 'INTERVIEWING' ? 'primary' : 'outline'} onClick={() => changeJobStatus('INTERVIEWING')}>
+                            Interviewing
+                        </Button>
+                        <Button variant={job.status === 'COMPLETE' ? 'primary' : 'outline'} onClick={() => changeJobStatus('COMPLETE')}>
+                            Complete (Filled)
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* EDIT JOB MODAL */}
             <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Job Details">
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-bold mb-1">Job Description</label>
                         <textarea 
-                            className="w-full border rounded-md p-2 h-40 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            className="w-full border rounded-md p-2 h-40"
                             value={editDesc}
                             onChange={e => setEditDesc(e.target.value)}
                         />
                     </div>
-                    
-                    <Input 
-                        type="datetime-local" 
-                        id="deadline" 
-                        label="Application Deadline" 
-                        value={editDeadline} 
-                        onChange={e => setEditDeadline(e.target.value)} 
-                    />
-                    
-                    <div className="flex justify-end gap-2 mt-4">
-                        <Button variant="secondary" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-                        <Button onClick={handleUpdateJob}>Save Changes</Button>
-                    </div>
+                    <Input type="datetime-local" label="Deadline" value={editDeadline} onChange={e => setEditDeadline(e.target.value)} />
+                    <Button onClick={handleUpdateJob}>Save Changes</Button>
                 </div>
             </Modal>
 
-            {/* ✅ INTERVIEW MODAL */}
+            {/* INTERVIEW MODAL */}
             <Modal isOpen={isInterviewModalOpen} onClose={() => setIsInterviewModalOpen(false)} title="Schedule Interview">
                 <div className="space-y-4">
-                    <Input 
-                        type="datetime-local" 
-                        id="date" 
-                        label="Date & Time" 
-                        value={interviewDate} 
-                        onChange={e => setInterviewDate(e.target.value)} 
-                        required 
-                    />
-
+                    <Input type="datetime-local" label="Date & Time" value={interviewDate} onChange={e => setInterviewDate(e.target.value)} required />
                     <div>
                         <label className="block text-sm font-medium mb-1">Interview Type</label>
-                        <select 
-                            className="w-full border rounded-md p-2 bg-white"
-                            value={interviewType}
-                            onChange={e => setInterviewType(e.target.value)}
-                        >
+                        <select className="w-full border rounded-md p-2 bg-white" value={interviewType} onChange={e => setInterviewType(e.target.value)}>
                             <option value="ONLINE">Online (Google Meet)</option>
                             <option value="IN_PERSON">In Person</option>
                         </select>
                     </div>
-
-                    {interviewType === 'IN_PERSON' ? (
-                        <Input 
-                            id="location" 
-                            label="Physical Location" 
-                            placeholder="e.g. Office 304, Spazaafy HQ"
-                            value={interviewLocation} 
-                            onChange={e => setInterviewLocation(e.target.value)} 
-                        />
-                    ) : (
-                        <div className="bg-blue-50 text-blue-800 p-3 rounded text-sm border border-blue-200">
-                            ℹ️ A Google Meet link will be automatically generated and emailed to the candidate.
-                        </div>
-                    )}
-
+                    {interviewType === 'IN_PERSON' && <Input label="Physical Location" value={interviewLocation} onChange={e => setInterviewLocation(e.target.value)} />}
                     <div>
-                        <label className="block text-sm font-medium mb-1">Notes / Instructions</label>
-                        <textarea 
-                            className="w-full border rounded-md p-2" 
-                            rows={3} 
-                            value={interviewNotes} 
-                            onChange={e => setInterviewNotes(e.target.value)}
-                            placeholder="e.g. Please bring your ID and portfolio."
-                        />
+                        <label className="block text-sm font-medium mb-1">Notes</label>
+                        <textarea className="w-full border rounded-md p-2" rows={3} value={interviewNotes} onChange={e => setInterviewNotes(e.target.value)} />
                     </div>
-                    <Button onClick={submitInterview} className="w-full">Send Invite</Button>
+                    <Button onClick={submitInterview}>Send Invite</Button>
                 </div>
             </Modal>
         </div>

@@ -23,7 +23,7 @@ from .serializers import (
 import random
 import string
 from apps.core.google_calendar import create_google_meet_event
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -475,6 +475,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.all().order_by('-joined_at')
     serializer_class = EmployeeSerializer
     permission_classes = [permissions.IsAdminUser]
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     # ✅ Handle Status Updates (Fail/Complete Onboarding)
     # apps/hr/views.py

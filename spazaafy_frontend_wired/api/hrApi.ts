@@ -102,11 +102,12 @@ export const hrApi = {
         });
     },
 
-    createEmployee: async (data: any, token: string) => {
+    createEmployee: async (formData: FormData, token: string) => {
         return request('/hr/admin/employees/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify(data)
+            // Do NOT set Content-Type here, let browser handle FormData
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData
         });
     },
 
