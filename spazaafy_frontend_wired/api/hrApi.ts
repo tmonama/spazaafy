@@ -188,6 +188,15 @@ export const hrApi = {
             body: JSON.stringify(data)
         });
     },
+
+    updateAnnouncement: async (id: string, data: { title: string; content: string }, token: string) => {
+        return request(`/hr/admin/announcements/${id}/`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(data)
+        });
+    },
+    
     deleteAnnouncement: async (id: string, token: string) => {
         return request(`/hr/admin/announcements/${id}/`, {
             method: 'DELETE',

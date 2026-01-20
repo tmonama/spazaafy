@@ -4,15 +4,16 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
-import { Megaphone, Trash2, Calendar, Plus } from 'lucide-react';
+import { Megaphone, Trash2, Calendar, Plus, Edit } from 'lucide-react';
 
 const AnnouncementsPage: React.FC = () => {
     const token = sessionStorage.getItem('access') || '';
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     
-    // Modal State
+    // Modal & Form State
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editId, setEditId] = useState<string | null>(null); // ✅ Track ID for editing
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -31,17 +32,41 @@ const AnnouncementsPage: React.FC = () => {
 
     useEffect(() => { fetchData(); }, []);
 
+    // ✅ Open Modal for Creation
+    const openCreateModal = () => {
+        setEditId(null);
+        setTitle('');
+        setContent('');
+        setIsModalOpen(true);
+    };
+
+    // ✅ Open Modal for Editing
+    const openEditModal = (item: any) => {
+        setEditId(item.id);
+        setTitle(item.title);
+        setContent(item.content);
+        setIsModalOpen(true);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await hrApi.createAnnouncement({ title, content }, token);
+            if (editId) {
+                // Update existing
+                await hrApi.updateAnnouncement(editId, { title, content }, token);
+            } else {
+                // Create new
+                await hrApi.createAnnouncement({ title, content }, token);
+            }
+            
             setIsModalOpen(false);
+            setEditId(null);
             setTitle('');
             setContent('');
             fetchData();
         } catch (e) {
-            alert("Failed to post announcement.");
+            alert("Failed to save announcement.");
         } finally {
             setSubmitting(false);
         }
@@ -61,7 +86,7 @@ const AnnouncementsPage: React.FC = () => {
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-900">Company Announcements</h1>
-                <Button onClick={() => setIsModalOpen(true)}>
+                <Button onClick={openCreateModal}>
                     <Plus size={18} className="mr-2" /> Post New
                 </Button>
             </div>
@@ -77,9 +102,9 @@ const AnnouncementsPage: React.FC = () => {
                 )}
 
                 {announcements.map((item) => (
-                    <Card key={item.id} className="p-6 border-l-4 border-blue-500 relative group">
+                    <Card key={item.id} className="p-6 border-l-4 border-blue-500 relative group hover:shadow-md transition-shadow">
                         <div className="flex justify-between items-start">
-                            <div className="flex-1">
+                            <div className="flex-1 pr-4">
                                 <h3 className="text-lg font-bold text-gray-900">{item.title}</h3>
                                 <p className="text-xs text-gray-500 mb-3 flex items-center mt-1">
                                     <Calendar size={12} className="mr-1" />
@@ -90,20 +115,34 @@ const AnnouncementsPage: React.FC = () => {
                                 <p className="text-gray-700 whitespace-pre-wrap">{item.content}</p>
                             </div>
                             
-                            <button 
-                                onClick={() => handleDelete(item.id)}
-                                className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                                title="Delete Announcement"
-                            >
-                                <Trash2 size={18} />
-                            </button>
+                            {/* Action Buttons */}
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button 
+                                    onClick={() => openEditModal(item)}
+                                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors bg-gray-50 hover:bg-blue-50 rounded"
+                                    title="Edit"
+                                >
+                                    <Edit size={18} />
+                                </button>
+                                <button 
+                                    onClick={() => handleDelete(item.id)}
+                                    className="p-2 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 hover:bg-red-50 rounded"
+                                    title="Delete"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
                         </div>
                     </Card>
                 ))}
             </div>
 
-            {/* CREATE MODAL */}
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Post Announcement">
+            {/* MODAL */}
+            <Modal 
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)} 
+                title={editId ? "Edit Announcement" : "Post Announcement"}
+            >
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <Input 
                         id="title" 
@@ -130,9 +169,12 @@ const AnnouncementsPage: React.FC = () => {
                         ℹ️ This will be visible to all employees on their dashboard immediately.
                     </div>
 
-                    <Button type="submit" disabled={submitting} className="w-full">
-                        {submitting ? "Posting..." : "Post Announcement"}
-                    </Button>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                        <Button type="submit" disabled={submitting}>
+                            {submitting ? "Saving..." : (editId ? "Save Changes" : "Post Announcement")}
+                        </Button>
+                    </div>
                 </form>
             </Modal>
         </div>
