@@ -1,204 +1,172 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { hrApi } from '../../api/hrApi';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
-import Modal from '../../components/Modal';
-import Input from '../../components/Input';
-import { Calendar, Megaphone, Check } from 'lucide-react';
-import { DEPARTMENT_LABELS } from '../../utils/roles'; // ✅ Import Dept Labels
+import { Calendar, Users, Copy, CheckCircle, ArrowLeft, Link as LinkIcon } from 'lucide-react';
 
-const TrainingPage: React.FC = () => {
+const TrainingDetailPage: React.FC = () => {
+    const { sessionId } = useParams();
     const navigate = useNavigate();
     const token = sessionStorage.getItem('access') || '';
-    const [sessions, setSessions] = useState<any[]>([]);
-    const [filterStatus, setFilterStatus] = useState('ALL');
     
-    // Modal
-    const [createModalOpen, setCreateModalOpen] = useState(false);
-    
-    // Form State
-    const [newSession, setNewSession] = useState({ 
-        title: '', 
-        date_time: '', 
-        description: '', 
-        is_compulsory: false,
-        target_departments: [] as string[], // ✅ Array for departments
-        post_announcement: false // ✅ Flag for announcement
-    });
+    const [session, setSession] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [copied, setCopied] = useState(false);
 
-    const fetchSessions = async () => {
-        try {
-            const data = await hrApi.getTrainings(token);
-            setSessions(data);
-        } catch (error) {
-            console.error(error);
-        }
+    // Fetch data on mount
+    useEffect(() => {
+        if (!sessionId) return;
+        setLoading(true);
+        hrApi.getTrainingById(sessionId, token)
+            .then(setSession)
+            .catch((err) => console.error("Failed to load session", err))
+            .finally(() => setLoading(false));
+    }, [sessionId]);
+
+    const copyToClipboard = () => {
+        if (!session) return;
+        const link = `${window.location.origin}/training/signup?session=${session.id}`;
+        navigator.clipboard.writeText(link);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
     };
 
-    useEffect(() => { fetchSessions(); }, []);
-
-    const handleCreate = async (e: React.FormEvent) => {
-        e.preventDefault();
-        // If target_departments is empty, we assume "All" (backend logic) 
-        // or we enforce it. Here we send empty array for "All".
-        await hrApi.createTraining(newSession, token);
-        setCreateModalOpen(false);
-        // Reset
-        setNewSession({ title: '', date_time: '', description: '', is_compulsory: false, target_departments: [], post_announcement: false });
-        fetchSessions();
-    };
-
-    const toggleDept = (deptCode: string) => {
-        setNewSession(prev => {
-            const current = prev.target_departments;
-            if (current.includes(deptCode)) {
-                return { ...prev, target_departments: current.filter(d => d !== deptCode) };
-            } else {
-                return { ...prev, target_departments: [...current, deptCode] };
-            }
-        });
-    };
-
-    const toggleAllDepts = () => {
-        // If has any, clear. If empty, keep empty (which logic treats as All, or fill all)
-        // Let's implement: Empty = All. 
-        setNewSession(prev => ({ ...prev, target_departments: [] }));
-    };
-
-    const filteredSessions = sessions.filter(s => 
-        filterStatus === 'ALL' || s.status === filterStatus
-    );
+    if (loading) return <div className="p-8 text-center text-gray-500">Loading details...</div>;
+    if (!session) return <div className="p-8 text-center text-red-500">Training session not found.</div>;
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Training & Development</h1>
-                
-                <div className="flex gap-3">
-                    <select 
-                        className="border rounded p-2 bg-white text-sm"
-                        value={filterStatus}
-                        onChange={e => setFilterStatus(e.target.value)}
-                    >
-                        <option value="ALL">All Statuses</option>
-                        <option value="SCHEDULED">Scheduled</option>
-                        <option value="COMPLETED">Completed</option>
-                    </select>
-
-                    <Button onClick={() => setCreateModalOpen(true)}>Create Session</Button>
+        <div className="p-6 max-w-5xl mx-auto">
+            {/* Header */}
+            <div className="flex items-center mb-6">
+                <button onClick={() => navigate('/hr/training')} className="mr-4 p-2 rounded-full hover:bg-gray-100">
+                    <ArrowLeft size={24} className="text-gray-600" />
+                </button>
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">{session.title}</h1>
+                    <p className="text-sm text-gray-500">Training & Development</p>
                 </div>
             </div>
 
-            <div className="grid gap-6">
-                {filteredSessions.map(s => (
-                    <Card key={s.id} className={`p-6 hover:shadow-md transition-shadow border-l-4 ${
-                        s.status === 'COMPLETED' ? 'border-green-500' : 'border-purple-500'
-                    }`}>
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className="text-xl font-bold text-gray-900">{s.title}</h3>
-                                <div className="flex items-center text-sm text-gray-500 mt-1 mb-3">
-                                    <Calendar size={14} className="mr-1" />
-                                    {new Date(s.date_time).toLocaleString()}
-                                </div>
-                                
-                                <p className="text-gray-700 mb-3 line-clamp-2">{s.description}</p>
-                                
-                                <div className="flex flex-wrap gap-2">
-                                    {s.is_compulsory && (
-                                        <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded font-bold">
-                                            Compulsory
-                                        </span>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* LEFT COLUMN: Main Info */}
+                <div className="lg:col-span-2 space-y-6">
+                    <Card className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="flex items-center text-gray-600">
+                                <Calendar size={18} className="mr-2" />
+                                <span className="font-medium">
+                                    {new Date(session.date_time).toLocaleString(undefined, {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    })}
+                                </span>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                session.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                            }`}>
+                                {session.status}
+                            </span>
+                        </div>
+
+                        <div className="prose max-w-none text-gray-700">
+                            <h3 className="text-lg font-semibold mb-2">Description</h3>
+                            <p className="whitespace-pre-wrap">{session.description}</p>
+                        </div>
+
+                        {session.is_compulsory && (
+                            <div className="mt-4 inline-flex items-center px-3 py-1 rounded-md bg-red-50 text-red-700 border border-red-200 text-sm font-medium">
+                                ⚠️ This training is Compulsory
+                            </div>
+                        )}
+                    </Card>
+
+                    <Card className="p-6">
+                        <h3 className="text-lg font-bold mb-4 flex items-center">
+                            <Users size={20} className="mr-2" />
+                            Signups ({session.signups?.length || 0})
+                        </h3>
+                        
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-left text-sm">
+                                <thead className="bg-gray-50 text-gray-500 uppercase">
+                                    <tr>
+                                        <th className="px-4 py-3">Name</th>
+                                        <th className="px-4 py-3">Department</th>
+                                        <th className="px-4 py-3">Registered At</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {session.signups && session.signups.length > 0 ? (
+                                        session.signups.map((signup: any) => (
+                                            <tr key={signup.id} className="hover:bg-gray-50">
+                                                <td className="px-4 py-3 font-medium text-gray-900">{signup.name}</td>
+                                                <td className="px-4 py-3 text-gray-600">{signup.department}</td>
+                                                <td className="px-4 py-3 text-gray-500">
+                                                    {new Date(signup.submitted_at).toLocaleDateString()}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={3} className="px-4 py-8 text-center text-gray-400 italic">
+                                                No employees have signed up yet.
+                                            </td>
+                                        </tr>
                                     )}
-                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                        Targets: {(!s.target_departments || s.target_departments.length === 0) ? 'Everyone' : `${s.target_departments.length} Depts`}
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            <div className="text-right flex flex-col items-end gap-2">
-                                <div className="text-center bg-purple-50 px-4 py-2 rounded-lg">
-                                    <p className="text-2xl font-bold text-purple-600">{s.signup_count}</p>
-                                    <p className="text-xs text-gray-500">Signups</p>
-                                </div>
-                                
-                                <Button size="sm" variant="outline" onClick={() => navigate(`/hr/training/${s.id}`)}>
-                                    View Details
-                                </Button>
-                            </div>
+                                </tbody>
+                            </table>
                         </div>
                     </Card>
-                ))}
-
-                {filteredSessions.length === 0 && (
-                    <div className="text-center p-12 text-gray-500 bg-white rounded border border-dashed border-gray-300">
-                        No training sessions found.
-                    </div>
-                )}
-            </div>
-
-            {/* CREATE MODAL */}
-            <Modal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} title="New Training Session">
-                <div className="max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
-                    <form onSubmit={handleCreate} className="space-y-4">
-                        <Input id="title" label="Title" value={newSession.title} onChange={e => setNewSession({...newSession, title: e.target.value})} required />
-                        <Input id="dt" type="datetime-local" label="Date" value={newSession.date_time} onChange={e => setNewSession({...newSession, date_time: e.target.value})} required />
-                        
-                        <div>
-                            <label className="block text-sm font-bold mb-1">Description</label>
-                            <textarea className="w-full border rounded p-2" rows={3} value={newSession.description} onChange={e => setNewSession({...newSession, description: e.target.value})} required />
-                        </div>
-
-                        {/* ✅ Department Selector */}
-                        <div>
-                            <label className="block text-sm font-bold mb-2">Target Audience</label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm border p-3 rounded max-h-40 overflow-y-auto">
-                                <label className="flex items-center p-1 hover:bg-gray-50 rounded cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={newSession.target_departments.length === 0} 
-                                        onChange={toggleAllDepts}
-                                        className="mr-2"
-                                    />
-                                    <span className="font-bold">All Employees</span>
-                                </label>
-                                {Object.entries(DEPARTMENT_LABELS).map(([code, label]) => (
-                                    <label key={code} className="flex items-center p-1 hover:bg-gray-50 rounded cursor-pointer">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={newSession.target_departments.includes(code)} 
-                                            onChange={() => toggleDept(code)}
-                                            className="mr-2"
-                                        />
-                                        <span className="truncate" title={label}>{label}</span>
-                                    </label>
-                                ))}
-                            </div>
-                            <p className="text-xs text-gray-400 mt-1">If "All Employees" is checked (or no specific departments selected), the training is visible to everyone.</p>
-                        </div>
-
-                        <div className="flex flex-col gap-2 bg-gray-50 p-3 rounded">
-                            <label className="flex items-center cursor-pointer">
-                                <input type="checkbox" checked={newSession.is_compulsory} onChange={e => setNewSession({...newSession, is_compulsory: e.target.checked})} className="mr-2 h-4 w-4 text-purple-600" />
-                                <span className="font-bold text-gray-700">Mark as Compulsory</span>
-                            </label>
-                            
-                            {/* ✅ Push to Announcements */}
-                            <label className="flex items-center cursor-pointer">
-                                <input type="checkbox" checked={newSession.post_announcement} onChange={e => setNewSession({...newSession, post_announcement: e.target.checked})} className="mr-2 h-4 w-4 text-blue-600" />
-                                <div className="flex items-center">
-                                    <Megaphone size={16} className="mr-2 text-blue-600" />
-                                    <span className="text-gray-700">Push to Employee Dashboard Announcements</span>
-                                </div>
-                            </label>
-                        </div>
-
-                        <Button type="submit" className="w-full">Create Session</Button>
-                    </form>
                 </div>
-            </Modal>
+
+                {/* RIGHT COLUMN: Actions & Link */}
+                <div className="space-y-6">
+                    {/* Share Card */}
+                    <Card className="p-6 bg-gradient-to-br from-purple-50 to-white border-purple-100">
+                        <h3 className="text-sm font-bold text-purple-900 uppercase tracking-wide mb-2 flex items-center">
+                            <LinkIcon size={16} className="mr-2" /> Share Link
+                        </h3>
+                        <p className="text-xs text-gray-600 mb-3">
+                            Share this public link with employees so they can register for the session.
+                        </p>
+                        
+                        <div className="flex items-center gap-2 mb-2">
+                            <code className="flex-1 bg-white border border-purple-200 p-2 rounded text-xs text-gray-600 truncate">
+                                {window.location.origin}/training/signup?session={session.id}
+                            </code>
+                            <Button 
+                                size="sm" 
+                                onClick={copyToClipboard} 
+                                className={copied ? "bg-green-600 hover:bg-green-700" : ""}
+                            >
+                                {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
+                            </Button>
+                        </div>
+                    </Card>
+
+                    {/* Admin Actions */}
+                    <Card className="p-6">
+                        <h3 className="font-bold text-gray-900 mb-4">Management Actions</h3>
+                        <div className="space-y-3">
+                            <Button variant="outline" className="w-full justify-start">
+                                Edit Session Details
+                            </Button>
+                            {/* You can add Mark Attendance logic here later */}
+                            <Button variant="primary" className="w-full justify-start">
+                                Mark Attendance
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
+            </div>
         </div>
     );
 };
-export default TrainingPage;
+
+export default TrainingDetailPage;
