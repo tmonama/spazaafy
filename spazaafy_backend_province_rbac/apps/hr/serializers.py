@@ -76,9 +76,17 @@ class HRComplaintSerializer(serializers.ModelSerializer):
     complainant_name = serializers.CharField(source='complainant.first_name', read_only=True)
     respondent_name = serializers.CharField(source='respondent.first_name', read_only=True)
 
+    report_url = serializers.SerializerMethodField()
+
     class Meta:
         model = HRComplaint
         fields = '__all__'
+
+    def get_report_url(self, obj):
+        try:
+            if obj.investigation_report and hasattr(obj.investigation_report, 'url'):
+                return obj.investigation_report.url
+        except: return None
 
 class AnnouncementSerializer(serializers.ModelSerializer):
     author_name = serializers.CharField(source='author.get_full_name', read_only=True)
