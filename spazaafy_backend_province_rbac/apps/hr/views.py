@@ -564,6 +564,87 @@ class HRComplaintViewSet(viewsets.ModelViewSet):
     serializer_class = HRComplaintSerializer
     permission_classes = [permissions.IsAdminUser]
 
+    # Enable file uploads
+    parser_classes = (MultiPartParser, FormParser, JSONParser) 
+
+    @action(detail=True, methods=['post'])
+    def mark_investigating(self, request, pk=None):
+        complaint = self.get_object()
+        complaint.status = 'INVESTIGATING'
+        complaint.save()
+
+        # ✅ Notify Complainant
+        send_mail(
+            subject=f"Update on your Complaint: {complaint.id}",
+            message=f"""Dear {complaint.complainant.first_name},
+
+            Your complaint regarding "{complaint.get_type_display()}" has been reviewed and is now officially UNDER INVESTIGATION.
+
+            HR will reach out to you if further information is required.
+
+            Regards,
+            Spazaafy HR Team""",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[complaint.complainant.email],
+            fail_silently=True
+        )
+
+        return Response({'status': 'Investigating'})
+
+    @action(detail=True, methods=['post'])
+    def close_complaint(self, request, pk=None):
+        complaint = self.get_object()
+        
+        # 1. Get Data
+        verdict = request.data.get('resolution_verdict')
+        report = request.FILES.get('investigation_report')
+        related_ids_str = request.data.get('related_employees', '') # "id1,id2,id3"
+        
+        if not verdict or not report:
+             return Response({"detail": "Verdict and Report are required to close a case."}, status=400)
+
+        # 2. Update Model
+        complaint.status = 'CLOSED'
+        complaint.resolution_verdict = verdict
+        complaint.investigation_report = report
+        complaint.resolved_at = timezone.now()
+        complaint.save()
+
+        # 3. Handle Emails
+        # Parse related IDs
+        related_ids = [x.strip() for x in related_ids_str.split(',') if x.strip()]
+        
+        # Build Recipient List (Complainant + Related)
+        recipients = [complaint.complainant.email]
+        
+        if related_ids:
+            related_employees = Employee.objects.filter(id__in=related_ids)
+            for emp in related_employees:
+                if emp.email: recipients.append(emp.email)
+
+        # Send Email
+        send_mail(
+            subject=f"Case Closed: Complaint {complaint.id}",
+            message=f"""Dear Employee,
+
+            The HR complaint case (ID: {str(complaint.id)[:8]}) has been concluded.
+
+            Status: CLOSED
+            
+            Resolution / Verdict:
+            {verdict}
+
+            For any questions, please contact the HR department.
+
+            Regards,
+            Spazaafy HR Team""",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=recipients,
+            fail_silently=True
+        )
+
+        return Response({'status': 'Closed & Emails Sent'})
+
 class TrainingViewSet(viewsets.ModelViewSet):
     queryset = TrainingSession.objects.all().order_by('-date_time')
     serializer_class = TrainingSessionSerializer

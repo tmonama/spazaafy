@@ -167,6 +167,8 @@ export const hrApi = {
             body: formData
         });
     },
+
+    //Terminations
     initiateTermination: async (id: string, reason: string, token: string) => {
         return request(`/hr/admin/employees/${id}/initiate_termination/`, {
             method: 'POST',
@@ -180,9 +182,34 @@ export const hrApi = {
             headers: { Authorization: `Bearer ${token}` }
         });
     },
+
+    //Complaints
     getComplaints: async (token: string) => {
         return request('/hr/admin/complaints/', { headers: { Authorization: `Bearer ${token}` } });
     },
+
+    getComplaintById: async (id: string, token: string) => {
+        return request(`/hr/admin/complaints/${id}/`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+
+    markComplaintInvestigating: async (id: string, token: string) => {
+        return request(`/hr/admin/complaints/${id}/mark_investigating/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+
+    closeComplaint: async (id: string, formData: FormData, token: string) => {
+        return request(`/hr/admin/complaints/${id}/close_complaint/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }, // Browser sets Content-Type for FormData
+            body: formData
+        });
+    },
+
+    //Announcements
     getAnnouncements: async (token: string) => {
         return request('/hr/admin/announcements/', {
             headers: { Authorization: `Bearer ${token}` }

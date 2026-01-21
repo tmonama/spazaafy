@@ -108,6 +108,11 @@ class HRComplaint(models.Model):
     type = models.CharField(max_length=50, choices=ComplaintType.choices)
     description = models.TextField()
     status = models.CharField(max_length=20, default='OPEN') # OPEN, INVESTIGATING, RESOLVED
+
+    # ✅ New Fields for Resolution
+    investigation_report = models.FileField(upload_to='hr/complaints/reports/', null=True, blank=True)
+    resolution_verdict = models.TextField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
