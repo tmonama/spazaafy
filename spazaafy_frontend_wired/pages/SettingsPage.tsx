@@ -1,13 +1,13 @@
-// src/pages/SettingsPage.tsx
-
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import Header from '../components/Header';
+import Header from '../components/Header'; // Consumer/Shop Header
+import InternalHeader from '../components/InternalHeader'; // ✅ The new Header
 import Card from '../components/Card';
 import { useAuth } from '../hooks/useAuth';
+import { UserRole } from '../types';
 
 const SettingsPage: React.FC = () => {
-    const { theme, toggleTheme } = useAuth();
+    const { user, theme, toggleTheme } = useAuth();
     const { t, i18n } = useTranslation();
 
     const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -15,12 +15,17 @@ const SettingsPage: React.FC = () => {
         i18n.changeLanguage(lang);
     };
 
+    // Determine if user is internal (Admin, HR, Legal, Employee)
+    const isInternal = ['admin', 'hr', 'legal', 'employee'].includes(user?.role || '');
+
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
-            <Header />
+            {/* ✅ Switch Header based on Role */}
+            {isInternal ? <InternalHeader /> : <Header />}
+            
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                  <div className="max-w-2xl mx-auto">
-                    <Card title={t('settings.title')}>
+                    <Card title={t('settings.title', 'Settings')}>
                         <div className="space-y-6">
                             {/* Theme Toggle */}
                             <div className="flex justify-between items-center p-4 rounded-lg bg-gray-50 dark:bg-dark-input/70">
@@ -60,7 +65,6 @@ const SettingsPage: React.FC = () => {
                                     <option value="st">Sesotho</option>
                                 </select>
                             </div>
-
                         </div>
                     </Card>
                 </div>
