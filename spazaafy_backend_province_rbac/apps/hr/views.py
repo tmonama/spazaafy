@@ -18,8 +18,7 @@ from .serializers import (
     HRComplaintSerializer,
     AnnouncementSerializer,
     EmployeeRegisterRequestSerializer, 
-    EmployeeRegisterConfirmSerializer,
-    HRComplaintSerializer
+    EmployeeRegisterConfirmSerializer
 )
 import random
 import string
@@ -770,20 +769,28 @@ class EmployeePortalViewSet(viewsets.ViewSet):
         except:
             return Response([])
 
-    # POST /api/hr/portal/complaints/
+    # POST /api/hr/portal/file_complaint/
     @action(detail=False, methods=['post'])
     def file_complaint(self, request):
         try:
+            # 1. Check if user is linked to an employee
+            if not hasattr(request.user, 'employee_profile'):
+                return Response({"detail": "User is not linked to an Employee profile."}, 400)
+
             employee = request.user.employee_profile
+            
+            # 2. Create the complaint
             HRComplaint.objects.create(
                 complainant=employee,
                 type=request.data.get('type', 'GRIEVANCE'),
                 description=request.data.get('description')
             )
             return Response({'status': 'Complaint Filed'})
-        except:
-             print(f"Error filing complaint: {e}")
-             return Response({"detail": "Error"}, 400)
+
+        except Exception as e:
+             # ✅ This prints the REAL error to your terminal/logs
+             print(f"Error filing complaint: {e}") 
+             return Response({"detail": str(e)}, 400)
         
 class AnnouncementViewSet(viewsets.ModelViewSet):
     """
