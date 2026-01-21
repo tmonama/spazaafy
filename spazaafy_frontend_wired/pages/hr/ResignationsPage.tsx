@@ -89,8 +89,8 @@ const ResignationsPage: React.FC = () => {
     return (
         <div className="p-6 max-w-7xl mx-auto">
             {/* Header */}
-            <div className="flex items-center gap-3 mb-8">
-                <div className="p-3 bg-amber-100 rounded-xl text-amber-600 shadow-sm">
+            <div className="flex items-center gap-4 mb-8">
+                <div className="p-3 bg-amber-100 rounded-xl text-amber-600 shadow-sm flex-shrink-0">
                     <FileWarning size={28} />
                 </div>
                 <div>
@@ -99,13 +99,14 @@ const ResignationsPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Filters Bar */}
-            <Card className="p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between bg-white shadow-sm border border-gray-100">
-                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                    <div className="relative">
-                        <Filter size={16} className="absolute left-3 top-3 text-gray-400 pointer-events-none" />
+            {/* Filters Bar - IMPROVED SPACING */}
+            <Card className="p-5 mb-8 flex flex-col lg:flex-row gap-5 items-start lg:items-center justify-between bg-white shadow-sm border border-gray-100">
+                <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                    {/* Status Filter */}
+                    <div className="relative w-full sm:w-48">
+                        <Filter size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                         <select 
-                            className="pl-9 pr-4 py-2 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-amber-500 outline-none w-full"
+                            className="pl-9 pr-4 py-2.5 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-amber-500 outline-none w-full appearance-none"
                             value={statusFilter}
                             onChange={e => setStatusFilter(e.target.value)}
                         >
@@ -117,10 +118,11 @@ const ResignationsPage: React.FC = () => {
                         </select>
                     </div>
 
-                    <div className="relative">
-                        <Briefcase size={16} className="absolute left-3 top-3 text-gray-400 pointer-events-none" />
+                    {/* Type Filter */}
+                    <div className="relative w-full sm:w-48">
+                        <Briefcase size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                         <select 
-                            className="pl-9 pr-4 py-2 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-amber-500 outline-none w-full"
+                            className="pl-9 pr-4 py-2.5 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-amber-500 outline-none w-full appearance-none"
                             value={typeFilter}
                             onChange={e => setTypeFilter(e.target.value)}
                         >
@@ -131,12 +133,13 @@ const ResignationsPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="relative w-full md:w-64">
-                    <Search size={16} className="absolute left-3 top-3 text-gray-400" />
+                {/* Search */}
+                <div className="relative w-full lg:w-80">
+                    <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                     <input 
                         type="text" 
-                        placeholder="Search name..." 
-                        className="pl-9 pr-4 py-2 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-amber-500 outline-none w-full"
+                        placeholder="Search employee name..." 
+                        className="pl-10 pr-4 py-2.5 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-amber-500 outline-none w-full shadow-sm"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                     />
@@ -144,13 +147,13 @@ const ResignationsPage: React.FC = () => {
             </Card>
 
             {/* Employee Cards List */}
-            <div className="space-y-4">
+            <div className="space-y-5">
                 {filteredEmployees.map(emp => {
                     const type = getExitType(emp.resignation_reason);
                     const isUrgent = emp.status === 'RESIGNATION_REQUESTED';
 
                     return (
-                        <Card key={emp.id} className={`p-6 transition hover:shadow-md border-l-4 ${isUrgent ? 'border-l-amber-500 bg-amber-50/20' : 'border-l-gray-300'}`}>
+                        <Card key={emp.id} className={`p-6 transition hover:shadow-lg border-l-4 ${isUrgent ? 'border-l-amber-500 bg-amber-50/20' : 'border-l-gray-300'}`}>
                             
                             {/* Flex Container for Desktop Layout */}
                             <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
@@ -161,31 +164,35 @@ const ResignationsPage: React.FC = () => {
                                 </div>
 
                                 {/* Info Stack - Vertical Layout */}
-                                <div className="flex-1 space-y-1.5">
-                                    <h3 className="font-bold text-xl text-gray-900 leading-tight">
-                                        {emp.first_name} {emp.last_name}
-                                    </h3>
-                                    
-                                    <p className="text-sm text-gray-600 font-medium">{emp.role_title}</p>
-                                    <p className="text-sm text-gray-500">{emp.department}</p>
-                                    
-                                    {/* Badges Row */}
-                                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                                        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold uppercase rounded border border-gray-200 tracking-wider">
+                                <div className="flex-1 space-y-2">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                        <h3 className="font-bold text-xl text-gray-900 leading-tight">
+                                            {emp.first_name} {emp.last_name}
+                                        </h3>
+                                        <span className="w-fit px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold uppercase rounded border border-gray-200 tracking-wider">
                                             {type}
                                         </span>
-                                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border tracking-wider ${getStatusStyles(emp.status)}`}>
+                                    </div>
+                                    
+                                    <div className="text-sm text-gray-500 flex flex-wrap gap-x-2">
+                                        <span className="font-medium text-gray-700">{emp.role_title}</span>
+                                        <span className="text-gray-300">•</span>
+                                        <span>{emp.department}</span>
+                                    </div>
+                                    
+                                    {/* Badges & Date */}
+                                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                                        <span className={`text-[10px] px-2.5 py-1 rounded font-bold uppercase border tracking-wider ${getStatusStyles(emp.status)}`}>
                                             {emp.status.replace('_', ' ')}
                                         </span>
+                                        
+                                        {emp.resignation_date && (
+                                            <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                                                <Calendar size={14} className="text-amber-600"/>
+                                                <span>Proposed Last Day: <strong className="text-gray-800">{emp.resignation_date}</strong></span>
+                                            </div>
+                                        )}
                                     </div>
-
-                                    {/* Date Info */}
-                                    {emp.resignation_date && (
-                                        <div className="flex items-center gap-1.5 text-sm text-gray-600 pt-1">
-                                            <Calendar size={14} className="text-amber-600"/>
-                                            <span>Proposed Last Day: <strong>{emp.resignation_date}</strong></span>
-                                        </div>
-                                    )}
                                 </div>
 
                                 {/* Actions - Pushed to Right */}
@@ -214,7 +221,7 @@ const ResignationsPage: React.FC = () => {
                 })}
 
                 {filteredEmployees.length === 0 && (
-                    <div className="text-center p-16 bg-white rounded-xl border border-dashed border-gray-300">
+                    <div className="text-center p-16 bg-white rounded-xl border border-dashed border-gray-300 mt-8">
                         <UserMinus className="mx-auto h-12 w-12 text-gray-300 mb-3" />
                         <h3 className="text-lg font-medium text-gray-900">No Records Found</h3>
                         <p className="text-gray-500">Try adjusting your filters or search terms.</p>
@@ -239,16 +246,16 @@ const ResignationsPage: React.FC = () => {
                         </div>
                         
                         <div className="p-6 overflow-y-auto">
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Submitted Reason</span>
-                            <div className="mt-2 p-4 bg-amber-50/50 border border-amber-100 rounded-lg text-gray-800 whitespace-pre-wrap leading-relaxed text-sm">
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wide block mb-2">Submitted Reason</span>
+                            <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-lg text-gray-800 whitespace-pre-wrap leading-relaxed text-sm">
                                 {cleanReason(viewReasonModal.resignation_reason)}
                             </div>
                             
-                            <div className="mt-4 pt-4 border-t">
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Details</span>
-                                <div className="mt-2 text-sm space-y-1">
-                                    <p><span className="text-gray-500">Type:</span> {getExitType(viewReasonModal.resignation_reason)}</p>
-                                    <p><span className="text-gray-500">Submission Date:</span> {new Date(viewReasonModal.status_changed_at).toLocaleDateString()}</p>
+                            <div className="mt-6 pt-4 border-t border-gray-100">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wide block mb-2">Details</span>
+                                <div className="text-sm space-y-2 bg-gray-50 p-3 rounded border border-gray-100">
+                                    <p className="flex justify-between"><span className="text-gray-500">Type:</span> <span className="font-medium">{getExitType(viewReasonModal.resignation_reason)}</span></p>
+                                    <p className="flex justify-between"><span className="text-gray-500">Submission Date:</span> <span className="font-medium">{new Date(viewReasonModal.status_changed_at).toLocaleDateString()}</span></p>
                                 </div>
                             </div>
                         </div>

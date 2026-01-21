@@ -1,14 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { hrApi } from '../../api/hrApi';
-import { DEPARTMENT_LABELS } from '../../utils/roles';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
-import { UserPlus, Search, Upload } from 'lucide-react';
+import { UserPlus, Search, Upload, Filter, Briefcase, Users } from 'lucide-react';
 
-const EMPLOYEE_STATUSES = ['ALL', 'ONBOARDING', 'EMPLOYED', 'SUSPENDED', 'NOTICE', 'RESIGNED', 'RETIRED'];
+// ✅ Local Constants to ensure dropdowns work immediately
+const DEPARTMENTS = [
+    { value: 'EXECUTIVE', label: 'Executive & Leadership' },
+    { value: 'TECH', label: 'Technology & Development' },
+    { value: 'FINANCE', label: 'Finance & Administration' },
+    { value: 'LEGAL', label: 'Legal & Compliance' },
+    { value: 'SUPPORT', label: 'Customer Support' },
+    { value: 'FIELD', label: 'Field Operations' },
+    { value: 'COMMUNITY', label: 'Community Engagement' },
+    { value: 'MEDIA', label: 'Media & Content' },
+    { value: 'HR', label: 'HR & Training' },
+];
+
+const EMPLOYEE_STATUSES = ['ALL', 'ONBOARDING', 'EMPLOYED', 'SUSPENDED', 'NOTICE', 'RESIGNED', 'RETIRED', 'TERMINATED'];
 
 const EmployeesPage: React.FC = () => {
     const navigate = useNavigate();
@@ -99,104 +111,125 @@ const EmployeesPage: React.FC = () => {
         return matchesDept && matchesStatus && matchesSearch;
     });
 
+    const getStatusColor = (status: string) => {
+        if (status === 'EMPLOYED') return 'bg-green-100 text-green-800 border-green-200';
+        if (status === 'ONBOARDING') return 'bg-blue-100 text-blue-800 border-blue-200';
+        if (['RESIGNED', 'RETIRED', 'TERMINATED'].includes(status)) return 'bg-gray-100 text-gray-600 border-gray-200';
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    };
+
     return (
-        <div className="p-6">
+        <div className="p-6 max-w-7xl mx-auto">
             {/* Header & Actions */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Employees</h1>
                     <p className="text-sm text-gray-500">Manage staff profiles and status</p>
                 </div>
                 
-                <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                    <Button onClick={() => setIsCreateModalOpen(true)}>
-                        <UserPlus size={18} className="mr-2" /> Add Employee
-                    </Button>
-                </div>
+                <Button onClick={() => setIsCreateModalOpen(true)} className="bg-green-600 hover:bg-green-700 shadow-sm">
+                    <UserPlus size={18} className="mr-2" /> Add Employee
+                </Button>
             </div>
 
-            {/* Filters Bar */}
-            <Card className="p-4 mb-6 flex flex-col md:flex-row gap-4 items-center">
-                <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+            {/* Filters Bar - Responsive & Spaced */}
+            <Card className="p-5 mb-8 flex flex-col lg:flex-row gap-5 items-start lg:items-center justify-between bg-white shadow-sm border border-gray-100">
+                {/* Search */}
+                <div className="relative w-full lg:w-96">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                     <input 
                         type="text" 
                         placeholder="Search by name or email..." 
-                        className="pl-10 w-full border rounded-md p-2 text-sm"
+                        className="pl-10 pr-4 py-2.5 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500 outline-none w-full shadow-sm"
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                     />
                 </div>
                 
-                <select className="border rounded p-2 bg-white text-sm w-full md:w-auto" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-                    <option value="ALL">All Departments</option>
-                    {Object.entries(DEPARTMENT_LABELS).map(([key, label]) => (
-                        <option key={key} value={key}>{label}</option>
-                    ))}
-                </select>
+                <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                    {/* Department Filter */}
+                    <div className="relative w-full sm:w-64">
+                        <Briefcase size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <select 
+                            className="pl-9 pr-4 py-2.5 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none w-full appearance-none cursor-pointer"
+                            value={filterDept} 
+                            onChange={e => setFilterDept(e.target.value)}
+                        >
+                            <option value="ALL">All Departments</option>
+                            {DEPARTMENTS.map(d => (
+                                <option key={d.value} value={d.value}>{d.label}</option>
+                            ))}
+                        </select>
+                    </div>
 
-                <select className="border rounded p-2 bg-white text-sm w-full md:w-auto" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                    {EMPLOYEE_STATUSES.map(status => (
-                        <option key={status} value={status}>{status.replace('_', ' ')}</option>
-                    ))}
-                </select>
+                    {/* Status Filter */}
+                    <div className="relative w-full sm:w-48">
+                        <Filter size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <select 
+                            className="pl-9 pr-4 py-2.5 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none w-full appearance-none cursor-pointer"
+                            value={filterStatus} 
+                            onChange={e => setFilterStatus(e.target.value)}
+                        >
+                            {EMPLOYEE_STATUSES.map(status => (
+                                <option key={status} value={status}>{status.replace('_', ' ')}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
             </Card>
 
             {/* Employee Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filtered.map(emp => (
-                    <div 
+                    <Card 
                         key={emp.id} 
                         onClick={() => navigate(`/hr/employees/${emp.id}`)} 
-                        className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-all hover:border-purple-300 group"
+                        className="p-6 cursor-pointer hover:shadow-lg transition-all border border-gray-200 group flex flex-col items-center text-center"
                     >
-                        <div className="flex flex-col items-center text-center">
-                            <div className="w-20 h-20 rounded-full bg-gray-100 overflow-hidden mb-4 border-2 border-white shadow-sm group-hover:scale-105 transition-transform">
-                                {emp.photo_url ? (
-                                    <img src={emp.photo_url} alt="Profile" className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-2xl font-bold bg-gray-100">
-                                        {emp.first_name[0]}{emp.last_name[0]}
-                                    </div>
-                                )}
-                            </div>
-                            <h3 className="text-lg font-bold text-gray-900">{emp.first_name} {emp.last_name}</h3>
-                            <p className="text-sm text-gray-500 mb-2 line-clamp-1">{emp.role_title}</p>
-                            
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
-                                emp.status === 'EMPLOYED' ? 'bg-green-100 text-green-800' : 
-                                emp.status === 'ONBOARDING' ? 'bg-blue-100 text-blue-800' : 
-                                emp.status === 'SUSPENDED' ? 'bg-red-100 text-red-800' :
-                                'bg-gray-100 text-gray-600'
-                            }`}>
-                                {emp.status.replace('_', ' ')}
-                            </span>
+                        <div className="w-24 h-24 rounded-full bg-gray-100 overflow-hidden mb-4 border-4 border-white shadow-md group-hover:scale-105 transition-transform">
+                            {emp.photo_url ? (
+                                <img src={emp.photo_url} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-400 text-3xl font-bold bg-gray-100">
+                                    {emp.first_name[0]}{emp.last_name[0]}
+                                </div>
+                            )}
                         </div>
-                    </div>
+                        
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">{emp.first_name} {emp.last_name}</h3>
+                        <p className="text-sm text-gray-600 font-medium mb-1 line-clamp-1">{emp.role_title}</p>
+                        <p className="text-xs text-gray-400 mb-4">{emp.department}</p>
+                        
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(emp.status)}`}>
+                            {emp.status.replace('_', ' ')}
+                        </span>
+                    </Card>
                 ))}
             </div>
 
             {loading && <div className="text-center p-12 text-gray-500">Loading Employees...</div>}
+            
             {!loading && filtered.length === 0 && (
-                <div className="text-center p-12 text-gray-500 bg-white border-2 border-dashed rounded-lg">
-                    No employees found matching filters.
+                <div className="text-center p-16 bg-white rounded-xl border border-dashed border-gray-300 mt-8">
+                    <Users className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+                    <h3 className="text-lg font-medium text-gray-900">No Employees Found</h3>
+                    <p className="text-gray-500">Try adjusting your filters or search terms.</p>
                 </div>
             )}
 
             {/* CREATE MODAL */}
             <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Add New Employee">
-                {/* ✅ Added Scroll Wrapper here */}
                 <div className="max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
-                    <form onSubmit={handleCreate} className="space-y-4">
+                    <form onSubmit={handleCreate} className="space-y-5 p-1">
                         
                         {/* Profile Picture Upload */}
-                        <div className="flex justify-center mb-4">
-                            <label className="cursor-pointer">
-                                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-purple-500">
+                        <div className="flex flex-col items-center mb-4">
+                            <label className="cursor-pointer group relative">
+                                <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center border-2 border-dashed border-gray-300 group-hover:border-green-500 transition overflow-hidden">
                                     {photoFile ? (
-                                        <img src={URL.createObjectURL(photoFile)} alt="Preview" className="w-full h-full rounded-full object-cover" />
+                                        <img src={URL.createObjectURL(photoFile)} alt="Preview" className="w-full h-full object-cover" />
                                     ) : (
-                                        <Upload size={24} className="text-gray-400" />
+                                        <Upload size={28} className="text-gray-400 group-hover:text-green-500 transition" />
                                     )}
                                 </div>
                                 <input type="file" className="hidden" accept="image/*" onChange={e => setPhotoFile(e.target.files?.[0] || null)} />
@@ -231,16 +264,16 @@ const EmployeesPage: React.FC = () => {
                         />
 
                         <div>
-                            <label className="block text-sm font-bold mb-1">Department</label>
+                            <label className="block text-sm font-bold mb-1 text-gray-700">Department</label>
                             <select 
-                                className="w-full border rounded p-2" 
+                                className="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none bg-white" 
                                 required
                                 value={newEmp.department}
                                 onChange={e => setNewEmp({...newEmp, department: e.target.value})}
                             >
                                 <option value="">Select Department</option>
-                                {Object.entries(DEPARTMENT_LABELS).map(([k, v]) => (
-                                    <option key={k} value={k}>{v}</option>
+                                {DEPARTMENTS.map(d => (
+                                    <option key={d.value} value={d.value}>{d.label}</option>
                                 ))}
                             </select>
                         </div>
@@ -253,9 +286,9 @@ const EmployeesPage: React.FC = () => {
                         />
 
                         <div>
-                            <label className="block text-sm font-bold mb-1">Initial Status</label>
+                            <label className="block text-sm font-bold mb-1 text-gray-700">Initial Status</label>
                             <select 
-                                className="w-full border rounded p-2" 
+                                className="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none bg-white" 
                                 value={newEmp.status}
                                 onChange={e => setNewEmp({...newEmp, status: e.target.value})}
                             >
@@ -265,20 +298,22 @@ const EmployeesPage: React.FC = () => {
                         </div>
 
                         {/* CV Upload */}
-                        <div className="border border-dashed border-gray-300 p-4 rounded text-center">
-                            <label className="block text-sm font-bold mb-1">Upload CV (PDF)</label>
+                        <div className="border-2 border-dashed border-gray-300 p-4 rounded-lg text-center hover:bg-gray-50 transition">
+                            <label className="block text-sm font-bold mb-2 text-gray-700">Upload CV (PDF)</label>
                             <input 
                                 type="file" 
                                 accept="application/pdf"
                                 onChange={e => setCvFile(e.target.files?.[0] || null)}
-                                className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer"
                             />
-                            {cvFile && <p className="text-xs text-green-600 mt-1">{cvFile.name}</p>}
+                            {cvFile && <p className="text-xs text-green-600 mt-2 font-medium">Selected: {cvFile.name}</p>}
                         </div>
 
-                        <Button type="submit" className="w-full" disabled={creating}>
-                            {creating ? "Creating..." : "Create Employee Profile"}
-                        </Button>
+                        <div className="pt-2">
+                            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={creating}>
+                                {creating ? "Creating Profile..." : "Create Employee Profile"}
+                            </Button>
+                        </div>
                     </form>
                 </div>
             </Modal>
