@@ -117,7 +117,6 @@ function App() {
                 <Route path="profile" element={<EmployeeProfilePage />} />
                 <Route path="email" element={<EmployeeEmailPage />} />
                 <Route path="complaints" element={<EmployeeComplaintsPage />} />
-                <Route path="/hr/complaints/:id" element={<ComplaintDetailPage />} />
                 <Route path="resign" element={<EmployeeResignationPage />} />
             </Route>
 
@@ -142,6 +141,7 @@ function App() {
                 <Route path="training/:sessionId" element={<TrainingDetailPage />} /> 
                 <Route path="terminations" element={<TerminationsPage />} />
                 <Route path="complaints" element={<ComplaintsPage />} />
+                <Route path="/hr/complaints/:id" element={<ComplaintDetailPage />} />
                 {/* Reuse TerminationsPage logic for Resignations if desired, or duplicate component */}
                  <Route path="resignations" element={<ResignationsPage />} />
                  <Route path="announcements" element={<AnnouncementsPage />} />
