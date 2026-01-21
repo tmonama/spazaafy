@@ -11,8 +11,6 @@ import { useAuth } from '../hooks/useAuth';
 import { Ticket } from '../types';
 
 // Components
-import Header from '../components/Header';         // For Consumers/Shops
-import InternalHeader from '../components/InternalHeader'; // For Admin/HR/Legal/Employees
 import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
@@ -103,8 +101,6 @@ const SupportPage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
-            {/* ✅ Dynamic Header Switching */}
-            {isInternal ? <InternalHeader /> : <Header />}
 
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 

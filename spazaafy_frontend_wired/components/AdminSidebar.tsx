@@ -97,11 +97,11 @@ const AdminSidebar: React.FC = () => {
             </div>
             {/* Bottom Section: Support & Settings */}
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                    <NavLink to="/support" className={getNavLinkClass} onClick={handleLinkClick}>
+                    <NavLink to="admin/support" className={getNavLinkClass} onClick={handleLinkClick}>
                         <LifeBuoy className="h-5 w-5 mr-3" />
                         Tech Support
                     </NavLink>
-                    <NavLink to="/settings" className={getNavLinkClass} onClick={handleLinkClick}>
+                    <NavLink to="admin/settings" className={getNavLinkClass} onClick={handleLinkClick}>
                         <Settings className="h-5 w-5 mr-3" />
                         Settings
                     </NavLink>

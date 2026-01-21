@@ -118,6 +118,10 @@ function App() {
                 <Route path="email" element={<EmployeeEmailPage />} />
                 <Route path="complaints" element={<EmployeeComplaintsPage />} />
                 <Route path="resign" element={<EmployeeResignationPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/support" element={<SupportPage />} />
+                <Route path="/account" element={<AccountPage />} />
+                <Route path="/support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
             </Route>
 
             {/* HR PUBLIC ROUTES */}
@@ -143,8 +147,12 @@ function App() {
                 <Route path="complaints" element={<ComplaintsPage />} />
                 <Route path="/hr/complaints/:id" element={<ComplaintDetailPage />} />
                 {/* Reuse TerminationsPage logic for Resignations if desired, or duplicate component */}
-                 <Route path="resignations" element={<ResignationsPage />} />
-                 <Route path="announcements" element={<AnnouncementsPage />} />
+                <Route path="resignations" element={<ResignationsPage />} />
+                <Route path="announcements" element={<AnnouncementsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/support" element={<SupportPage />} />
+                <Route path="/support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
+                <Route path="/account" element={<AccountPage />} />
             </Route>
 
             {/* ✅ Legal Auth Routes */}
@@ -162,6 +170,10 @@ function App() {
               >
                 {/* Dashboard Overview */}
                 <Route path="dashboard" element={<LegalCategoryPage isOverview={true} />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="support" element={<SupportPage />} />
+                <Route path="support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
+                <Route path="account" element={<AccountPage />} />
                 
                 {/* ✅ FIXED: Added categoryProp to these routes */}
                 <Route path="contracts" element={<LegalCategoryPage categoryProp="contracts" />} />
@@ -205,6 +217,10 @@ function App() {
               <Route path="site-visits/:visitId" element={<AdminSiteVisitDetailPage />} />
               <Route path="assistance" element={<AdminAssistancePage />} />
               <Route path="assistance/:requestId" element={<AdminAssistanceDetailPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/support" element={<SupportPage />} />
+              <Route path="/support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
+              <Route path="/account" element={<AccountPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />
