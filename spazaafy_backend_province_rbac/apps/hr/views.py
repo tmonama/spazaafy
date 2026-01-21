@@ -738,18 +738,24 @@ class EmployeePortalViewSet(viewsets.ViewSet):
     def resign(self, request):
         try:
             employee = request.user.employee_profile
+            
+            # Get Data
             reason = request.data.get('reason')
             date = request.data.get('date')
+            exit_type = request.data.get('type', 'RESIGNATION') # 'RESIGNATION' or 'RETIREMENT'
+
+            # Prepend type to reason for storage (Simple solution without DB migration)
+            formatted_reason = f"[{exit_type}] {reason}"
             
             employee.status = 'RESIGNATION_REQUESTED'
-            employee.resignation_reason = reason
+            employee.resignation_reason = formatted_reason
             employee.resignation_date = date
             employee.save()
             
-            # Notify HR via Email
+            # Notify HR
             send_mail(
-                subject=f"Resignation Request: {employee.first_name} {employee.last_name}",
-                message=f"Reason: {reason}\nProposed Date: {date}",
+                subject=f"{exit_type.title()} Request: {employee.first_name} {employee.last_name}",
+                message=f"Type: {exit_type}\nReason: {reason}\nProposed Date: {date}",
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=['hr@spazaafy.co.za'],
                 fail_silently=True

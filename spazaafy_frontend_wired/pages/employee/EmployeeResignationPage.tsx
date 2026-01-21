@@ -3,7 +3,7 @@ import { employeeApi } from '../../api/employeeApi';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
-import { AlertTriangle, Calendar, FileWarning } from 'lucide-react';
+import { AlertTriangle, FileWarning } from 'lucide-react';
 
 const EmployeeResignationPage: React.FC = () => {
     const token = sessionStorage.getItem('access') || '';
@@ -13,6 +13,7 @@ const EmployeeResignationPage: React.FC = () => {
     // Form State
     const [date, setDate] = useState('');
     const [reason, setReason] = useState('');
+    const [type, setType] = useState('RESIGNATION'); // New State
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
@@ -21,12 +22,17 @@ const EmployeeResignationPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!window.confirm("Are you sure you want to submit a formal resignation request?")) return;
+        const confirmMsg = type === 'RETIREMENT' 
+            ? "Are you sure you want to submit a formal retirement request?" 
+            : "Are you sure you want to submit a formal resignation request?";
+
+        if (!window.confirm(confirmMsg)) return;
         
         setSubmitting(true);
         try {
-            await employeeApi.submitResignation({ date, reason }, token);
-            alert("Resignation Request Submitted to HR.");
+            // Pass the type along with date and reason
+            await employeeApi.submitResignation({ date, reason, type }, token);
+            alert("Request Submitted to HR.");
             window.location.reload();
         } catch (e) {
             alert("Failed to submit request.");
@@ -48,7 +54,7 @@ const EmployeeResignationPage: React.FC = () => {
                     <FileWarning className="w-16 h-16 text-yellow-600 mx-auto mb-4" />
                     <h2 className="text-xl font-bold text-yellow-800">Request Under Review</h2>
                     <p className="text-yellow-700 mt-2">
-                        You have already submitted a resignation request. <br/>
+                        You have already submitted a request. <br/>
                         Current Status: <strong>{emp.status.replace('_', ' ')}</strong>
                     </p>
                     {emp.resignation_date && (
@@ -68,6 +74,19 @@ const EmployeeResignationPage: React.FC = () => {
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Request Type Selection */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Request Type</label>
+                            <select 
+                                className="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                value={type}
+                                onChange={e => setType(e.target.value)}
+                            >
+                                <option value="RESIGNATION">Resignation (Voluntary Exit)</option>
+                                <option value="RETIREMENT">Retirement</option>
+                            </select>
+                        </div>
+
                         <Input 
                             id="date" 
                             type="date" 
@@ -78,20 +97,20 @@ const EmployeeResignationPage: React.FC = () => {
                         />
                         
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Leaving</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Reason / Comments</label>
                             <textarea 
                                 className="w-full border rounded-md p-3 focus:ring-2 focus:ring-blue-500 outline-none" 
                                 rows={5}
                                 value={reason}
                                 onChange={e => setReason(e.target.value)}
-                                placeholder="Please provide details..."
+                                placeholder={`Please provide details regarding your ${type.toLowerCase()}...`}
                                 required
                             />
                         </div>
 
                         <div className="flex justify-end">
                             <Button type="submit" disabled={submitting} variant="danger" className="w-full sm:w-auto">
-                                {submitting ? "Submitting..." : "Submit Resignation Request"}
+                                {submitting ? "Submitting..." : `Submit ${type === 'RETIREMENT' ? 'Retirement' : 'Resignation'} Request`}
                             </Button>
                         </div>
                     </form>
