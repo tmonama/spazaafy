@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { hrApi } from '../../api/hrApi';
 import Card from '../../components/Card';
-import { AlertCircle, CheckCircle, User, Clock, FileText, ChevronRight } from 'lucide-react';
+import { AlertCircle, User, Clock, FileText, ChevronRight } from 'lucide-react';
 
 const ComplaintsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -62,10 +62,11 @@ const ComplaintsPage: React.FC = () => {
 
             <div className="grid gap-4">
                 {filtered.map(c => (
+                    // ✅ NAVIGATION LOGIC HERE
                     <div 
                         key={c.id} 
                         onClick={() => navigate(`/hr/complaints/${c.id}`)}
-                        className="group cursor-pointer"
+                        className="group cursor-pointer block"
                     >
                         <Card className="p-5 hover:shadow-md transition-shadow border-l-4 border-l-transparent hover:border-l-purple-500">
                             <div className="flex flex-col md:flex-row justify-between gap-4 items-center">
@@ -98,7 +99,8 @@ const ComplaintsPage: React.FC = () => {
                                     </div>
                                 </div>
                                 
-                                <div className="text-gray-300 group-hover:text-purple-600 transition-colors">
+                                {/* Arrow Icon */}
+                                <div className="text-gray-300 group-hover:text-purple-600 transition-colors p-2 rounded-full group-hover:bg-purple-50">
                                     <ChevronRight size={24} />
                                 </div>
                             </div>
