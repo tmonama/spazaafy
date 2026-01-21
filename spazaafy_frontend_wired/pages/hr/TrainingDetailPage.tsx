@@ -39,13 +39,13 @@ const TrainingDetailPage: React.FC = () => {
         description: '',
         date_time: '',
         is_compulsory: false,
-        target_departments: [] as string[] // ✅ Added target departments
+        target_departments: [] as string[]
     });
 
     // Attendance States
     const [allEmployees, setAllEmployees] = useState<any[]>([]);
     const [filteredEmployees, setFilteredEmployees] = useState<any[]>([]);
-    const [showAllEmployees, setShowAllEmployees] = useState(false); // Toggle for filter
+    const [showAllEmployees, setShowAllEmployees] = useState(false);
     const [selectedAttendees, setSelectedAttendees] = useState<Set<string>>(new Set());
     const [submitting, setSubmitting] = useState(false);
 
@@ -109,29 +109,41 @@ const TrainingDetailPage: React.FC = () => {
     // Handle Open Attendance Modal
     const handleOpenAttendance = async () => {
         setIsAttendanceOpen(true);
-        setShowAllEmployees(false); // Default to "Signed Up Only"
+        setShowAllEmployees(false); // Reset to "Signed Up Only"
 
         // Load employees if not loaded
         if (allEmployees.length === 0) {
             try {
                 const employees = await hrApi.getEmployees(token);
                 setAllEmployees(employees);
+                // We pass 'false' explicitly here to ensure correct initial filter state
                 filterEmployees(employees, false);
             } catch (error) {
                 console.error("Failed to load employees", error);
             }
         } else {
+            // If already loaded, just re-filter
             filterEmployees(allEmployees, false);
         }
     };
 
-    // ✅ Filter Logic: Match Signups to Employees
+    // ✅ FIXED Filter Logic
     const filterEmployees = (employees: any[], showAll: boolean) => {
-        if (showAll || !session?.signups || session.signups.length === 0) {
+        // 1. If "Show All" is checked, always show everyone
+        if (showAll) {
             setFilteredEmployees(employees);
             return;
         }
 
+        // 2. If "Signed Up Only" is checked...
+        
+        // If there are NO signups at all, show NO ONE (Empty list)
+        if (!session?.signups || session.signups.length === 0) {
+            setFilteredEmployees([]); 
+            return;
+        }
+
+        // 3. Match logic
         const signupNames = new Set(session.signups.map((s: any) => s.name.toLowerCase().trim()));
         
         const matched = employees.filter(emp => {
@@ -374,7 +386,7 @@ const TrainingDetailPage: React.FC = () => {
                                 />
                             </div>
                             
-                            {/* ✅ Target Departments Selection */}
+                            {/* Target Departments Selection */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Who is this training for?</label>
                                 <div className="space-y-2 max-h-40 overflow-y-auto border p-2 rounded bg-gray-50">
@@ -432,7 +444,7 @@ const TrainingDetailPage: React.FC = () => {
                             </button>
                         </div>
 
-                        {/* ✅ Filter Controls */}
+                        {/* Filter Controls */}
                         <div className="px-6 py-2 bg-white border-b flex items-center justify-between">
                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                 <Filter size={16} />
