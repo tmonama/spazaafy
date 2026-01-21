@@ -56,6 +56,7 @@ import OnboardingPage from './pages/hr/OnboardingPage';
 import TerminationsPage from './pages/hr/TerminationsPage'; // ✅ New
 import ComplaintsPage from './pages/hr/ComplaintsPage'; 
 import ResignationsPage from './pages/hr/ResignationsPage'; 
+import ComplaintDetailPage from './pages/hr/ComplaintDetailPage';
 
 // Public Forms
 import JobRequestForm from './pages/JobRequestForm';
@@ -116,6 +117,7 @@ function App() {
                 <Route path="profile" element={<EmployeeProfilePage />} />
                 <Route path="email" element={<EmployeeEmailPage />} />
                 <Route path="complaints" element={<EmployeeComplaintsPage />} />
+                <Route path="/hr/complaints/:id" element={<ComplaintDetailPage />} />
                 <Route path="resign" element={<EmployeeResignationPage />} />
             </Route>
 
