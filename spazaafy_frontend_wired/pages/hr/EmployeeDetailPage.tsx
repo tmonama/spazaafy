@@ -7,7 +7,7 @@ import Modal from '../../components/Modal';
 import Input from '../../components/Input';
 import { 
     ArrowLeft, Mail, Phone, Briefcase, Upload, FileText, 
-    CheckCircle, XCircle, RefreshCcw, AlertTriangle, Calendar, UserMinus
+    CheckCircle, XCircle, RefreshCcw, AlertTriangle, Calendar, UserMinus, Award
 } from 'lucide-react';
 
 const EmployeeDetailPage: React.FC = () => {
@@ -21,7 +21,7 @@ const EmployeeDetailPage: React.FC = () => {
     // Modal State
     const [modalType, setModalType] = useState<'RESIGN' | null>(null);
     const [resignReason, setResignReason] = useState('');
-    const [noticeDays, setNoticeDays] = useState(30); // Default 30 days notice
+    const [noticeDays, setNoticeDays] = useState(30);
 
     const fetchData = async () => {
         setLoading(true);
@@ -46,15 +46,11 @@ const EmployeeDetailPage: React.FC = () => {
         fetchData();
     };
 
-    // Handle Standard Status Changes
     const handleStatusChange = async (newStatus: string) => {
-        // If Resigning, open the modal instead of immediate API call
         if (newStatus === 'RESIGNED') {
             setModalType('RESIGN');
             return;
         }
-        
-        // Confirmation for other actions
         if (newStatus === 'SUSPENDED') {
             if(!window.confirm("Are you sure you want to suspend this employee?")) return;
         }
@@ -73,15 +69,12 @@ const EmployeeDetailPage: React.FC = () => {
         }
     };
 
-    // Submit Resignation Logic (Sets status to NOTICE)
     const submitResignation = async () => {
         if (!resignReason.trim()) {
             alert("Please provide a reason.");
             return;
         }
-
         try {
-            // We set status to NOTICE (Notice Period) and pass extra data
             await hrApi.updateEmployeeStatus(id!, 'NOTICE', token, { 
                 reason: resignReason, 
                 notice_days: noticeDays 
@@ -94,7 +87,6 @@ const EmployeeDetailPage: React.FC = () => {
         }
     };
 
-    // Handle Termination Flow
     const handleTerminate = async () => {
         const reason = prompt("Please provide a strong legal reason for termination request:");
         if (!reason) return;
@@ -122,14 +114,13 @@ const EmployeeDetailPage: React.FC = () => {
     if (loading) return <div className="p-8 text-center text-gray-500">Loading Profile...</div>;
     if (!emp) return <div className="p-8 text-center text-red-500">Employee not found.</div>;
 
-    // Status Badge Color Helper
     const getStatusColor = (status: string) => {
         const colors: Record<string, string> = {
             'ONBOARDING': 'bg-blue-100 text-blue-800',
             'EMPLOYED': 'bg-green-100 text-green-800',
             'SUSPENDED': 'bg-red-100 text-red-800',
             'NOTICE': 'bg-orange-100 text-orange-800',
-            'NOTICE_GIVEN': 'bg-orange-100 text-orange-800', // Legal approved termination notice
+            'NOTICE_GIVEN': 'bg-orange-100 text-orange-800',
             'RESIGNED': 'bg-gray-200 text-gray-600',
             'RETIRED': 'bg-purple-100 text-purple-800',
             'TERMINATED': 'bg-black text-white',
@@ -160,7 +151,6 @@ const EmployeeDetailPage: React.FC = () => {
                                 <span className="text-gray-400 text-4xl font-bold">{emp.first_name[0]}{emp.last_name[0]}</span>
                             )}
                         </div>
-                        {/* Upload Overlay */}
                         <label className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                             <Upload className="text-white" size={28} />
                             <input type="file" className="hidden" onChange={handlePhotoUpload} accept="image/*" />
@@ -213,6 +203,35 @@ const EmployeeDetailPage: React.FC = () => {
                         </div>
                     </Card>
 
+                    {/* ✅ Training & Qualifications (NEW SECTION) */}
+                    <Card className="p-6">
+                        <h3 className="text-lg font-bold mb-4 border-b pb-2 text-gray-800 flex items-center">
+                            <Award size={20} className="mr-2 text-purple-600" />
+                            Training & Qualifications
+                        </h3>
+                        {emp.trainings_attended && emp.trainings_attended.length > 0 ? (
+                            <div className="space-y-3">
+                                {emp.trainings_attended.map((t: any) => (
+                                    <div key={t.id} className="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-100 hover:bg-gray-100 transition">
+                                        <div>
+                                            <p className="font-semibold text-sm text-gray-900">{t.title}</p>
+                                            <p className="text-xs text-gray-500">
+                                                {new Date(t.date_time).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        <span className="text-[10px] font-bold px-2 py-1 bg-green-100 text-green-700 rounded-full border border-green-200">
+                                            COMPLETED
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-4 bg-gray-50 rounded border border-dashed border-gray-300">
+                                <p className="text-sm text-gray-500 italic">No training records found.</p>
+                            </div>
+                        )}
+                    </Card>
+
                     {/* Documents */}
                     <Card className="p-6">
                          <h3 className="text-lg font-bold mb-4 border-b pb-2 text-gray-800">Documents</h3>
@@ -223,10 +242,13 @@ const EmployeeDetailPage: React.FC = () => {
                                 </div>
                                 <span className="text-sm font-medium text-gray-900">Original Job Application / CV</span>
                              </div>
-                             {/* Link to CV if available via Application (You would need to wire this if Employee model has CV link directly) */}
-                             <button className="text-blue-600 text-xs font-bold hover:underline bg-blue-50 px-3 py-1 rounded">
-                                View
-                             </button>
+                             {emp.cv_url ? (
+                                <a href={emp.cv_url} target="_blank" rel="noreferrer" className="text-blue-600 text-xs font-bold hover:underline bg-blue-50 px-3 py-1 rounded">
+                                    View
+                                </a>
+                             ) : (
+                                <span className="text-xs text-gray-400">Not Available</span>
+                             )}
                          </div>
                     </Card>
 
@@ -234,7 +256,6 @@ const EmployeeDetailPage: React.FC = () => {
                     <Card className="p-6">
                         <h3 className="text-lg font-bold mb-4 border-b pb-2 text-gray-800">Management Actions</h3>
                         
-                        {/* Onboarding Logic */}
                         {emp.status === 'ONBOARDING' && (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                                 <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleStatusChange('EMPLOYED')}>
@@ -250,17 +271,12 @@ const EmployeeDetailPage: React.FC = () => {
                             <Button variant="outline" onClick={() => handleStatusChange('SUSPENDED')}>
                                 Suspend
                             </Button>
-                            
-                            {/* Resign Button triggers Modal */}
                             <Button variant="outline" onClick={() => handleStatusChange('RESIGNED')}>
                                 <UserMinus size={16} className="mr-2"/> Resign
                             </Button>
-                            
                             <Button variant="outline" onClick={() => handleStatusChange('RETIRED')}>
                                 Retire
                             </Button>
-
-                            {/* Restore Button */}
                             {emp.status !== 'EMPLOYED' && emp.status !== 'ONBOARDING' && (
                                 <Button variant="secondary" onClick={() => handleStatusChange('EMPLOYED')}>
                                     <RefreshCcw size={16} className="mr-2"/> Restore
@@ -277,7 +293,7 @@ const EmployeeDetailPage: React.FC = () => {
                         
                         {emp.status === 'EMPLOYED' || emp.status === 'SUSPENDED' ? (
                             <div>
-                                <p className="text-sm text-gray-600 mb-3">Initiating termination will send a request to the Legal Department for review. The employee status will change to "Pending Termination".</p>
+                                <p className="text-sm text-gray-600 mb-3">Initiating termination will send a request to the Legal Department for review.</p>
                                 <Button variant="danger" onClick={handleTerminate} className="w-full">
                                     Initiate Termination (Send to Legal)
                                 </Button>
@@ -298,20 +314,18 @@ const EmployeeDetailPage: React.FC = () => {
                             </div>
                         ) : (
                             <p className="text-gray-400 text-sm italic text-center">
-                                Termination actions unavailable in current status ({emp.status.replace('_', ' ')}).
+                                Termination actions unavailable in current status.
                             </p>
                         )}
                     </Card>
                 </div>
             </div>
 
-            {/* RESIGNATION MODAL */}
             <Modal isOpen={modalType === 'RESIGN'} onClose={() => setModalType(null)} title="Process Resignation">
                 <div className="space-y-4">
                     <div className="bg-orange-50 p-3 rounded text-sm text-orange-800 border border-orange-200">
                         <p>The employee will enter a <strong>Notice Period</strong>. The status will change to 'NOTICE'.</p>
                     </div>
-                    
                     <Input 
                         type="number" 
                         id="days"
@@ -319,7 +333,6 @@ const EmployeeDetailPage: React.FC = () => {
                         value={noticeDays} 
                         onChange={e => setNoticeDays(Number(e.target.value))} 
                     />
-                    
                     <div>
                         <label className="block text-sm font-medium mb-1 text-gray-700">Reason for Resignation</label>
                         <textarea 
@@ -327,10 +340,8 @@ const EmployeeDetailPage: React.FC = () => {
                             rows={3} 
                             value={resignReason} 
                             onChange={e => setResignReason(e.target.value)}
-                            placeholder="e.g. Found new opportunity, relocating..."
                         />
                     </div>
-
                     <div className="pt-2">
                         <Button onClick={submitResignation} className="w-full">Confirm Resignation</Button>
                     </div>

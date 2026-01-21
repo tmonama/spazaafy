@@ -36,6 +36,7 @@ class JobApplicationSerializer(serializers.ModelSerializer):
 class EmployeeSerializer(serializers.ModelSerializer):
     photo_url = serializers.ImageField(source='profile_picture', read_only=True)
     cv_url = serializers.SerializerMethodField()
+    trainings_attended = TrainingSessionSummarySerializer(many=True, read_only=True)
     class Meta:
         model = Employee
         fields = '__all__'

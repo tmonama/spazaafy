@@ -132,6 +132,13 @@ export const hrApi = {
             body: JSON.stringify(data)
         });
     },
+    updateTrainingSession: async (id: string, data: any, token: string) => {
+        return request(`/hr/admin/training/${id}/`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(data)
+        });
+    },
     markAttendance: async (sessionId: string, employeeIds: string[], token: string) => {
         return request(`/hr/admin/training/${sessionId}/mark_attendance/`, {
             method: 'POST',
