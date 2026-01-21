@@ -732,7 +732,6 @@ class EmployeePortalViewSet(viewsets.ViewSet):
             
             return Response(AnnouncementSerializer(relevant_anns[:10], many=True).data)
         except Employee.DoesNotExist:
-            print(f"Error filing complaint: {e}")
             return Response([])
 
     # POST /api/hr/portal/resign/
@@ -783,6 +782,7 @@ class EmployeePortalViewSet(viewsets.ViewSet):
             )
             return Response({'status': 'Complaint Filed'})
         except:
+             print(f"Error filing complaint: {e}")
              return Response({"detail": "Error"}, 400)
         
 class AnnouncementViewSet(viewsets.ModelViewSet):
