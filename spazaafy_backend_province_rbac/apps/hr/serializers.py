@@ -12,6 +12,11 @@ ALLOWED_EMPLOYEE_EXCEPTIONS = [
     'thakgalangmonama@gmail.com',
 ]
 
+class TrainingSessionSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TrainingSession
+        fields = ['id', 'title', 'date_time', 'status']
+
 class HiringRequestSerializer(serializers.ModelSerializer):
     application_count = serializers.IntegerField(source='applications.count', read_only=True)
     class Meta:
