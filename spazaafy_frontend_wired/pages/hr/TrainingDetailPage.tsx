@@ -5,8 +5,20 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import { 
     Calendar, Users, Copy, CheckCircle, ArrowLeft, 
-    Link as LinkIcon, X, Save, Edit3, UserCheck 
+    Link as LinkIcon, X, Edit3, UserCheck, Filter
 } from 'lucide-react';
+
+const DEPARTMENTS = [
+    { id: 'EXECUTIVE', label: 'Executive & Leadership' },
+    { id: 'TECH', label: 'Technology & Development' },
+    { id: 'FINANCE', label: 'Finance & Administration' },
+    { id: 'LEGAL', label: 'Legal & Compliance' },
+    { id: 'SUPPORT', label: 'Customer Support' },
+    { id: 'FIELD', label: 'Field Operations' },
+    { id: 'COMMUNITY', label: 'Community Engagement' },
+    { id: 'MEDIA', label: 'Media & Content' },
+    { id: 'HR', label: 'HR & Training' },
+];
 
 const TrainingDetailPage: React.FC = () => {
     const { sessionId } = useParams();
@@ -26,10 +38,14 @@ const TrainingDetailPage: React.FC = () => {
         title: '',
         description: '',
         date_time: '',
-        is_compulsory: false
+        is_compulsory: false,
+        target_departments: [] as string[] // ✅ Added target departments
     });
 
+    // Attendance States
     const [allEmployees, setAllEmployees] = useState<any[]>([]);
+    const [filteredEmployees, setFilteredEmployees] = useState<any[]>([]);
+    const [showAllEmployees, setShowAllEmployees] = useState(false); // Toggle for filter
     const [selectedAttendees, setSelectedAttendees] = useState<Set<string>>(new Set());
     const [submitting, setSubmitting] = useState(false);
 
@@ -44,11 +60,11 @@ const TrainingDetailPage: React.FC = () => {
                 setEditForm({
                     title: data.title,
                     description: data.description,
-                    date_time: data.date_time.slice(0, 16), // Format for datetime-local
-                    is_compulsory: data.is_compulsory
+                    date_time: data.date_time.slice(0, 16),
+                    is_compulsory: data.is_compulsory,
+                    target_departments: data.target_departments || []
                 });
                 
-                // Pre-fill attendance if already marked
                 if(data.attendees && data.attendees.length > 0) {
                    setSelectedAttendees(new Set(data.attendees));
                 }
@@ -69,7 +85,7 @@ const TrainingDetailPage: React.FC = () => {
         try {
             await hrApi.updateTrainingSession(session.id, editForm, token);
             setIsEditOpen(false);
-            fetchSession(); // Refresh data
+            fetchSession();
         } catch (error) {
             console.error(error);
             alert('Failed to update session');
@@ -78,21 +94,62 @@ const TrainingDetailPage: React.FC = () => {
         }
     };
 
+    // Toggle Department in Edit Form
+    const toggleDepartment = (deptId: string) => {
+        setEditForm(prev => {
+            const current = prev.target_departments;
+            if (current.includes(deptId)) {
+                return { ...prev, target_departments: current.filter(d => d !== deptId) };
+            } else {
+                return { ...prev, target_departments: [...current, deptId] };
+            }
+        });
+    };
+
     // Handle Open Attendance Modal
     const handleOpenAttendance = async () => {
         setIsAttendanceOpen(true);
+        setShowAllEmployees(false); // Default to "Signed Up Only"
+
         // Load employees if not loaded
         if (allEmployees.length === 0) {
             try {
                 const employees = await hrApi.getEmployees(token);
                 setAllEmployees(employees);
+                filterEmployees(employees, false);
             } catch (error) {
                 console.error("Failed to load employees", error);
             }
+        } else {
+            filterEmployees(allEmployees, false);
         }
     };
 
-    // Toggle Employee Attendance
+    // ✅ Filter Logic: Match Signups to Employees
+    const filterEmployees = (employees: any[], showAll: boolean) => {
+        if (showAll || !session?.signups || session.signups.length === 0) {
+            setFilteredEmployees(employees);
+            return;
+        }
+
+        const signupNames = new Set(session.signups.map((s: any) => s.name.toLowerCase().trim()));
+        
+        const matched = employees.filter(emp => {
+            const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase().trim();
+            return signupNames.has(fullName);
+        });
+
+        setFilteredEmployees(matched);
+    };
+
+    // Watch toggle change
+    useEffect(() => {
+        if (isAttendanceOpen) {
+            filterEmployees(allEmployees, showAllEmployees);
+        }
+    }, [showAllEmployees, allEmployees]);
+
+
     const toggleAttendance = (empId: string) => {
         const newSet = new Set(selectedAttendees);
         if (newSet.has(empId)) {
@@ -103,15 +160,14 @@ const TrainingDetailPage: React.FC = () => {
         setSelectedAttendees(newSet);
     };
 
-    // Submit Attendance
     const handleSubmitAttendance = async () => {
         if (!session) return;
         setSubmitting(true);
         try {
             await hrApi.markAttendance(session.id, Array.from(selectedAttendees), token);
             setIsAttendanceOpen(false);
-            fetchSession(); // Refresh to update status
-            alert("Attendance recorded successfully. Profiles updated.");
+            fetchSession(); 
+            alert("Attendance recorded successfully.");
         } catch (error) {
             console.error(error);
             alert("Failed to record attendance");
@@ -120,7 +176,6 @@ const TrainingDetailPage: React.FC = () => {
         }
     };
 
-    // Utils
     const copyToClipboard = () => {
         if (!session) return;
         const link = `${window.location.origin}/training/signup?session=${session.id}`;
@@ -129,11 +184,10 @@ const TrainingDetailPage: React.FC = () => {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    // Helper to check if employee signed up (visual aid)
     const hasSignedUp = (employee: any) => {
         if (!session?.signups) return false;
-        const fullName = `${employee.first_name} ${employee.last_name}`.toLowerCase();
-        return session.signups.some((s: any) => s.name.toLowerCase() === fullName);
+        const fullName = `${employee.first_name} ${employee.last_name}`.toLowerCase().trim();
+        return session.signups.some((s: any) => s.name.toLowerCase().trim() === fullName);
     };
 
     if (loading) return <div className="p-8 text-center text-gray-500">Loading details...</div>;
@@ -174,16 +228,25 @@ const TrainingDetailPage: React.FC = () => {
                             </span>
                         </div>
 
-                        <div className="prose max-w-none text-gray-700">
+                        <div className="prose max-w-none text-gray-700 mb-4">
                             <h3 className="text-lg font-semibold mb-2">Description</h3>
                             <p className="whitespace-pre-wrap">{session.description}</p>
                         </div>
 
-                        {session.is_compulsory && (
-                            <div className="mt-4 inline-flex items-center px-3 py-1 rounded-md bg-red-50 text-red-700 border border-red-200 text-sm font-medium">
-                                ⚠️ This training is Compulsory
-                            </div>
-                        )}
+                        <div className="flex flex-wrap gap-2">
+                             {session.target_departments && session.target_departments.length > 0 && (
+                                session.target_departments.map((dept: string) => (
+                                    <span key={dept} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded border border-gray-200">
+                                        {DEPARTMENTS.find(d => d.id === dept)?.label || dept}
+                                    </span>
+                                ))
+                             )}
+                             {session.is_compulsory && (
+                                <span className="px-2 py-1 bg-red-50 text-red-700 text-xs rounded border border-red-200 font-bold">
+                                    Compulsory
+                                </span>
+                             )}
+                        </div>
                     </Card>
 
                     <Card className="p-6">
@@ -227,7 +290,6 @@ const TrainingDetailPage: React.FC = () => {
 
                 {/* RIGHT COLUMN: Actions */}
                 <div className="space-y-6">
-                    {/* Share Card */}
                     <Card className="p-6 bg-gradient-to-br from-purple-50 to-white border-purple-100">
                         <h3 className="text-sm font-bold text-purple-900 uppercase tracking-wide mb-2 flex items-center">
                             <LinkIcon size={16} className="mr-2" /> Share Link
@@ -239,17 +301,12 @@ const TrainingDetailPage: React.FC = () => {
                             <code className="flex-1 bg-white border border-purple-200 p-2 rounded text-xs text-gray-600 truncate">
                                 {window.location.origin}/training/signup?session={session.id}
                             </code>
-                            <Button 
-                                size="sm" 
-                                onClick={copyToClipboard} 
-                                className={copied ? "bg-green-600 hover:bg-green-700" : ""}
-                            >
+                            <Button size="sm" onClick={copyToClipboard} className={copied ? "bg-green-600" : ""}>
                                 {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
                             </Button>
                         </div>
                     </Card>
 
-                    {/* Admin Actions */}
                     <Card className="p-6">
                         <h3 className="font-bold text-gray-900 mb-4">Management Actions</h3>
                         <div className="space-y-3">
@@ -278,14 +335,14 @@ const TrainingDetailPage: React.FC = () => {
             {/* --- MODAL: Edit Session --- */}
             {isEditOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden">
-                        <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50 flex-shrink-0">
                             <h3 className="font-bold text-lg">Edit Session</h3>
                             <button onClick={() => setIsEditOpen(false)} className="text-gray-400 hover:text-gray-600">
                                 <X size={20} />
                             </button>
                         </div>
-                        <form onSubmit={handleEditSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                        <form onSubmit={handleEditSubmit} className="p-6 space-y-4 overflow-y-auto">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                                 <input 
@@ -316,7 +373,29 @@ const TrainingDetailPage: React.FC = () => {
                                     onChange={e => setEditForm({...editForm, description: e.target.value})}
                                 />
                             </div>
-                            <div className="flex items-center">
+                            
+                            {/* ✅ Target Departments Selection */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Who is this training for?</label>
+                                <div className="space-y-2 max-h-40 overflow-y-auto border p-2 rounded bg-gray-50">
+                                    {DEPARTMENTS.map(dept => (
+                                        <div key={dept.id} className="flex items-center">
+                                            <input 
+                                                type="checkbox" 
+                                                id={`dept-${dept.id}`}
+                                                className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                                checked={editForm.target_departments.includes(dept.id)}
+                                                onChange={() => toggleDepartment(dept.id)}
+                                            />
+                                            <label htmlFor={`dept-${dept.id}`} className="ml-2 text-sm text-gray-900 cursor-pointer">
+                                                {dept.label}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center pt-2">
                                 <input 
                                     type="checkbox" 
                                     id="isCompulsory"
@@ -324,12 +403,12 @@ const TrainingDetailPage: React.FC = () => {
                                     checked={editForm.is_compulsory}
                                     onChange={e => setEditForm({...editForm, is_compulsory: e.target.checked})}
                                 />
-                                <label htmlFor="isCompulsory" className="ml-2 block text-sm text-gray-900">
+                                <label htmlFor="isCompulsory" className="ml-2 block text-sm font-bold text-gray-900">
                                     Mark as Compulsory Training
                                 </label>
                             </div>
                         </form>
-                        <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+                        <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 flex-shrink-0">
                             <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
                             <Button onClick={handleEditSubmit} disabled={submitting}>
                                 {submitting ? 'Saving...' : 'Save Changes'}
@@ -352,21 +431,47 @@ const TrainingDetailPage: React.FC = () => {
                                 <X size={20} />
                             </button>
                         </div>
+
+                        {/* ✅ Filter Controls */}
+                        <div className="px-6 py-2 bg-white border-b flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Filter size={16} />
+                                <span>
+                                    Showing: <strong>{showAllEmployees ? 'All Employees' : 'Signed Up Only'}</strong>
+                                </span>
+                            </div>
+                            <button 
+                                onClick={() => setShowAllEmployees(!showAllEmployees)}
+                                className="text-xs text-blue-600 hover:underline font-semibold"
+                            >
+                                {showAllEmployees ? 'Show Signed Up Only' : 'Show All Employees'}
+                            </button>
+                        </div>
                         
                         <div className="p-0 overflow-y-auto flex-grow bg-gray-50">
-                            {allEmployees.length === 0 ? (
+                            {loading ? (
                                 <div className="p-8 text-center text-gray-500">Loading employees...</div>
+                            ) : filteredEmployees.length === 0 ? (
+                                <div className="p-12 text-center text-gray-500 flex flex-col items-center">
+                                    <Users size={32} className="mb-2 text-gray-300" />
+                                    <p>No matching employees found.</p>
+                                    {!showAllEmployees && (
+                                        <button onClick={() => setShowAllEmployees(true)} className="text-blue-600 text-sm mt-2 hover:underline">
+                                            Try viewing all employees
+                                        </button>
+                                    )}
+                                </div>
                             ) : (
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-100 sticky top-0">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Attended</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Attended</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                        {allEmployees.map((emp) => {
+                                        {filteredEmployees.map((emp) => {
                                             const signedUp = hasSignedUp(emp);
                                             return (
                                                 <tr 
@@ -376,7 +481,6 @@ const TrainingDetailPage: React.FC = () => {
                                                 >
                                                     <td className="px-6 py-3 whitespace-nowrap">
                                                         <div className="flex items-center">
-                                                            {/* Simple Avatar Placeholder */}
                                                             <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 mr-3">
                                                                 {emp.first_name[0]}{emp.last_name[0]}
                                                             </div>
@@ -413,7 +517,7 @@ const TrainingDetailPage: React.FC = () => {
 
                         <div className="px-6 py-4 bg-gray-50 border-t flex-shrink-0 flex justify-between items-center">
                             <span className="text-sm text-gray-600">
-                                <b>{selectedAttendees.size}</b> employees selected
+                                <b>{selectedAttendees.size}</b> employees marked
                             </span>
                             <div className="flex gap-3">
                                 <Button variant="outline" onClick={() => setIsAttendanceOpen(false)}>Cancel</Button>
