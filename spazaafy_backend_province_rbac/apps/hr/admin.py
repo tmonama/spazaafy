@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Employee, HiringRequest, JobApplication, 
-    TrainingSession, TrainingSignup, HRComplaint, Announcement
+    TrainingSession, TrainingSignup, HRComplaint, Announcement, TimeCard, TimeEntry
 )
 
 @admin.register(Employee)
@@ -40,3 +40,17 @@ class HRComplaintAdmin(admin.ModelAdmin):
 @admin.register(Announcement)
 class AnnouncementAdmin(admin.ModelAdmin):
     list_display = ('title', 'date_posted', 'author')
+
+@admin.register(TimeCard)
+class TimeCardAdmin(admin.ModelAdmin):
+    list_display = ('employee', 'work_date', 'status', 'get_total_hours', 'updated_at')
+    list_filter = ('status', 'work_date')
+    search_fields = ('employee__first_name', 'employee__last_name', 'employee__email')
+
+    def get_total_hours(self, obj):
+        return obj.total_hours
+
+@admin.register(TimeEntry)
+class TimeEntryAdmin(admin.ModelAdmin):
+    list_display = ('timecard', 'task_name', 'minutes', 'created_at')
+    search_fields = ('task_name',)

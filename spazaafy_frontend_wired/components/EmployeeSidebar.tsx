@@ -11,7 +11,8 @@ import {
   LogOut, 
   LifeBuoy, 
   Settings, 
-  ArrowLeftCircle 
+  ArrowLeftCircle,
+  Clock
 } from 'lucide-react';
 
 const EmployeeSidebar: React.FC = () => {
@@ -82,6 +83,10 @@ const EmployeeSidebar: React.FC = () => {
         </NavLink>
         <NavLink to="/employee/profile" className={getNavLinkClass} onClick={handleLinkClick}>
             <User className="mr-3 h-5 w-5" /> My Profile
+        </NavLink>
+        <NavLink to="/employee/timecard" className={getNavLinkClass}>
+          <Clock className="h-5 w-5 mr-3" />
+          Time Card
         </NavLink>
         <NavLink to="/employee/email" className={getNavLinkClass} onClick={handleLinkClick}>
             <Mail className="mr-3 h-5 w-5" /> Email

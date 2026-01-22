@@ -48,5 +48,46 @@ export const employeeApi = {
             headers: { Authorization: `Bearer ${token}` },
             body: formData
         });
-    }
+    },
+
+    // --- TIME CARD ---
+
+    openTimeCard: async (token: string) => {
+    const res = await fetch('/api/hr/portal/open_timecard/', {
+        method: 'POST',
+        headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        },
+    });
+    return res.json();
+    },
+
+    addTimeEntry: async (timecardId: string, payload: any, token: string) => {
+    const res = await fetch(
+        `/api/hr/portal/timecard/${timecardId}/add_entry/`,
+        {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        }
+    );
+    return res.json();
+    },
+
+    sendTimeCardReport: async (payload: any, token: string) => {
+    const res = await fetch('/api/hr/portal/send_timecard_report/', {
+        method: 'POST',
+        headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+    return res.json();
+    },
+
 };

@@ -1,14 +1,15 @@
 from rest_framework import viewsets, generics, permissions, status
 from rest_framework.views import APIView
-from django.db.models import Q
+from django.db.models import Q, Sum
+from datetime import datetime, date, timedelta
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMessage
 from django.conf import settings
 from apps.legal.models import LegalRequest, LegalCategory, LegalUrgency
 from apps.accounts.models import AdminVerificationCode
-from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup, HRComplaint, Announcement
+from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup, HRComplaint, Announcement, TimeCard, TimeEntry
 from .serializers import (
     HiringRequestSerializer, 
     JobApplicationSerializer, 
@@ -18,10 +19,13 @@ from .serializers import (
     HRComplaintSerializer,
     AnnouncementSerializer,
     EmployeeRegisterRequestSerializer, 
-    EmployeeRegisterConfirmSerializer
+    EmployeeRegisterConfirmSerializer,
+    TimeCardSerializer, TimeEntrySerializer
 )
 import random
 import string
+import csv
+import io
 from apps.core.google_calendar import create_google_meet_event
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.contrib.auth import get_user_model
@@ -797,6 +801,167 @@ class EmployeePortalViewSet(viewsets.ViewSet):
              # ✅ This prints the REAL error to your terminal/logs
              print(f"Error filing complaint: {e}") 
              return Response({"detail": str(e)}, 400)
+        
+        # GET /api/hr/portal/timecards/
+    @action(detail=False, methods=['get'])
+    def timecards(self, request):
+        employee = request.user.employee_profile
+        qs = TimeCard.objects.filter(employee=employee).order_by('-work_date')[:31]
+        return Response(TimeCardSerializer(qs, many=True).data)
+
+    # POST /api/hr/portal/open_timecard/
+    @action(detail=False, methods=['post'])
+    def open_timecard(self, request):
+        employee = request.user.employee_profile
+        work_date_str = request.data.get('work_date')  # optional
+        if work_date_str:
+            work_date = datetime.strptime(work_date_str, "%Y-%m-%d").date()
+        else:
+            work_date = timezone.now().date()
+
+        card, _ = TimeCard.objects.get_or_create(employee=employee, work_date=work_date)
+        return Response(TimeCardSerializer(card).data)
+
+    # GET /api/hr/portal/timecard/<uuid:id>/
+    @action(detail=False, methods=['get'], url_path=r'timecard/(?P<pk>[^/.]+)')
+    def timecard_detail(self, request, pk=None):
+        employee = request.user.employee_profile
+        card = TimeCard.objects.get(id=pk, employee=employee)
+        return Response(TimeCardSerializer(card).data)
+
+    # POST /api/hr/portal/timecard/<uuid:id>/add_entry/
+    @action(detail=False, methods=['post'], url_path=r'timecard/(?P<pk>[^/.]+)/add_entry')
+    def add_time_entry(self, request, pk=None):
+        employee = request.user.employee_profile
+        card = TimeCard.objects.get(id=pk, employee=employee)
+
+        serializer = TimeEntrySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        TimeEntry.objects.create(
+            timecard=card,
+            task_name=serializer.validated_data['task_name'],
+            task_description=serializer.validated_data.get('task_description', ''),
+            minutes=serializer.validated_data['minutes']
+        )
+
+        card.refresh_from_db()
+        return Response(TimeCardSerializer(card).data)
+
+    # DELETE /api/hr/portal/timeentry/<uuid:id>/
+    @action(detail=False, methods=['delete'], url_path=r'timeentry/(?P<pk>[^/.]+)')
+    def delete_time_entry(self, request, pk=None):
+        employee = request.user.employee_profile
+        entry = TimeEntry.objects.get(id=pk, timecard__employee=employee)
+        entry.delete()
+        return Response({'status': 'deleted'})
+
+    # GET /api/hr/portal/timecards_summary/?period=week|month|year&date=YYYY-MM-DD
+    @action(detail=False, methods=['get'])
+    def timecards_summary(self, request):
+        employee = request.user.employee_profile
+        period = request.query_params.get('period', 'week')
+        date_str = request.query_params.get('date')
+
+        base_date = datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else timezone.now().date()
+
+        if period == 'day':
+            start = base_date
+            end = base_date
+        elif period == 'week':
+            start = base_date - timedelta(days=base_date.weekday())
+            end = start + timedelta(days=6)
+        elif period == 'month':
+            start = base_date.replace(day=1)
+            next_month = (start.replace(day=28) + timedelta(days=4)).replace(day=1)
+            end = next_month - timedelta(days=1)
+        else:  # year
+            start = base_date.replace(month=1, day=1)
+            end = base_date.replace(month=12, day=31)
+
+        cards = TimeCard.objects.filter(employee=employee, work_date__range=[start, end])
+
+        # total minutes
+        total_minutes = TimeEntry.objects.filter(timecard__in=cards).aggregate(s=Sum('minutes'))['s'] or 0
+
+        # breakdown by task_name
+        breakdown = (
+            TimeEntry.objects
+            .filter(timecard__in=cards)
+            .values('task_name')
+            .annotate(total_minutes=Sum('minutes'))
+            .order_by('-total_minutes')
+        )
+
+        return Response({
+            'period': period,
+            'start': start,
+            'end': end,
+            'total_minutes': total_minutes,
+            'total_hours': round(total_minutes / 60.0, 2),
+            'breakdown': list(breakdown),
+        })
+
+    # POST /api/hr/portal/send_timecard_report/
+    # body: { "email": "...", "period": "week|month|year", "date": "YYYY-MM-DD" }
+    @action(detail=False, methods=['post'])
+    def send_timecard_report(self, request):
+        employee = request.user.employee_profile
+        email_to = request.data.get('email')
+        period = request.data.get('period', 'week')
+        date_str = request.data.get('date')
+
+        if not email_to:
+            return Response({"detail": "Email is required."}, status=400)
+
+        base_date = datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else timezone.now().date()
+
+        # Reuse same period logic
+        if period == 'day':
+            start = base_date
+            end = base_date
+        elif period == 'week':
+            start = base_date - timedelta(days=base_date.weekday())
+            end = start + timedelta(days=6)
+        elif period == 'month':
+            start = base_date.replace(day=1)
+            next_month = (start.replace(day=28) + timedelta(days=4)).replace(day=1)
+            end = next_month - timedelta(days=1)
+        else:
+            start = base_date.replace(month=1, day=1)
+            end = base_date.replace(month=12, day=31)
+
+        cards = TimeCard.objects.filter(employee=employee, work_date__range=[start, end]).order_by('work_date')
+
+        # Build CSV in memory
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['work_date', 'task_name', 'task_description', 'minutes', 'hours'])
+
+        for card in cards:
+            for entry in card.entries.all():
+                writer.writerow([
+                    card.work_date.isoformat(),
+                    entry.task_name,
+                    entry.task_description or '',
+                    entry.minutes,
+                    round(entry.minutes / 60.0, 2)
+                ])
+
+        csv_bytes = output.getvalue().encode('utf-8')
+        filename = f"timecard_{employee.first_name}_{employee.last_name}_{start}_{end}.csv"
+
+        msg = EmailMessage(
+            subject=f"Time Card Report ({start} to {end})",
+            body=f"Attached is the time card report for {employee.first_name} {employee.last_name} ({start} to {end}).",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[email_to],
+        )
+        msg.attach(filename, csv_bytes, "text/csv")
+        msg.send(fail_silently=False)
+
+        return Response({'status': 'sent', 'email': email_to})
+
         
 class AnnouncementViewSet(viewsets.ModelViewSet):
     """

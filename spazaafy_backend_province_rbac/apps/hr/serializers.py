@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup, HRComplaint, Announcement
+from .models import HiringRequest, JobApplication, Employee, TrainingSession, TrainingSignup, HRComplaint, Announcement, TimeCard, TimeEntry
 from apps.accounts.models import AdminVerificationCode
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
@@ -134,3 +134,20 @@ class EmployeeRegisterConfirmSerializer(serializers.Serializer):
             
         validate_password(attrs.get('password'))
         return attrs
+    
+class TimeEntrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TimeEntry
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'timecard']
+
+
+class TimeCardSerializer(serializers.ModelSerializer):
+    entries = TimeEntrySerializer(many=True, read_only=True)
+    total_minutes = serializers.IntegerField(read_only=True)
+    total_hours = serializers.FloatField(read_only=True)
+
+    class Meta:
+        model = TimeCard
+        fields = '__all__'
+        read_only_fields = ['id', 'employee', 'created_at', 'updated_at']

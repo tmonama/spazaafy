@@ -183,3 +183,47 @@ class TrainingSignup(models.Model):
     name = models.CharField(max_length=255)
     department = models.CharField(max_length=50)
     submitted_at = models.DateTimeField(auto_now_add=True)
+
+
+# --- TIME CARD MODELS ---
+
+class TimeCardStatus(models.TextChoices):
+    DRAFT = 'DRAFT', 'Draft'
+    SUBMITTED = 'SUBMITTED', 'Submitted'
+
+class TimeCard(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='timecards')
+    work_date = models.DateField(default=timezone.now)
+
+    status = models.CharField(max_length=20, choices=TimeCardStatus.choices, default=TimeCardStatus.DRAFT)
+    notes = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('employee', 'work_date')
+        ordering = ['-work_date']
+
+    @property
+    def total_minutes(self):
+        return sum(e.minutes for e in self.entries.all())
+
+    @property
+    def total_hours(self):
+        return round(self.total_minutes / 60.0, 2)
+
+
+class TimeEntry(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    timecard = models.ForeignKey(TimeCard, on_delete=models.CASCADE, related_name='entries')
+
+    task_name = models.CharField(max_length=255)
+    task_description = models.TextField(blank=True, null=True)
+    minutes = models.PositiveIntegerField()  # store duration as minutes (simple + reliable)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']

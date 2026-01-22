@@ -75,6 +75,7 @@ import EmployeeResignationPage from './pages/employee/EmployeeResignationPage'; 
 import EmployeeRegisterPage from './pages/employee/EmployeeRegisterPage';
 import EmployeeLoginPage from './pages/employee/EmployeeLoginPage';
 import EmployeeComplaintsPage from './pages/employee/EmployeeComplaintsPage';
+import EmployeeTimeCardPage from './pages/employee/EmployeeTimeCardPage';
 
 import { UserRole } from './types';
 
@@ -120,6 +121,7 @@ function App() {
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<EmployeeDashboard />} />
                 <Route path="profile" element={<EmployeeProfilePage />} />
+                <Route path="/employee/timecard" element={<ProtectedRoute> <EmployeeTimeCardPage /></ProtectedRoute>}/>
                 <Route path="email" element={<EmployeeEmailPage />} />
                 <Route path="complaints" element={<EmployeeComplaintsPage />} />
                 <Route path="resign" element={<EmployeeResignationPage />} />
