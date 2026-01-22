@@ -1,30 +1,30 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import EmployeeSidebar from '../../components/EmployeeSidebar'; // Ensure you created this in previous steps
-import Header from '../../components/Header';
+import InternalHeader from '../../components/InternalHeader'; // ✅ Use the New Header
+import EmployeeSidebar from '../../components/EmployeeSidebar'; // ✅ Use Employee Sidebar
 import { SidebarProvider } from '../../components/SidebarContext';
-import { AlertsProvider } from '../../components/AlertsContext';
 
-const EmployeeLayoutContent: React.FC = () => {
-    return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <EmployeeSidebar />
-            <div className="lg:pl-64 transition-all duration-300 ease-in-out">
-                <Header />
-                <main className="p-4 sm:p-6 lg:p-8">
-                    <Outlet />
-                </main>
-            </div>
-        </div>
-    );
-};
-
-const EmployeeLayout: React.FC = () => (
+const EmployeeLayout: React.FC = () => {
+  return (
     <SidebarProvider>
-        <AlertsProvider>
-            <EmployeeLayoutContent />
-        </AlertsProvider>
+      <div className="flex h-screen bg-gray-100 dark:bg-dark-bg">
+        {/* Sidebar */}
+        <EmployeeSidebar />
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          
+          {/* ✅ The Internal Header */}
+          <InternalHeader />
+
+          {/* Page Content */}
+          <main className="flex-1 overflow-x-hidden overflow-y-auto">
+            <Outlet />
+          </main>
+        </div>
+      </div>
     </SidebarProvider>
-);
+  );
+};
 
 export default EmployeeLayout;
