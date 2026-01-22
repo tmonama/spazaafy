@@ -83,10 +83,10 @@ const LegalSidebar: React.FC = () => {
       </div>
       {/* Bottom Section */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-1">
-        <NavLink to="legal/support" className={getNavLinkClass} onClick={handleLinkClick}>
+        <NavLink to="/legal/support" className={getNavLinkClass} onClick={handleLinkClick}>
             <LifeBuoy className="h-5 w-5 mr-3" /> Tech Support
         </NavLink>
-        <NavLink to="legal/settings" className={getNavLinkClass} onClick={handleLinkClick}>
+        <NavLink to="/legal/settings" className={getNavLinkClass} onClick={handleLinkClick}>
             <Settings className="h-5 w-5 mr-3" /> Settings
         </NavLink>
         
