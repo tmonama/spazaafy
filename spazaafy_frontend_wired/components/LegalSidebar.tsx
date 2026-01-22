@@ -19,7 +19,7 @@ const LegalSidebar: React.FC = () => {
   const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
 
   const baseLinkClasses = "flex items-center px-4 py-2 text-gray-700 dark:text-gray-200 rounded-lg transition-colors duration-200";
-  const activeLinkClasses = "bg-green-600 text-white dark:bg-green-700"; // Matching Admin Primary Color
+  const activeLinkClasses = "bg-rose-600 text-white dark:bg-rose-700";
   const inactiveLinkClasses = "hover:bg-gray-100 dark:hover:bg-gray-700";
 
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) => 
