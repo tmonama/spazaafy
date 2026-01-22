@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import HRSidebar from '../../components/HRSidebar';
-import Header from '../../components/Header';
+import InternalHeader from '../../components/InternalHeader';
 import { SidebarProvider, useSidebar } from '../../components/SidebarContext';
 import { AlertsProvider } from '../../components/AlertsContext';
 
@@ -16,7 +16,7 @@ const HRLayoutContent: React.FC = () => {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <HRSidebar />
             <div className="lg:pl-64 transition-all duration-300 ease-in-out">
-                <Header />
+                <InternalHeader />
                 <main className="p-4 sm:p-6 lg:p-8"><Outlet /></main>
             </div>
             <Overlay />

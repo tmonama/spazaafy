@@ -67,8 +67,7 @@ import HiringDetailPage from './pages/hr/HiringDetailPage';
 import EmployeeDetailPage from './pages/hr/EmployeeDetailPage';
 import AnnouncementsPage from './pages/hr/AnnouncementsPage';
 
-//import EmployeeLayout from './pages/employee/EmployeeLayout'; // Make this similar to HRLayout but using EmployeeSidebar
-import { EmployeeLayout } from './layouts/InternalLayouts';
+import EmployeeLayout from './pages/employee/EmployeeLayout'; // Make this similar to HRLayout but using EmployeeSidebar
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import EmployeeProfilePage from './pages/employee/EmployeeProfilePage';
 import EmployeeEmailPage from './pages/employee/EmployeeEmailPage';
