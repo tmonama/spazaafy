@@ -108,11 +108,17 @@ const EmployeeResignationPage: React.FC = () => {
                             />
                         </div>
 
-                        <div className="flex justify-end">
-                            <Button type="submit" disabled={submitting} variant="danger" className="w-full sm:w-auto">
+                        <div className="flex justify-center">
+                            <Button
+                                type="submit"
+                                disabled={submitting}
+                                variant="danger"
+                                className="w-full sm:w-auto"
+                            >
                                 {submitting ? "Submitting..." : `Submit ${type === 'RETIREMENT' ? 'Retirement' : 'Resignation'} Request`}
                             </Button>
                         </div>
+
                     </form>
                 </Card>
             )}

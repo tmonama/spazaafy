@@ -156,9 +156,10 @@ const EmployeeComplaintsPage: React.FC = () => {
                             placeholder="Please describe the incident, including dates, names, and details..."
                         />
                     </div>
-                    <div className="flex justify-end pt-2">
+                    <div className="flex justify-center pt-2">
                         <Button type="submit">Submit Complaint</Button>
                     </div>
+
                 </form>
             </Modal>
 
