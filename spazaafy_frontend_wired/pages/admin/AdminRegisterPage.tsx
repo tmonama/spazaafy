@@ -7,13 +7,14 @@ import Card from '../../components/Card';
 
 const ALLOWED_DOMAINS = ['spazaafy.com', 'spazaafy.co.za'];
 const ALLOWED_SPECIFIC_EMAILS = ['spazaafy@gmail.com'];
+
 type FormStage = 'enter-email' | 'enter-code-password' | 'complete';
 
 const AdminRegisterPage: React.FC = () => {
   const [stage, setStage] = useState<FormStage>('enter-email');
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName]   = useState('');
+  const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
@@ -21,15 +22,13 @@ const AdminRegisterPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const validateAdminEmail = (email: string) => {
-    const emailLower = email.toLowerCase();
-    
-    // 1. Check if it's a specifically allowed email
-    if (ALLOWED_SPECIFIC_EMAILS.includes(emailLower)) {
-      return true;
-    }
-    
-    // 2. If not, check the domain
+  const validateAdminEmail = (value: string) => {
+    const emailLower = value.toLowerCase();
+
+    // 1) specifically allowed emails
+    if (ALLOWED_SPECIFIC_EMAILS.includes(emailLower)) return true;
+
+    // 2) allowed domains
     if (!emailLower.includes('@')) return false;
     const domain = emailLower.split('@')[1];
     return ALLOWED_DOMAINS.includes(domain);
@@ -37,12 +36,13 @@ const AdminRegisterPage: React.FC = () => {
 
   const handleSendCode = async () => {
     setError('');
-    // Use the updated validation function
+    setSuccess('');
+
     if (!validateAdminEmail(email)) {
-      // ✅ THE FIX: Update the error message
       setError('Registration is restricted to authorized emails.');
       return;
     }
+
     setIsLoading(true);
     try {
       await mockApi.auth.requestAdminCode(email);
@@ -54,13 +54,22 @@ const AdminRegisterPage: React.FC = () => {
       setIsLoading(false);
     }
   };
-  
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setIsLoading(true);
+
     try {
-      await mockApi.auth.registerAdminVerified({ email, password, code, first_name: firstName, last_name:  lastName });
+      await mockApi.auth.registerAdminVerified({
+        email,
+        password,
+        code,
+        first_name: firstName,
+        last_name: lastName,
+      });
+
       setSuccess('Admin account created successfully! Redirecting to login...');
       setStage('complete');
       setTimeout(() => navigate('/admin/login'), 3000);
@@ -72,34 +81,52 @@ const AdminRegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h1 className="text-center text-4xl font-extrabold text-primary dark:text-primary-light">Spazaafy</h1>
-          <h2 className="mt-2 text-center text-2xl font-bold text-gray-900 dark:text-white">Create Admin Account</h2>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center px-4">
+      <div className="max-w-md w-full space-y-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-extrabold text-green-900">Admin Portal</h1>
+          <p className="text-green-600">Create Admin Account</p>
         </div>
-        <Card>
+
+        <Card className="p-8 shadow-xl">
           <div className="space-y-6">
             <Input
-              id="email" label="Admin Email" type="email" required value={email}
+              id="email"
+              label="Admin Email"
+              type="email"
+              required
+              value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={stage !== 'enter-email'}
               readOnly={stage !== 'enter-email'}
             />
 
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
-                id="firstName" label="First name" type="text" required
-                value={firstName} onChange={(e) => setFirstName(e.target.value)}
+                id="firstName"
+                label="First name"
+                type="text"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
               />
               <Input
-                id="lastName" label="Last name" type="text" required
-                value={lastName} onChange={(e) => setLastName(e.target.value)}
+                id="lastName"
+                label="Last name"
+                type="text"
+                required
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
               />
-          </div>
+            </div>
 
             {stage === 'enter-email' && (
-              <Button type="button" onClick={handleSendCode} className="w-full" isLoading={isLoading}>
+              <Button
+                type="button"
+                onClick={handleSendCode}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                isLoading={isLoading}
+              >
                 Send Verification Code
               </Button>
             )}
@@ -107,29 +134,43 @@ const AdminRegisterPage: React.FC = () => {
             {stage === 'enter-code-password' && (
               <form onSubmit={handleRegister} className="space-y-6">
                 <Input
-                  id="code" label="Verification Code" type="text" required value={code}
+                  id="code"
+                  label="Verification Code"
+                  type="text"
+                  required
+                  value={code}
                   onChange={(e) => setCode(e.target.value)}
                   placeholder="Enter 6-digit code"
                 />
                 <Input
-                  id="password" label="Password" type="password" required value={password}
+                  id="password"
+                  label="Password"
+                  type="password"
+                  required
+                  value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   minLength={8}
                 />
-                <Button type="submit" className="w-full" isLoading={isLoading}>
+                <Button
+                  type="submit"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  isLoading={isLoading}
+                >
                   Create Account
                 </Button>
               </form>
             )}
-          </div>
-          <div className="mt-4">
-            {error && <p className="text-sm text-center text-red-600 dark:text-red-400">{error}</p>}
-            {success && <p className="text-sm text-center text-green-600 dark:text-green-400">{success}</p>}
+
+            <div className="mt-2">
+              {error && <p className="text-sm text-center text-red-600">{error}</p>}
+              {success && <p className="text-sm text-center text-green-700">{success}</p>}
+            </div>
           </div>
         </Card>
-        <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+
+        <p className="text-center text-sm text-gray-600">
           Already have an account?{' '}
-          <Link to="/admin-login" className="font-medium text-primary hover:text-primary-dark dark:text-primary-light">
+          <Link to="/admin/login" className="font-bold text-green-700 hover:underline">
             Sign in
           </Link>
         </p>
