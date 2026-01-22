@@ -76,6 +76,8 @@ import EmployeeRegisterPage from './pages/employee/EmployeeRegisterPage';
 import EmployeeLoginPage from './pages/employee/EmployeeLoginPage';
 import EmployeeComplaintsPage from './pages/employee/EmployeeComplaintsPage';
 
+import { UserRole } from './types';
+
 
 function App() {
   return (
@@ -105,12 +107,15 @@ function App() {
 
             {/* --- ✅ EMPLOYEE PORTAL (Protected) --- */}
             <Route 
-                path="/employee" 
-                element={
-                    <ProtectedRoute>
-                        <EmployeeLayout />
-                    </ProtectedRoute>
-                }
+              path="/employee" 
+              element={
+                <AdminProtectedRoute 
+                  allowedRoles={[UserRole.EMPLOYEE]} 
+                  loginPath="/employee/login"
+                >
+                  <EmployeeLayout />
+                </AdminProtectedRoute>
+              }
             >
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<EmployeeDashboard />} />
@@ -134,7 +139,17 @@ function App() {
             <Route path="/hr/login" element={<HRLoginPage />} />
 
             {/* HR PORTAL (Protected) */}
-            <Route path="/hr" element={<AdminProtectedRoute><HRLayout /></AdminProtectedRoute>}>
+            <Route 
+              path="/hr" 
+              element={
+                <AdminProtectedRoute 
+                  allowedRoles={[UserRole.HR, UserRole.ADMIN]} 
+                  loginPath="/hr/login"
+                >
+                  <HRLayout />
+                </AdminProtectedRoute>
+              }
+            >
                 <Route path="hiring" element={<HiringPage />} />
                 <Route path="hiring/:id" element={<HiringDetailPage />} />
                 <Route path="employees" element={<EmployeesPage />} />
@@ -161,13 +176,16 @@ function App() {
 
             {/* LEGAL ADMIN PORTAL */}
             <Route
-                path="/legal"
-                element={
-                  <AdminProtectedRoute>
-                    <LegalLayout />
-                  </AdminProtectedRoute>
-                }
-              >
+              path="/legal"
+              element={
+                <AdminProtectedRoute 
+                  allowedRoles={[UserRole.LEGAL, UserRole.ADMIN]} 
+                  loginPath="/legal/login"
+                >
+                  <LegalLayout />
+                </AdminProtectedRoute>
+              }
+            >
                 {/* Dashboard Overview */}
                 <Route path="dashboard" element={<LegalCategoryPage isOverview={true} />} />
                 <Route path="settings" element={<SettingsPage />} />

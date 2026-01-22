@@ -1,22 +1,43 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { useSidebar } from './SidebarContext'; // Assuming you have this context
+import { useSidebar } from './SidebarContext';
 import { Menu, LogOut, User } from 'lucide-react';
+import { UserRole } from '../types'; // Ensure you import your Enum
 
 const InternalHeader: React.FC = () => {
   const { user, logout } = useAuth();
   const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login'); // Or home '/'
+  const handleLogout = async () => {
+    // 1. Capture role before clearing session
+    const role = user?.role; 
+    
+    // 2. Perform Logout
+    await logout();
+
+    // 3. Redirect based on the role they had
+    switch (role) {
+        case UserRole.ADMIN:
+            navigate('/admin-login');
+            break;
+        case UserRole.HR:
+            navigate('/hr/login');
+            break;
+        case UserRole.LEGAL:
+            navigate('/legal/login');
+            break;
+        case UserRole.EMPLOYEE:
+            navigate('/employee/login');
+            break;
+        default:
+            navigate('/login'); // Standard consumer/shop login
+    }
   };
 
   const handleProfileClick = () => {
-    // Direct to the correct profile page based on role or generic account page
-    if (user?.role === 'employee') navigate('/employee/profile');
+    if (user?.role === UserRole.EMPLOYEE) navigate('/employee/profile');
     else navigate('/account'); 
   };
 
@@ -45,7 +66,6 @@ const InternalHeader: React.FC = () => {
       {/* RIGHT: User Info & Actions */}
       <div className="flex items-center space-x-4">
         
-        {/* Welcome Message */}
         <div className="hidden md:flex flex-col items-end">
             <span className="text-sm font-medium text-gray-900 dark:text-white">
                 Welcome, {user?.firstName}
@@ -55,7 +75,6 @@ const InternalHeader: React.FC = () => {
             </span>
         </div>
 
-        {/* Profile Icon */}
         <button 
             onClick={handleProfileClick}
             className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -64,7 +83,6 @@ const InternalHeader: React.FC = () => {
             <User className="h-6 w-6" />
         </button>
 
-        {/* Logout Button */}
         <button
             onClick={handleLogout}
             className="flex items-center px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 transition-colors"

@@ -1,10 +1,20 @@
-
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { UserRole } from '../types';
 
-const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  // Make these optional with defaults so your existing Admin routes don't break
+  allowedRoles?: UserRole[]; 
+  loginPath?: string;
+}
+
+const AdminProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children, 
+  allowedRoles = [UserRole.ADMIN], // Default to Admin only
+  loginPath = "/admin-login"       // Default to Admin login
+}) => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -15,8 +25,9 @@ const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children
     );
   }
 
-  if (!user || user.role !== UserRole.ADMIN) {
-    return <Navigate to="/admin-login" replace />;
+  // Check if user exists AND if their role is in the allowed list
+  if (!user || !allowedRoles.includes(user.role)) {
+    return <Navigate to={loginPath} replace />;
   }
 
   return <>{children}</>;
