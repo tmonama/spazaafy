@@ -181,11 +181,13 @@ const EmployeesPage: React.FC = () => {
             {/* Employee Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filtered.map(emp => (
-                    <Card 
-                        key={emp.id} 
-                        onClick={() => navigate(`/hr/employees/${emp.id}`)} 
-                        className="p-6 cursor-pointer hover:shadow-lg transition-all border border-gray-200 group flex flex-col items-center text-center"
-                    >
+                // Move the key, onClick, and structural classes to a wrapper div
+                <div 
+                    key={emp.id}
+                    onClick={() => navigate(`/hr/employees/${emp.id}`)}
+                    className="cursor-pointer group h-full" // Ensure it takes height
+                >
+                    <Card className="p-6 hover:shadow-lg transition-all border border-gray-200 flex flex-col items-center text-center h-full">
                         <div className="w-24 h-24 rounded-full bg-gray-100 overflow-hidden mb-4 border-4 border-white shadow-md group-hover:scale-105 transition-transform">
                             {emp.photo_url ? (
                                 <img src={emp.photo_url} alt="Profile" className="w-full h-full object-cover" />
@@ -204,7 +206,8 @@ const EmployeesPage: React.FC = () => {
                             {emp.status.replace('_', ' ')}
                         </span>
                     </Card>
-                ))}
+                </div>
+            ))}
             </div>
 
             {loading && <div className="text-center p-12 text-gray-500">Loading Employees...</div>}
