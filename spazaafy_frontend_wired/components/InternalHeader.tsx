@@ -1,94 +1,82 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Menu, UserCircle, LogOut } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useSidebar } from './SidebarContext';
-import { Menu, LogOut, User } from 'lucide-react';
-import { UserRole } from '../types'; // Ensure you import your Enum
+import { UserRole } from '../types';
 
 const InternalHeader: React.FC = () => {
-  const { user, logout } = useAuth();
-  const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, logout } = useAuth();
+  const { toggleSidebar } = useSidebar();
 
-  const handleLogout = async () => {
-    // 1. Capture role before clearing session
-    const role = user?.role; 
-    
-    // 2. Perform Logout
-    await logout();
+  // ✅ Only allow Account access inside Employee Portal
+  const isEmployeePortal = location.pathname.startsWith('/employee');
 
-    // 3. Redirect based on the role they had
-    switch (role) {
-        case UserRole.ADMIN:
-            navigate('/admin-login');
-            break;
-        case UserRole.HR:
-            navigate('/hr/login');
-            break;
-        case UserRole.LEGAL:
-            navigate('/legal/login');
-            break;
-        case UserRole.EMPLOYEE:
-            navigate('/employee/login');
-            break;
-        default:
-            navigate('/login'); // Standard consumer/shop login
+  const handleLogout = () => {
+    logout();
+
+    // Role-aware redirect
+    switch (user?.role) {
+      case UserRole.HR:
+        navigate('/hr/login');
+        break;
+      case UserRole.LEGAL:
+        navigate('/legal/login');
+        break;
+      case UserRole.ADMIN:
+        navigate('/admin/login');
+        break;
+      default:
+        navigate('/login');
     }
   };
 
-  const handleProfileClick = () => {
-    if (user?.role === UserRole.EMPLOYEE) navigate('/employee/profile');
-    else navigate('/account'); 
+  const handleAccountClick = () => {
+    navigate('/employee/profile');
   };
 
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-40 h-16 flex items-center justify-between px-4 sm:px-6">
+    <header className="fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 z-40 flex items-center justify-between px-4 lg:px-6">
       
-      {/* LEFT: Sidebar Toggle & Logo */}
-      <div className="flex items-center">
+      {/* LEFT */}
+      <div className="flex items-center gap-3">
+        {/* Mobile sidebar toggle */}
         <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-2 rounded-md text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 focus:outline-none lg:hidden mr-2"
+          onClick={toggleSidebar}
+          className="lg:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+          aria-label="Toggle sidebar"
         >
-          <Menu className="h-6 w-6" />
+          <Menu className="h-5 w-5 text-gray-700 dark:text-gray-200" />
         </button>
-        
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gray-900 dark:bg-white rounded-md flex items-center justify-center">
-             <span className="text-white dark:text-gray-900 font-bold text-lg">S</span>
-          </div>
-          <span className="text-xl font-bold text-gray-900 dark:text-white hidden sm:block">
-            Spazaafy <span className="text-xs font-normal text-gray-500 uppercase ml-1">Internal</span>
-          </span>
-        </div>
+
+        {/* Portal Label */}
+        <span className="font-bold text-gray-900 dark:text-white tracking-tight">
+          Spazaafy Internal
+        </span>
       </div>
 
-      {/* RIGHT: User Info & Actions */}
-      <div className="flex items-center space-x-4">
-        
-        <div className="hidden md:flex flex-col items-end">
-            <span className="text-sm font-medium text-gray-900 dark:text-white">
-                Welcome, {user?.firstName}
-            </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                {user?.role?.replace('_', ' ')}
-            </span>
-        </div>
+      {/* RIGHT */}
+      <div className="flex items-center gap-2">
+        {/* Employee Account (ONLY in employee portal) */}
+        {isEmployeePortal && (
+          <button
+            onClick={handleAccountClick}
+            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+            title="My Account"
+          >
+            <UserCircle className="h-5 w-5 text-gray-700 dark:text-gray-200" />
+          </button>
+        )}
 
-        <button 
-            onClick={handleProfileClick}
-            className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-            title="My Profile"
-        >
-            <User className="h-6 w-6" />
-        </button>
-
+        {/* Logout */}
         <button
-            onClick={handleLogout}
-            className="flex items-center px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 transition-colors"
+          onClick={handleLogout}
+          className="p-2 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+          title="Logout"
         >
-            <LogOut className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Logout</span>
+          <LogOut className="h-5 w-5 text-red-600 dark:text-red-400" />
         </button>
       </div>
     </header>
