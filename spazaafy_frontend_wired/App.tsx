@@ -1,22 +1,34 @@
 import React from 'react';
 import { AlertsProvider } from './components/AlertsContext';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute'; 
 import AdminProtectedRoute from './components/AdminProtectedRoute';
-import Header from './components/Header';
 
+// --- General Pages ---
 import WelcomePage from './pages/WelcomePage';
 import LoginPage from './pages/LoginPage';
-import AdminLoginPage from './pages/AdminLoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import DownloadAppPage from "./pages/DownloadAppPage";
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import AboutUsPage from "./pages/AboutUsPage";
+import DeleteAccountPage from './pages/DeleteAccountPage';
+import NotFoundPage from './pages/NotFoundPage';
+
+// --- User/Shop Owner Protected ---
 import DashboardPage from './pages/DashboardPage';
 import SupportPage from './pages/SupportPage';
 import SettingsPage from './pages/SettingsPage';
-import NotFoundPage from './pages/NotFoundPage';
-import TicketDetailPage from './pages/TicketDetailPage';
 import AccountPage from './pages/AccountPage';
+import TicketDetailPage from './pages/TicketDetailPage';
+import RequestAssistancePage from './pages/RequestAssistancePage';
+import EmailVerificationPage from './pages/EmailVerificationPage';
 
+// --- Admin Portal ---
+import AdminLoginPage from './pages/AdminLoginPage';
+import AdminRegisterPage from './pages/admin/AdminRegisterPage';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import DocumentVerificationPage from './pages/admin/DocumentVerificationPage';
@@ -26,28 +38,18 @@ import AdminTicketsPage from './pages/admin/AdminTicketsPage';
 import AdminTicketDetailPage from './pages/admin/AdminTicketDetailPage';
 import AdminSiteVisitsPage from './pages/admin/AdminSiteVisitsPage';
 import AdminSiteVisitDetailPage from './pages/admin/AdminSiteVisitDetailPage';
-import PublicSiteVisitForm from './pages/PublicSiteVisitForm'; 
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-
-import AdminRegisterPage from './pages/admin/AdminRegisterPage';
-import EmailVerificationPage from './pages/EmailVerificationPage';
-import DownloadAppPage from "./pages/DownloadAppPage";
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-import AboutUsPage from "./pages/AboutUsPage";
-import DeleteAccountPage from './pages/DeleteAccountPage';
-import RequestAssistancePage from './pages/RequestAssistancePage';
 import AdminAssistancePage from './pages/admin/AdminAssistancePage';
 import AdminAssistanceDetailPage from './pages/admin/AdminAssistanceDetailPage';
+import PublicSiteVisitForm from './pages/PublicSiteVisitForm'; 
 
-// Legal
+// --- Legal Portal ---
 import LegalRegisterPage from './pages/legal/LegalRegisterPage';
 import LegalLoginPage from './pages/legal/LegalLoginPage';
 import LegalIntakePage from './pages/LegalIntakePage';
 import LegalLayout from './pages/legal/LegalLayout';
 import LegalCategoryPage from './pages/legal/LegalCategoryPage';
 
-// HR
+// --- HR Portal ---
 import HRRegisterPage from './pages/hr/auth/HRRegisterPage';
 import HRLoginPage from './pages/hr/auth/HRLoginPage';
 import HRLayout from './pages/hr/HRLayout';
@@ -59,69 +61,94 @@ import TerminationsPage from './pages/hr/TerminationsPage';
 import ComplaintsPage from './pages/hr/ComplaintsPage'; 
 import ResignationsPage from './pages/hr/ResignationsPage'; 
 import ComplaintDetailPage from './pages/hr/ComplaintDetailPage';
-
-// HR Public & Details
+import HiringDetailPage from './pages/hr/HiringDetailPage';
+import EmployeeDetailPage from './pages/hr/EmployeeDetailPage';
+import TrainingDetailPage from './pages/hr/TrainingDetailPage';
+import AnnouncementsPage from './pages/hr/AnnouncementsPage';
+// HR Public Forms
 import JobRequestForm from './pages/JobRequestForm';
 import JobApplicationForm from './pages/JobApplicationForm';
 import TrainingSignupForm from './pages/TrainingSignupForm';
-import TrainingDetailPage from './pages/hr/TrainingDetailPage';
-import HiringDetailPage from './pages/hr/HiringDetailPage';
-import EmployeeDetailPage from './pages/hr/EmployeeDetailPage';
-import AnnouncementsPage from './pages/hr/AnnouncementsPage';
 
-// Employee Portal
+// --- Employee Portal ---
+import EmployeeRegisterPage from './pages/employee/EmployeeRegisterPage';
+import EmployeeLoginPage from './pages/employee/EmployeeLoginPage';
 import EmployeeLayout from './pages/employee/EmployeeLayout'; 
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import EmployeeProfilePage from './pages/employee/EmployeeProfilePage';
 import EmployeeEmailPage from './pages/employee/EmployeeEmailPage';
 import EmployeeResignationPage from './pages/employee/EmployeeResignationPage'; 
-import EmployeeRegisterPage from './pages/employee/EmployeeRegisterPage';
-import EmployeeLoginPage from './pages/employee/EmployeeLoginPage';
 import EmployeeComplaintsPage from './pages/employee/EmployeeComplaintsPage';
 import EmployeeTimeCardPage from './pages/employee/EmployeeTimeCardPage';
 
-// ✅ NEW: Tech Portal Imports
+// --- Tech Portal ---
+import TechLoginPage from './pages/tech/TechLoginPage';
+import TechRegisterPage from './pages/tech/TechRegisterPage';
 import TechLayout from './pages/tech/TechLayout';
 import TechDashboard from './pages/tech/TechDashboard';
 import TechTickets from './pages/tech/TechTickets';
 
 import { UserRole } from './types';
 
-
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        {/* ✅ Global provider so Header always sees alerts */}
         <AlertsProvider>
           <Routes>
-            {/* Public Routes */}
+            {/* ================= PUBLIC ROUTES ================= */}
             <Route path="/" element={<WelcomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/admin-login" element={<AdminLoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/admin/register" element={<AdminRegisterPage />} />
-            <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
-            <Route path="/site-visits/:visitId/form" element={<PublicSiteVisitForm />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
             <Route path="/download" element={<DownloadAppPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/about" element={<AboutUsPage />} />
+            
+            {/* General Auth */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+            <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
             <Route path="/delete-account" element={<DeleteAccountPage />} />
+
+            {/* General Admin Auth (Fallback) */}
+            <Route path="/admin-login" element={<AdminLoginPage />} />
+            <Route path="/admin/register" element={<AdminRegisterPage />} />
+
+            {/* Public Forms */}
+            <Route path="/site-visits/:visitId/form" element={<PublicSiteVisitForm />} />
             <Route path="/legal/submit" element={<LegalIntakePage />} />
+            <Route path="/jobs/request" element={<JobRequestForm />} />
+            <Route path="/jobs/:id/apply" element={<JobApplicationForm />} />
+            <Route path="/training/signup" element={<TrainingSignupForm />} />
 
-            {/* Employee Auth */}
-            <Route path="/employee/register" element={<EmployeeRegisterPage />} />
+            {/* ================= PORTAL SPECIFIC AUTH ================= */}
+            
+            {/* ✅ Tech Portal Auth */}
+            <Route path="/tech/login" element={<TechLoginPage />} />
+            <Route path="/tech/register" element={<TechRegisterPage />} />
+
+            {/* ✅ HR Portal Auth */}
+            <Route path="/hr/login" element={<HRLoginPage />} />
+            <Route path="/hr/register" element={<HRRegisterPage />} />
+
+            {/* ✅ Legal Portal Auth */}
+            <Route path="/legal/login" element={<LegalLoginPage />} />
+            <Route path="/legal/register" element={<LegalRegisterPage />} />
+
+            {/* ✅ Employee Portal Auth */}
             <Route path="/employee/login" element={<EmployeeLoginPage />} />
+            <Route path="/employee/register" element={<EmployeeRegisterPage />} />
 
-            {/* --- ✅ TECH PORTAL (Protected - Admin/Tech only) --- */}
+
+            {/* ================= PROTECTED PORTALS ================= */}
+
+            {/* --- TECH PORTAL --- */}
             <Route 
               path="/tech" 
               element={
                 <AdminProtectedRoute 
-                  allowedRoles={[UserRole.ADMIN]} // Assuming IT Admin is 'ADMIN' role
-                  loginPath="/admin-login"
+                  allowedRoles={[UserRole.ADMIN]} // Tech users are Admins
+                  loginPath="/tech/login"
                 >
                   <TechLayout />
                 </AdminProtectedRoute>
@@ -130,12 +157,71 @@ function App() {
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<TechDashboard />} />
                 <Route path="tickets" element={<TechTickets />} />
-                {/* Reusing standard pages for common settings */}
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="account" element={<AccountPage />} />
             </Route>
 
-            {/* --- EMPLOYEE PORTAL (Protected) --- */}
+            {/* --- HR PORTAL --- */}
+            <Route 
+              path="/hr" 
+              element={
+                <AdminProtectedRoute 
+                  allowedRoles={[UserRole.HR, UserRole.ADMIN]} 
+                  loginPath="/hr/login"
+                >
+                  <HRLayout />
+                </AdminProtectedRoute>
+              }
+            >
+                <Route index element={<Navigate to="hiring" replace />} />
+                <Route path="hiring" element={<HiringPage />} />
+                <Route path="hiring/:id" element={<HiringDetailPage />} />
+                <Route path="employees" element={<EmployeesPage />} />
+                <Route path="employees/:id" element={<EmployeeDetailPage />} />
+                <Route path="onboarding" element={<OnboardingPage />} />
+                <Route path="training" element={<TrainingPage />} />
+                <Route path="training/:sessionId" element={<TrainingDetailPage />} /> 
+                <Route path="terminations" element={<TerminationsPage />} />
+                <Route path="complaints" element={<ComplaintsPage />} />
+                <Route path="complaints/:id" element={<ComplaintDetailPage />} />
+                <Route path="resignations" element={<ResignationsPage />} />
+                <Route path="announcements" element={<AnnouncementsPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="support" element={<SupportPage />} />
+                <Route path="support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
+                <Route path="account" element={<AccountPage />} />
+            </Route>
+
+            {/* --- LEGAL PORTAL --- */}
+            <Route
+              path="/legal"
+              element={
+                <AdminProtectedRoute 
+                  allowedRoles={[UserRole.LEGAL, UserRole.ADMIN]} 
+                  loginPath="/legal/login"
+                >
+                  <LegalLayout />
+                </AdminProtectedRoute>
+              }
+            >
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<LegalCategoryPage isOverview={true} />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="support" element={<SupportPage />} />
+                <Route path="support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
+                <Route path="account" element={<AccountPage />} />
+                
+                {/* Categories */}
+                <Route path="contracts" element={<LegalCategoryPage categoryProp="contracts" />} />
+                <Route path="policies" element={<LegalCategoryPage categoryProp="policies" />} />
+                <Route path="ip" element={<LegalCategoryPage categoryProp="ip" />} />
+                <Route path="compliance" element={<LegalCategoryPage categoryProp="compliance" />} />
+                <Route path="disputes" element={<LegalCategoryPage categoryProp="disputes" />} />
+                <Route path="terminations" element={<LegalCategoryPage categoryProp="termination" />} />
+                <Route path="other" element={<LegalCategoryPage categoryProp="other" />} />
+            </Route>
+
+            {/* --- EMPLOYEE PORTAL --- */}
             <Route 
               path="/employee" 
               element={
@@ -150,97 +236,17 @@ function App() {
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<EmployeeDashboard />} />
                 <Route path="profile" element={<EmployeeProfilePage />} />
-                <Route path="/employee/timecard" element={<ProtectedRoute> <EmployeeTimeCardPage /></ProtectedRoute>}/>
+                <Route path="timecard" element={<ProtectedRoute> <EmployeeTimeCardPage /></ProtectedRoute>}/>
                 <Route path="email" element={<EmployeeEmailPage />} />
                 <Route path="complaints" element={<EmployeeComplaintsPage />} />
                 <Route path="resign" element={<EmployeeResignationPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="support" element={<SupportPage />} />
-                <Route path="account" element={<AccountPage />} />
-                <Route path="support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
-            </Route>
-
-            {/* HR PUBLIC ROUTES */}
-            <Route path="/jobs/request" element={<JobRequestForm />} />
-            <Route path="/jobs/:id/apply" element={<JobApplicationForm />} />
-            <Route path="/training/signup" element={<TrainingSignupForm />} />
-
-            {/* HR AUTH */}
-            <Route path="/hr/register" element={<HRRegisterPage />} />
-            <Route path="/hr/login" element={<HRLoginPage />} />
-
-            {/* HR PORTAL (Protected) */}
-            <Route 
-              path="/hr" 
-              element={
-                <AdminProtectedRoute 
-                  allowedRoles={[UserRole.HR, UserRole.ADMIN]} 
-                  loginPath="/hr/login"
-                >
-                  <HRLayout />
-                </AdminProtectedRoute>
-              }
-            >
-                <Route path="hiring" element={<HiringPage />} />
-                <Route path="hiring/:id" element={<HiringDetailPage />} />
-                <Route path="employees" element={<EmployeesPage />} />
-                <Route path="onboarding" element={<OnboardingPage />} />
-                <Route path="employees/:id" element={<EmployeeDetailPage />} />
-                <Route path="training" element={<TrainingPage />} />
-                <Route path="training/:sessionId" element={<TrainingDetailPage />} /> 
-                <Route path="terminations" element={<TerminationsPage />} />
-                <Route path="complaints" element={<ComplaintsPage />} />
-                <Route path="/hr/complaints/:id" element={<ComplaintDetailPage />} />
-                <Route path="resignations" element={<ResignationsPage />} />
-                <Route path="announcements" element={<AnnouncementsPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="support" element={<SupportPage />} />
                 <Route path="support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
                 <Route path="account" element={<AccountPage />} />
             </Route>
 
-            {/* Legal Auth Routes */}
-            <Route path="/legal/register" element={<LegalRegisterPage />} />
-            <Route path="/legal/login" element={<LegalLoginPage />} />
-
-            {/* LEGAL ADMIN PORTAL */}
-            <Route
-              path="/legal"
-              element={
-                <AdminProtectedRoute 
-                  allowedRoles={[UserRole.LEGAL, UserRole.ADMIN]} 
-                  loginPath="/legal/login"
-                >
-                  <LegalLayout />
-                </AdminProtectedRoute>
-              }
-            >
-                <Route path="dashboard" element={<LegalCategoryPage isOverview={true} />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="support" element={<SupportPage />} />
-                <Route path="support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
-                <Route path="account" element={<AccountPage />} />
-                
-                <Route path="contracts" element={<LegalCategoryPage categoryProp="contracts" />} />
-                <Route path="policies" element={<LegalCategoryPage categoryProp="policies" />} />
-                <Route path="ip" element={<LegalCategoryPage categoryProp="ip" />} />
-                <Route path="compliance" element={<LegalCategoryPage categoryProp="compliance" />} />
-                <Route path="disputes" element={<LegalCategoryPage categoryProp="disputes" />} />
-                <Route path="terminations" element={<LegalCategoryPage categoryProp="termination" />} />
-                <Route path="other" element={<LegalCategoryPage categoryProp="other" />} />
-            </Route>
-
-            {/* User Routes (Protected) */}
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-            <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
-            <Route path="/support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-            <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
-            
-            {/* Request Assistance */}
-            <Route path="/request-assistance" element={<ProtectedRoute><RequestAssistancePage /></ProtectedRoute>} />
-
-            {/* Admin Routes */}
+            {/* --- GENERAL ADMIN PORTAL --- */}
             <Route
               path="/admin"
               element={
@@ -265,6 +271,14 @@ function App() {
               <Route path="support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
               <Route path="account" element={<AccountPage />} />
             </Route>
+
+            {/* --- SHOP OWNER / USER PORTAL --- */}
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
+            <Route path="/support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+            <Route path="/request-assistance" element={<ProtectedRoute><RequestAssistancePage /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
