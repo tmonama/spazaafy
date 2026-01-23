@@ -5,18 +5,6 @@ from .models import Ticket, Message, AssistanceRequest, TechTicket
 
 User = get_user_model()
 
-ALLOWED_TECH_EMAILS = [
-    'spazaafy@gmail.com',
-    'tech@spazaafy.co.za',
-    'engineering@spazaafy.co.za',
-    'dev@spazaafy.co.za',
-    'backend@spazaafy.co.za',
-    'frontend@spazaafy.co.za',
-    'mobile@spazaafy.co.za',
-    'qa@spazaafy.co.za',
-    'ux@spazaafy.co.za'
-]
-
 class SimpleUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User

@@ -281,3 +281,87 @@ class LegalRegistrationSerializer(serializers.ModelSerializer):
         # Cleanup code
         AdminVerificationCode.objects.filter(email=email).delete()
         return user
+    
+
+# ✅ 1. Define Authorized Tech Emails
+ALLOWED_TECH_EMAILS = [
+    'spazaafy@gmail.com',
+    'tech@spazaafy.co.za',
+    'engineering@spazaafy.co.za',
+    'dev@spazaafy.co.za',
+    'backend@spazaafy.co.za',
+    'frontend@spazaafy.co.za',
+    'mobile@spazaafy.co.za',
+    'qa@spazaafy.co.za',
+    'ux@spazaafy.co.za'
+]
+
+# ✅ 2. Tech Code Request Serializer
+class TechRequestCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value: str) -> str:
+        email = value.strip().lower()
+        if email not in ALLOWED_TECH_EMAILS:
+            raise serializers.ValidationError("Access Denied: This email is not authorized for the Tech Portal.")
+        return email
+
+# ✅ 3. Tech Registration Serializer
+class TechRegistrationSerializer(serializers.ModelSerializer):
+    code = serializers.CharField(write_only=True, max_length=6)
+    first_name = serializers.CharField(write_only=True)
+    last_name = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ('email', 'first_name', 'last_name', 'password', 'code')
+        extra_kwargs = {'password': {'write_only': True, 'min_length': 8}}
+
+    def validate(self, attrs):
+        email = (attrs.get('email') or '').strip().lower()
+        code = (attrs.get('code') or '').strip()
+
+        # 1. Check Allow List
+        if email not in ALLOWED_TECH_EMAILS:
+            raise serializers.ValidationError("Unauthorized email.")
+
+        # 2. Check if User Exists
+        if User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError("User already exists. Please log in.")
+
+        # 3. Verify OTP Code
+        try:
+            verification = AdminVerificationCode.objects.get(email=email)
+            if verification.code != code:
+                raise serializers.ValidationError("Invalid verification code.")
+            
+            # Optional: Check expiry (e.g., 10 mins)
+            if verification.created_at < timezone.now() - timedelta(minutes=10):
+                raise serializers.ValidationError("Verification code has expired.")
+                
+        except AdminVerificationCode.DoesNotExist:
+            raise serializers.ValidationError("No verification code found for this email.")
+
+        validate_password(attrs.get('password'))
+        attrs['email'] = email
+        return attrs
+
+    def create(self, validated_data):
+        email = validated_data['email']
+        password = validated_data['password']
+        
+        # Create user as ADMIN (Tech needs full access)
+        user = User.objects.create_user(
+            username=email, 
+            email=email, 
+            password=password, 
+            first_name=validated_data['first_name'], 
+            last_name=validated_data['last_name'], 
+            role='ADMIN' 
+        )
+        user.is_staff = True
+        user.save()
+
+        # Cleanup Code
+        AdminVerificationCode.objects.filter(email=email).delete()
+        return user

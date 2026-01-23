@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions, viewsets, generics
 from django.utils import timezone
-from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, AdminRequestCodeSerializer, AdminVerifiedRegistrationSerializer, LegalRequestCodeSerializer, LegalRegistrationSerializer, TechRequestCodeSerializer, TechRegistrationSerializer
+from .serializers import (RegisterSerializer, LoginSerializer, UserSerializer, AdminRequestCodeSerializer, AdminVerifiedRegistrationSerializer, LegalRequestCodeSerializer, LegalRegistrationSerializer, TechRequestCodeSerializer, TechRegistrationSerializer)
 import random
 from django.core.mail import send_mail, EmailMessage # <--- Import EmailMessage
 from django.conf import settings
