@@ -39,13 +39,15 @@ import DeleteAccountPage from './pages/DeleteAccountPage';
 import RequestAssistancePage from './pages/RequestAssistancePage';
 import AdminAssistancePage from './pages/admin/AdminAssistancePage';
 import AdminAssistanceDetailPage from './pages/admin/AdminAssistanceDetailPage';
+
+// Legal
 import LegalRegisterPage from './pages/legal/LegalRegisterPage';
 import LegalLoginPage from './pages/legal/LegalLoginPage';
-// import LegalDashboard from './pages/legal/LegalDashboard'; // ❌ Unused, remove this
 import LegalIntakePage from './pages/LegalIntakePage';
 import LegalLayout from './pages/legal/LegalLayout';
 import LegalCategoryPage from './pages/legal/LegalCategoryPage';
 
+// HR
 import HRRegisterPage from './pages/hr/auth/HRRegisterPage';
 import HRLoginPage from './pages/hr/auth/HRLoginPage';
 import HRLayout from './pages/hr/HRLayout';
@@ -53,12 +55,12 @@ import HiringPage from './pages/hr/HiringPage';
 import EmployeesPage from './pages/hr/EmployeesPage';
 import TrainingPage from './pages/hr/TrainingPage';
 import OnboardingPage from './pages/hr/OnboardingPage';
-import TerminationsPage from './pages/hr/TerminationsPage'; // ✅ New
+import TerminationsPage from './pages/hr/TerminationsPage'; 
 import ComplaintsPage from './pages/hr/ComplaintsPage'; 
 import ResignationsPage from './pages/hr/ResignationsPage'; 
 import ComplaintDetailPage from './pages/hr/ComplaintDetailPage';
 
-// Public Forms
+// HR Public & Details
 import JobRequestForm from './pages/JobRequestForm';
 import JobApplicationForm from './pages/JobApplicationForm';
 import TrainingSignupForm from './pages/TrainingSignupForm';
@@ -67,15 +69,21 @@ import HiringDetailPage from './pages/hr/HiringDetailPage';
 import EmployeeDetailPage from './pages/hr/EmployeeDetailPage';
 import AnnouncementsPage from './pages/hr/AnnouncementsPage';
 
-import EmployeeLayout from './pages/employee/EmployeeLayout'; // Make this similar to HRLayout but using EmployeeSidebar
+// Employee Portal
+import EmployeeLayout from './pages/employee/EmployeeLayout'; 
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import EmployeeProfilePage from './pages/employee/EmployeeProfilePage';
 import EmployeeEmailPage from './pages/employee/EmployeeEmailPage';
-import EmployeeResignationPage from './pages/employee/EmployeeResignationPage'; // Similar to termination but submit form
+import EmployeeResignationPage from './pages/employee/EmployeeResignationPage'; 
 import EmployeeRegisterPage from './pages/employee/EmployeeRegisterPage';
 import EmployeeLoginPage from './pages/employee/EmployeeLoginPage';
 import EmployeeComplaintsPage from './pages/employee/EmployeeComplaintsPage';
 import EmployeeTimeCardPage from './pages/employee/EmployeeTimeCardPage';
+
+// ✅ NEW: Tech Portal Imports
+import TechLayout from './pages/tech/TechLayout';
+import TechDashboard from './pages/tech/TechDashboard';
+import TechTickets from './pages/tech/TechTickets';
 
 import { UserRole } from './types';
 
@@ -103,10 +111,31 @@ function App() {
             <Route path="/delete-account" element={<DeleteAccountPage />} />
             <Route path="/legal/submit" element={<LegalIntakePage />} />
 
+            {/* Employee Auth */}
             <Route path="/employee/register" element={<EmployeeRegisterPage />} />
             <Route path="/employee/login" element={<EmployeeLoginPage />} />
 
-            {/* --- ✅ EMPLOYEE PORTAL (Protected) --- */}
+            {/* --- ✅ TECH PORTAL (Protected - Admin/Tech only) --- */}
+            <Route 
+              path="/tech" 
+              element={
+                <AdminProtectedRoute 
+                  allowedRoles={[UserRole.ADMIN]} // Assuming IT Admin is 'ADMIN' role
+                  loginPath="/admin-login"
+                >
+                  <TechLayout />
+                </AdminProtectedRoute>
+              }
+            >
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<TechDashboard />} />
+                <Route path="tickets" element={<TechTickets />} />
+                {/* Reusing standard pages for common settings */}
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="account" element={<AccountPage />} />
+            </Route>
+
+            {/* --- EMPLOYEE PORTAL (Protected) --- */}
             <Route 
               path="/employee" 
               element={
@@ -157,13 +186,11 @@ function App() {
                 <Route path="employees" element={<EmployeesPage />} />
                 <Route path="onboarding" element={<OnboardingPage />} />
                 <Route path="employees/:id" element={<EmployeeDetailPage />} />
-                {/* ✅ Training Routes */}
                 <Route path="training" element={<TrainingPage />} />
                 <Route path="training/:sessionId" element={<TrainingDetailPage />} /> 
                 <Route path="terminations" element={<TerminationsPage />} />
                 <Route path="complaints" element={<ComplaintsPage />} />
                 <Route path="/hr/complaints/:id" element={<ComplaintDetailPage />} />
-                {/* Reuse TerminationsPage logic for Resignations if desired, or duplicate component */}
                 <Route path="resignations" element={<ResignationsPage />} />
                 <Route path="announcements" element={<AnnouncementsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
@@ -172,7 +199,7 @@ function App() {
                 <Route path="account" element={<AccountPage />} />
             </Route>
 
-            {/* ✅ Legal Auth Routes */}
+            {/* Legal Auth Routes */}
             <Route path="/legal/register" element={<LegalRegisterPage />} />
             <Route path="/legal/login" element={<LegalLoginPage />} />
 
@@ -188,14 +215,12 @@ function App() {
                 </AdminProtectedRoute>
               }
             >
-                {/* Dashboard Overview */}
                 <Route path="dashboard" element={<LegalCategoryPage isOverview={true} />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="support" element={<SupportPage />} />
                 <Route path="support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
                 <Route path="account" element={<AccountPage />} />
                 
-                {/* ✅ FIXED: Added categoryProp to these routes */}
                 <Route path="contracts" element={<LegalCategoryPage categoryProp="contracts" />} />
                 <Route path="policies" element={<LegalCategoryPage categoryProp="policies" />} />
                 <Route path="ip" element={<LegalCategoryPage categoryProp="ip" />} />
@@ -203,9 +228,7 @@ function App() {
                 <Route path="disputes" element={<LegalCategoryPage categoryProp="disputes" />} />
                 <Route path="terminations" element={<LegalCategoryPage categoryProp="termination" />} />
                 <Route path="other" element={<LegalCategoryPage categoryProp="other" />} />
-                <Route path="other" element={<LegalCategoryPage categoryProp="other" />} />
             </Route>
-
 
             {/* User Routes (Protected) */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
@@ -214,7 +237,7 @@ function App() {
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
             
-            {/* ✅ NEW ROUTE: Request Assistance */}
+            {/* Request Assistance */}
             <Route path="/request-assistance" element={<ProtectedRoute><RequestAssistancePage /></ProtectedRoute>} />
 
             {/* Admin Routes */}
