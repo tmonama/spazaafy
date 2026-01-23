@@ -1,7 +1,7 @@
 from rest_framework import viewsets, permissions, status, generics
 from rest_framework.response import Response
-from .models import Ticket, Message, AssistanceRequest
-from .serializers import TicketSerializer, MessageSerializer, AssistanceRequestSerializer, AssistanceRequestModelSerializer
+from .models import Ticket, Message, AssistanceRequest, TechTicket
+from .serializers import TicketSerializer, MessageSerializer, AssistanceRequestSerializer, AssistanceRequestModelSerializer, TechTicketSerializer
 from apps.core.permissions import ProvinceScopedMixin
 from .models import mark_ticket_as_read
 from apps.shops.models import SpazaShop
@@ -327,3 +327,47 @@ class AdminAssistanceViewSet(viewsets.ModelViewSet):
                 print(f"Error sending cancellation email: {e}")
 
         return response
+    
+class TechTicketViewSet(viewsets.ModelViewSet):
+    queryset = TechTicket.objects.all()
+    serializer_class = TechTicketSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(requester=self.request.user)
+
+    @action(detail=False, methods=['get'])
+    def dashboard_stats(self, request):
+        """
+        Returns analytics for the Tech Portal Dashboard.
+        """
+        tickets = TechTicket.objects.all()
+        total = tickets.count()
+        resolved = tickets.filter(status='RESOLVED').count()
+        pending = tickets.filter(status='PENDING').count()
+        
+        # 1. Category Breakdown
+        by_category = list(tickets.values('category').annotate(count=Count('id')))
+        
+        # 2. Status Breakdown
+        by_status = list(tickets.values('status').annotate(count=Count('id')))
+        
+        # 3. Average Resolution Time (in hours)
+        # Only for resolved tickets
+        resolved_tickets = tickets.filter(status='RESOLVED', resolved_at__isnull=False)
+        avg_time = 0
+        if resolved_tickets.exists():
+            # Calculate duration in Python to avoid DB specific duration math complexity in this snippet
+            total_seconds = sum([(t.resolved_at - t.created_at).total_seconds() for t in resolved_tickets])
+            avg_time = round((total_seconds / len(resolved_tickets)) / 3600, 1)
+
+        return Response({
+            "summary": {
+                "total": total,
+                "resolved": resolved,
+                "pending": pending,
+                "avg_resolution_hours": avg_time
+            },
+            "by_category": by_category,
+            "by_status": by_status
+        })

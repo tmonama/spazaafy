@@ -132,3 +132,51 @@ class AssistanceRequest(models.Model):
 
     def __str__(self):
         return f"{self.reference_code} - {self.shop_name}"
+
+# ✅ NEW: Tech Portal Models
+
+class TechCategory(models.TextChoices):
+    IT_SUPPORT = "IT_SUPPORT", "IT Support"
+    ACCESS = "ACCESS", "Access / Permissions"
+    BUG = "BUG", "System Bug"
+    REFERRAL = "REFERRAL", "Support Referral (Escalated)"
+
+class TechStatus(models.TextChoices):
+    PENDING = "PENDING", "Pending"
+    INVESTIGATING = "INVESTIGATING", "Under Investigation"
+    FIXING = "FIXING", "Fixing"
+    RESOLVED = "RESOLVED", "Resolved / Closed"
+
+class TechTicket(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    requester = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tech_requests')
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tech_tickets')
+    
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    category = models.CharField(max_length=50, choices=TechCategory.choices, default=TechCategory.IT_SUPPORT)
+    status = models.CharField(max_length=50, choices=TechStatus.choices, default=TechStatus.PENDING)
+    
+    # Analytics fields
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        # Auto-set resolved_at if status changes to RESOLVED
+        if self.status == TechStatus.RESOLVED and not self.resolved_at:
+            from django.utils import timezone
+            self.resolved_at = timezone.now()
+        elif self.status != TechStatus.RESOLVED:
+            self.resolved_at = None
+        super().save(*args, **kwargs)
+
+    @property
+    def resolution_time_hours(self):
+        if self.resolved_at and self.created_at:
+            diff = self.resolved_at - self.created_at
+            return round(diff.total_seconds() / 3600, 2)
+        return 0

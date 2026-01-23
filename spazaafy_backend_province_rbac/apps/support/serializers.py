@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from .models import Ticket, Message, AssistanceRequest 
+from .models import Ticket, Message, AssistanceRequest, TechTicket
 
 User = get_user_model()
 
@@ -67,3 +67,14 @@ class AssistanceRequestModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = AssistanceRequest
         fields = '__all__'
+
+class TechTicketSerializer(serializers.ModelSerializer):
+    requester_name = serializers.CharField(source='requester.get_full_name', read_only=True)
+    requester_role = serializers.CharField(source='requester.role', read_only=True)
+    assigned_name = serializers.CharField(source='assigned_to.get_full_name', read_only=True, allow_null=True)
+    resolution_time = serializers.FloatField(source='resolution_time_hours', read_only=True)
+
+    class Meta:
+        model = TechTicket
+        fields = '__all__'
+        read_only_fields = ['id', 'requester', 'created_at', 'updated_at', 'resolved_at']

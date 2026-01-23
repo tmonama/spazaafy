@@ -3,27 +3,25 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { 
     LifeBuoy, Send, Server, Monitor, AlertCircle, 
-    FileText, CheckCircle, Clock 
+    FileText, Clock 
 } from 'lucide-react';
-
-// Hooks & Context
 import { useAuth } from '../hooks/useAuth';
 import { Ticket } from '../types';
-
-// Components
 import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
-
-// API
 import mockApi from '../api/mockApi';
+import { techApi } from '../api/techApi';
 
 const SupportPage: React.FC = () => {
     const { t } = useTranslation();
-    const { user } = useAuth();
+    const { user } = useAuth(); // ✅ Removed 'token'
     
+    // ✅ Retrieve token from storage
+    const token = sessionStorage.getItem('access') || localStorage.getItem('access') || '';
+
     // Determine User Type
-    const isInternal = ['admin', 'hr', 'legal', 'employee'].includes(user?.role || '');
+    const isInternal = ['admin', 'hr', 'legal', 'employee'].includes(user?.role?.toLowerCase() || '');
 
     // State
     const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -38,10 +36,20 @@ const SupportPage: React.FC = () => {
     const fetchTickets = async () => {
         try {
             setLoading(true);
-            const fetchedTickets = await mockApi.tickets.list();
-            // Sort by newest first
-            fetchedTickets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            setTickets(fetchedTickets);
+            if (isInternal && token) {
+                // Fetch from new Tech API
+                const data = await techApi.getTickets(token);
+                // Filter only tickets created by this user
+                const myTickets = data.filter((t: any) => t.requester === user?.id || t.requester_name.includes(user?.firstName));
+                // Sort by date (desc)
+                myTickets.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                setTickets(myTickets);
+            } else {
+                // Standard Spaza Shop API
+                const fetchedTickets = await mockApi.tickets.list();
+                fetchedTickets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                setTickets(fetchedTickets);
+            }
         } catch (err: any) {
             setError(t('supportPage.loadError', 'Failed to load tickets'));
             console.error(err);
@@ -52,7 +60,7 @@ const SupportPage: React.FC = () => {
 
     useEffect(() => {
         fetchTickets();
-    }, []);
+    }, [isInternal, token]);
 
     // Handlers
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -65,22 +73,26 @@ const SupportPage: React.FC = () => {
 
         setIsSubmitting(true);
         try {
-            // For internal users, prepend category to description or title if API doesn't support category field yet
-            const finalDescription = isInternal 
-                ? `[Category: ${newTicket.category}] ${newTicket.description}`
-                : newTicket.description;
-
-            await mockApi.tickets.create({
-                title: newTicket.title,
-                description: finalDescription,
-                subject: newTicket.title,
-                // If your backend supports a category field, pass it here
-                // category: newTicket.category 
-            });
+            if (isInternal && token) {
+                // ✅ Submit to Tech Portal
+                await techApi.createTicket({
+                    title: newTicket.title,
+                    description: newTicket.description,
+                    category: newTicket.category
+                }, token);
+                alert("Tech Support Ticket Created");
+            } else {
+                // ✅ Submit to Customer Support
+                await mockApi.tickets.create({
+                    title: newTicket.title,
+                    description: newTicket.description,
+                    subject: newTicket.title,
+                });
+                alert("Support Ticket Created");
+            }
 
             setNewTicket({ title: '', description: '', category: 'IT_SUPPORT' });
             await fetchTickets();
-            alert(isInternal ? "Tech Support Ticket Created" : "Support Ticket Created");
         } catch (err) {
             alert('Failed to create ticket. Please try again.');
             console.error(err);
@@ -92,9 +104,11 @@ const SupportPage: React.FC = () => {
     // Helper for Status Colors
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'OPEN': return 'bg-green-100 text-green-800 border-green-200';
+            case 'OPEN':
+            case 'PENDING': return 'bg-green-100 text-green-800 border-green-200';
             case 'RESOLVED': return 'bg-blue-100 text-blue-800 border-blue-200';
             case 'CLOSED': return 'bg-gray-200 text-gray-800 border-gray-300';
+            case 'FIXING': return 'bg-purple-100 text-purple-800 border-purple-200';
             default: return 'bg-gray-100 text-gray-800 border-gray-200';
         }
     };
@@ -137,16 +151,12 @@ const SupportPage: React.FC = () => {
                                         </div>
                                     ) : (
                                         tickets.map(ticket => (
-                                            <Link 
-                                                to={`/support/${ticket.id}`} 
+                                            <div 
                                                 key={ticket.id} 
                                                 className="block p-4 rounded-lg bg-white border border-gray-200 dark:bg-dark-input/40 dark:border-dark-surface hover:shadow-md transition-all"
                                             >
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div className="flex items-center space-x-2">
-                                                        {ticket.unreadForCreator && (
-                                                            <span className="w-2.5 h-2.5 bg-red-500 rounded-full flex-shrink-0 animate-pulse" title="New response"></span>
-                                                        )}
                                                         <h4 className="font-bold text-gray-800 dark:text-white text-base">{ticket.title}</h4>
                                                     </div>
                                                     <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${getStatusColor(ticket.status)}`}>
@@ -158,9 +168,10 @@ const SupportPage: React.FC = () => {
                                                 </p>
                                                 <div className="flex items-center text-xs text-gray-400 dark:text-gray-500">
                                                     <Clock className="w-3 h-3 mr-1" />
-                                                    {t('supportPage.openedOn', { date: new Date(ticket.createdAt).toLocaleDateString() })}
+                                                    {/* Handle both data structures (createdAt vs created_at) */}
+                                                    {new Date(ticket.createdAt || (ticket as any).created_at).toLocaleDateString()}
                                                 </div>
-                                            </Link>
+                                            </div>
                                         ))
                                     )}
                                 </div>
@@ -177,8 +188,8 @@ const SupportPage: React.FC = () => {
                                 {isInternal && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {['IT_SUPPORT', 'ACCESS', 'BUG'].map((cat) => (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {['IT_SUPPORT', 'ACCESS', 'BUG', 'REFERRAL'].map((cat) => (
                                                 <div 
                                                     key={cat}
                                                     onClick={() => setNewTicket({ ...newTicket, category: cat })}
@@ -236,16 +247,6 @@ const SupportPage: React.FC = () => {
                                 </Button>
                             </form>
                         </Card>
-                        
-                        {/* Help Text for Internal */}
-                        {isInternal && (
-                            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/30">
-                                <h4 className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-1">Urgent Issue?</h4>
-                                <p className="text-xs text-blue-600 dark:text-blue-300">
-                                    For critical system outages affecting operations, please contact the IT Emergency Line directly at <strong>ext. 1011</strong>.
-                                </p>
-                            </div>
-                        )}
                     </div>
                 </div>
             </main>
