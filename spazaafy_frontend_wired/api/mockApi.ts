@@ -536,6 +536,19 @@ const auth = {
             method: 'POST', 
             body: JSON.stringify(payload) 
         }, false);
+    },
+    async requestTechCode(email: string) {
+        return request('/auth/tech/request-code', { 
+            method: 'POST', 
+            body: JSON.stringify({ email }) 
+        }, false);
+    },
+
+    async registerTech(payload: any) {
+        return request('/auth/tech/register', { 
+            method: 'POST', 
+            body: JSON.stringify(payload) 
+        }, false);
     }
 };
 
