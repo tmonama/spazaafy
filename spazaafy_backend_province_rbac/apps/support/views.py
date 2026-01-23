@@ -9,6 +9,7 @@ from django.core.mail import EmailMessage
 from django.conf import settings
 from rest_framework.decorators import action
 from apps.core.utils import send_expo_push_notification
+from django.db.models import Count 
 
 # ... TicketViewSet and MessageViewSet remain unchanged ...
 class TicketViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
