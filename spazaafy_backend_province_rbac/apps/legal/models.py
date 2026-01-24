@@ -57,6 +57,17 @@ class LegalRequest(models.Model):
         upload_to='legal_intake/%Y/%m/', 
         validators=[validate_file_size]
     )
+
+    # ✅ NEW: Revised Document (The amendment)
+    revision_file = models.FileField(
+        upload_to='legal_intake/revisions/%Y/%m/', 
+        validators=[validate_file_size],
+        null=True, blank=True
+    )
+
+    # ✅ NEW: Security Token for Public Upload Link
+    amendment_token = models.UUIDField(null=True, blank=True)
+
     
     # 5.3 Tracking & Status
     status = models.CharField(max_length=50, choices=LegalStatus.choices, default=LegalStatus.SUBMITTED)

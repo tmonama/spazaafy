@@ -19,18 +19,30 @@ class LegalRequestAdminSerializer(serializers.ModelSerializer):
     status = serializers.ChoiceField(choices=LegalStatus.choices)
 
     # ✅ FIX: Use SerializerMethodField to get the S3 URL safely
+    # We display the LATEST file (Revision if exists, else Original)
     file_url = serializers.SerializerMethodField()
+    is_revised = serializers.SerializerMethodField()
 
     class Meta:
         model = LegalRequest
         fields = '__all__'
 
     def get_file_url(self, obj):
-        # ✅ Safety Check: Only try to get URL if file exists and has a name
         try:
-            if obj.document_file and hasattr(obj.document_file, 'name') and obj.document_file.name:
+            # ✅ Prefer Revision File if it exists
+            if obj.revision_file and hasattr(obj.revision_file, 'url'):
+                return obj.revision_file.url
+            if obj.document_file and hasattr(obj.document_file, 'url'):
                 return obj.document_file.url
-        except Exception as e:
-            print(f"Error generating URL for LegalRequest {obj.id}: {e}")
+        except:
             return None
         return None
+
+    def get_is_revised(self, obj):
+        return bool(obj.revision_file)
+
+# ✅ NEW Serializer for the Amendment Upload
+class AmendmentUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LegalRequest
+        fields = ['revision_file']

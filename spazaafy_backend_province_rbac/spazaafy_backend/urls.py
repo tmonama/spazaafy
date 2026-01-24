@@ -22,8 +22,9 @@ urlpatterns = [
     path('api/reports/',  include('apps.reports.urls')),
     path('api/core/',  include('apps.core.urls')),
     path("delete-account/", DeleteAccountInfoView.as_view(), name="delete-account-info"),
-    path('api/legal/submit/', include('apps.legal.urls_public')),
-    path('api/legal/admin/', include('apps.legal.urls_admin')), 
+    # ✅ CHANGED: Point to the single unified legal urls file
+    # This mounts everything under /api/legal/...
+    path('api/legal/', include('apps.legal.urls')),
     path('api/hr/', include('apps.hr.urls')),
 ]
 

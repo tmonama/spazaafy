@@ -29,5 +29,15 @@ export const legalApi = {
         body: JSON.stringify({ status, note })
     });
     return res.json();
+  },
+
+  // ✅ NEW: Submit Amendment
+  submitAmendment: async (token: string, formData: FormData) => {
+    const res = await fetch(`${API_BASE}/legal/public/upload-amendment/${token}/`, {
+        method: 'PUT', // Uses PUT as per GenericAPIView logic for updates, or PATCH
+        body: formData, // Browser handles boundary
+    });
+    if (!res.ok) throw new Error("Upload failed. Link may be expired.");
+    return res.json();
   }
 };

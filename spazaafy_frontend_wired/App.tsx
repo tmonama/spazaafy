@@ -48,6 +48,7 @@ import LegalLoginPage from './pages/legal/LegalLoginPage';
 import LegalIntakePage from './pages/LegalIntakePage';
 import LegalLayout from './pages/legal/LegalLayout';
 import LegalCategoryPage from './pages/legal/LegalCategoryPage';
+import LegalAmendmentPage from './pages/legal/LegalAmendmentPage';
 
 // --- HR Portal ---
 import HRRegisterPage from './pages/hr/auth/HRRegisterPage';
@@ -122,6 +123,7 @@ function App() {
             <Route path="/jobs/request" element={<JobRequestForm />} />
             <Route path="/jobs/:id/apply" element={<JobApplicationForm />} />
             <Route path="/training/signup" element={<TrainingSignupForm />} />
+            <Route path="/legal/amend/:token" element={<LegalAmendmentPage />} />
 
             {/* ================= PORTAL SPECIFIC AUTH ================= */}
             
