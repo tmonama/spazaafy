@@ -32,6 +32,8 @@ const InternalHeader: React.FC = () => {
       case UserRole.LEGAL:
         navigate('/legal/login');
         break;
+      case UserRole.TECH:
+        navigate('/tech/login');
       case UserRole.EMPLOYEE:
         navigate('/employee/login');
         break;
