@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { 
     LifeBuoy, Send, Server, Monitor, AlertCircle, 
-    FileText, Clock 
+    FileText, Clock, ArrowRight 
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Ticket } from '../types';
@@ -15,7 +15,7 @@ import { techApi } from '../api/techApi';
 
 const SupportPage: React.FC = () => {
     const { t } = useTranslation();
-    const { user } = useAuth(); // ✅ Removed 'token'
+    const { user } = useAuth();
     
     // ✅ Retrieve token from storage
     const token = sessionStorage.getItem('access') || localStorage.getItem('access') || '';
@@ -24,7 +24,7 @@ const SupportPage: React.FC = () => {
     const isInternal = ['admin', 'hr', 'legal', 'employee'].includes(user?.role?.toLowerCase() || '');
 
     // State
-    const [tickets, setTickets] = useState<Ticket[]>([]);
+    const [tickets, setTickets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     
@@ -40,7 +40,10 @@ const SupportPage: React.FC = () => {
                 // Fetch from new Tech API
                 const data = await techApi.getTickets(token);
                 // Filter only tickets created by this user
-                const myTickets = data.filter((t: any) => t.requester === user?.id || t.requester_name.includes(user?.firstName));
+                const myTickets = data.filter((t: any) => 
+                    t.requester === user?.id || 
+                    (user?.firstName && t.requester_name.includes(user.firstName))
+                );
                 // Sort by date (desc)
                 myTickets.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
                 setTickets(myTickets);
@@ -106,15 +109,16 @@ const SupportPage: React.FC = () => {
         switch (status) {
             case 'OPEN':
             case 'PENDING': return 'bg-green-100 text-green-800 border-green-200';
-            case 'RESOLVED': return 'bg-blue-100 text-blue-800 border-blue-200';
+            case 'RESOLVED': return 'bg-green-600 text-white border-green-600';
             case 'CLOSED': return 'bg-gray-200 text-gray-800 border-gray-300';
-            case 'FIXING': return 'bg-purple-100 text-purple-800 border-purple-200';
+            case 'FIXING':
+            case 'INVESTIGATING': return 'bg-blue-100 text-blue-800 border-blue-200';
             default: return 'bg-gray-100 text-gray-800 border-gray-200';
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
+        <div className="min-h-screen bg-gray-50 dark:bg-dark-bg">
 
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 
@@ -145,34 +149,55 @@ const SupportPage: React.FC = () => {
                             : (
                                 <div className="space-y-4">
                                     {tickets.length === 0 ? (
-                                        <div className="text-center py-8 text-gray-500 border-2 border-dashed rounded-lg">
+                                        <div className="text-center py-8 text-gray-500 border-2 border-dashed rounded-lg bg-white dark:bg-dark-input/20">
                                             <FileText className="mx-auto h-10 w-10 text-gray-300 mb-2" />
                                             <p>{t('supportPage.noTickets')}</p>
                                         </div>
                                     ) : (
-                                        tickets.map(ticket => (
-                                            <div 
-                                                key={ticket.id} 
-                                                className="block p-4 rounded-lg bg-white border border-gray-200 dark:bg-dark-input/40 dark:border-dark-surface hover:shadow-md transition-all"
-                                            >
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div className="flex items-center space-x-2">
-                                                        <h4 className="font-bold text-gray-800 dark:text-white text-base">{ticket.title}</h4>
+                                        tickets.map(ticket => {
+                                            // Dynamic link based on user type
+                                            // Tech tickets usually have UUIDs, standard tickets might be numeric ID strings
+                                            // But primarily we rely on isInternal to decide where to route
+                                            const detailLink = isInternal 
+                                                ? `/tech/tickets/${ticket.id}`  // Route to Tech Ticket Detail
+                                                : `/support/${ticket.id}`;      // Route to Standard Ticket Detail
+
+                                            return (
+                                                <Link 
+                                                    to={detailLink}
+                                                    key={ticket.id} 
+                                                    className="group block p-5 rounded-xl bg-white border border-gray-200 dark:bg-dark-input/40 dark:border-dark-surface hover:shadow-lg transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-700 relative overflow-hidden"
+                                                >
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className="flex items-center space-x-3">
+                                                            <div className={`p-2 rounded-lg ${isInternal ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>
+                                                                {isInternal ? <Monitor size={18} /> : <LifeBuoy size={18} />}
+                                                            </div>
+                                                            <h4 className="font-bold text-gray-800 dark:text-white text-base group-hover:text-blue-600 transition-colors">
+                                                                {ticket.title}
+                                                            </h4>
+                                                        </div>
+                                                        <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded border ${getStatusColor(ticket.status)}`}>
+                                                            {ticket.status}
+                                                        </span>
                                                     </div>
-                                                    <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${getStatusColor(ticket.status)}`}>
-                                                        {ticket.status}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-3">
-                                                    {ticket.description}
-                                                </p>
-                                                <div className="flex items-center text-xs text-gray-400 dark:text-gray-500">
-                                                    <Clock className="w-3 h-3 mr-1" />
-                                                    {/* Handle both data structures (createdAt vs created_at) */}
-                                                    {new Date(ticket.createdAt || (ticket as any).created_at).toLocaleDateString()}
-                                                </div>
-                                            </div>
-                                        ))
+                                                    
+                                                    <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-4 ml-12">
+                                                        {ticket.description}
+                                                    </p>
+                                                    
+                                                    <div className="flex items-center justify-between ml-12 pt-2 border-t border-gray-100 dark:border-gray-700">
+                                                        <div className="flex items-center text-xs text-gray-400 dark:text-gray-500">
+                                                            <Clock className="w-3 h-3 mr-1" />
+                                                            {new Date(ticket.createdAt || (ticket as any).created_at).toLocaleDateString()}
+                                                        </div>
+                                                        <div className="flex items-center text-xs font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0">
+                                                            View Discussion <ArrowRight className="w-3 h-3 ml-1" />
+                                                        </div>
+                                                    </div>
+                                                </Link>
+                                            );
+                                        })
                                     )}
                                 </div>
                             )}
@@ -196,7 +221,7 @@ const SupportPage: React.FC = () => {
                                                     className={`cursor-pointer border rounded-md p-2 text-center text-xs font-bold transition ${
                                                         newTicket.category === cat 
                                                         ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200' 
-                                                        : 'border-gray-200 text-gray-500 hover:border-blue-300'
+                                                        : 'border-gray-200 text-gray-500 hover:border-blue-300 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400'
                                                     }`}
                                                 >
                                                     {cat === 'IT_SUPPORT' && <Monitor className="mx-auto h-4 w-4 mb-1" />}

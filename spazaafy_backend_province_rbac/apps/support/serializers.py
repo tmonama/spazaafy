@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from .models import Ticket, Message, AssistanceRequest, TechTicket
+from .models import Ticket, Message, AssistanceRequest, TechTicket, TechMessage
 
 User = get_user_model()
 
@@ -78,3 +78,12 @@ class TechTicketSerializer(serializers.ModelSerializer):
         model = TechTicket
         fields = '__all__'
         read_only_fields = ['id', 'requester', 'created_at', 'updated_at', 'resolved_at']
+
+class TechMessageSerializer(serializers.ModelSerializer):
+    sender_name = serializers.CharField(source='sender.get_full_name', read_only=True)
+    sender_role = serializers.CharField(source='sender.role', read_only=True)
+
+    class Meta:
+        model = TechMessage
+        fields = '__all__'
+        read_only_fields = ['ticket', 'sender', 'created_at']

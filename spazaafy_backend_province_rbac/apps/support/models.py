@@ -180,3 +180,18 @@ class TechTicket(models.Model):
             diff = self.resolved_at - self.created_at
             return round(diff.total_seconds() / 3600, 2)
         return 0
+    
+
+class TechMessage(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    ticket = models.ForeignKey(TechTicket, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    content = models.TextField(blank=True)
+    attachment = models.FileField(upload_to='tech_ticket_attachments/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Message from {self.sender} on tech ticket {self.ticket.id}"

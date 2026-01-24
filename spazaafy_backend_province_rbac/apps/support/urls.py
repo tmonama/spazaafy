@@ -2,7 +2,7 @@
 
 from django.urls import path, include
 from rest_framework_nested import routers
-from .views import TicketViewSet, MessageViewSet, RequestAssistanceView, AdminAssistanceViewSet,TechTicketViewSet
+from .views import TicketViewSet, MessageViewSet, RequestAssistanceView, AdminAssistanceViewSet,TechTicketViewSet, TechTicketViewSet, TechMessageViewSet
 
 
 # Main router for the top-level resource (Tickets)
@@ -10,6 +10,9 @@ router = routers.DefaultRouter()
 router.register(r'tickets', TicketViewSet, basename='ticket')
 router.register(r'assistance-requests', AdminAssistanceViewSet, basename='assistance-request')
 router.register(r'tech-tickets', TechTicketViewSet, basename='tech-tickets')
+
+tech_router = routers.NestedDefaultRouter(router, r'tech-tickets', lookup='tech_ticket')
+tech_router.register(r'messages', TechMessageViewSet, basename='tech-ticket-messages')
 
 # Nested router for the child resource (Messages)
 # It creates URLs like /tickets/{ticket_pk}/messages/
@@ -20,4 +23,5 @@ urlpatterns = [
     path('request-assistance/', RequestAssistanceView.as_view(), name='request-assistance'),
     path('', include(router.urls)),
     path('', include(tickets_router.urls)),
+    path('', include(tech_router.urls)),
 ]

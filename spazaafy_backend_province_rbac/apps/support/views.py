@@ -1,7 +1,7 @@
 from rest_framework import viewsets, permissions, status, generics
 from rest_framework.response import Response
-from .models import Ticket, Message, AssistanceRequest, TechTicket
-from .serializers import TicketSerializer, MessageSerializer, AssistanceRequestSerializer, AssistanceRequestModelSerializer, TechTicketSerializer
+from .models import Ticket, Message, AssistanceRequest, TechTicket, TechMessage
+from .serializers import TicketSerializer, MessageSerializer, AssistanceRequestSerializer, AssistanceRequestModelSerializer, TechTicketSerializer, TechMessageSerializer
 from apps.core.permissions import ProvinceScopedMixin
 from .models import mark_ticket_as_read
 from apps.shops.models import SpazaShop
@@ -10,6 +10,7 @@ from django.conf import settings
 from rest_framework.decorators import action
 from apps.core.utils import send_expo_push_notification
 from django.db.models import Count 
+from django.utils import timezone
 
 # ... TicketViewSet and MessageViewSet remain unchanged ...
 class TicketViewSet(ProvinceScopedMixin, viewsets.ModelViewSet):
@@ -372,3 +373,25 @@ class TechTicketViewSet(viewsets.ModelViewSet):
             "by_category": by_category,
             "by_status": by_status
         })
+    
+class TechMessageViewSet(viewsets.ModelViewSet):
+    serializer_class = TechMessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Ensure we only get messages for the specific ticket in the URL
+        return TechMessage.objects.filter(ticket_id=self.kwargs['tech_ticket_pk'])
+
+    def perform_create(self, serializer):
+        ticket_id = self.kwargs['tech_ticket_pk']
+        ticket = TechTicket.objects.get(pk=ticket_id)
+        
+        # Save message
+        serializer.save(ticket=ticket, sender=self.request.user)
+        
+        # Optional: Update parent ticket timestamp
+        ticket.updated_at = timezone.now()
+        # If admin replies, maybe change status to INVESTIGATING?
+        if self.request.user.is_staff and ticket.status == 'PENDING':
+             ticket.status = 'INVESTIGATING'
+        ticket.save()

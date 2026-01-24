@@ -129,6 +129,9 @@ const roleDisplay: Record<UserRole, string> = {
     [UserRole.CONSUMER]: 'Consumer',
     [UserRole.SHOP_OWNER]: 'Spaza Shop',
     [UserRole.ADMIN]: 'Admin',
+    [UserRole.EMPLOYEE]: 'Employee',
+    [UserRole.HR]: 'HR',
+    [UserRole.LEGAL]: 'Legal',
 };
 
 const AdminTicketDetailPage: React.FC = () => {
