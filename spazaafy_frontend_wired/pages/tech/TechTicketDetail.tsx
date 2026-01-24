@@ -4,7 +4,7 @@ import { techApi } from '../../api/techApi';
 import { useAuth } from '../../hooks/useAuth';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
-import { Paperclip, XCircle, ArrowLeft, Clock, Send, User } from 'lucide-react';
+import { Paperclip, XCircle, ArrowLeft, Clock, Send, User, Lock } from 'lucide-react';
 
 interface TechMessage {
   id: string;
@@ -104,10 +104,10 @@ const TechTicketDetail: React.FC = () => {
   if (!ticket) return <div className="p-8 text-center text-red-500">Ticket not found or access denied.</div>;
 
   const backLink = user?.role === 'admin' ? "/tech/tickets" : "/support";
+  const isResolved = ticket.status === 'RESOLVED' || ticket.status === 'CLOSED';
 
   return (
-    // ✅ 1. Layout Fix: Fixed height container
-    <div className="flex flex-col h-[calc(100vh-8rem)] p-4 sm:p-6 bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-[calc(100vh-12rem)] p-4 sm:p-6 bg-gray-50 dark:bg-gray-900">
       
       <div className="mb-4 flex-none">
         <Link to={backLink} className="flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors">
@@ -120,7 +120,6 @@ const TechTicketDetail: React.FC = () => {
         
         {/* LEFT: Chat Area */}
         <div className="lg:col-span-2 flex flex-col h-full min-h-0">
-            {/* ✅ 2. Replaced Card with direct DIV to control Flex/Height */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md flex flex-col h-full overflow-hidden border border-gray-200 dark:border-gray-700">
                 
                 {/* Header */}
@@ -130,13 +129,13 @@ const TechTicketDetail: React.FC = () => {
                         <p className="text-xs text-gray-500">Ref: #{String(ticket.id).slice(0, 8)}</p>
                     </div>
                     <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${
-                        ticket.status === 'RESOLVED' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                        isResolved ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                     }`}>
                         {ticket.status}
                     </span>
                 </div>
 
-                {/* Messages: flex-1 + overflow-y-auto + min-h-0 */}
+                {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 bg-gray-50/50 dark:bg-gray-900/30 space-y-4 min-h-0 scroll-smooth">
                     {messages.length === 0 && (
                         <div className="text-center text-gray-400 text-sm italic mt-10">
@@ -174,53 +173,58 @@ const TechTicketDetail: React.FC = () => {
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input */}
+                {/* ✅ Input Area (Conditional) */}
                 <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex-none">
-                    <form onSubmit={handleSendMessage}>
-                        {attachment && (
-                            <div className="mb-2 inline-flex items-center bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-xs">
-                                <span className="truncate max-w-[200px]">{attachment.name}</span>
-                                <button type="button" onClick={() => { setAttachment(null); if(fileInputRef.current) fileInputRef.current.value=''; }} className="ml-2 text-red-500"><XCircle className="w-4 h-4" /></button>
-                            </div>
-                        )}
-                        <div className="flex items-end gap-2">
-                            <div className="flex-1 relative">
-                                <textarea
-                                    className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 pr-10 bg-gray-50 dark:bg-gray-900 text-sm resize-none dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none"
-                                    placeholder="Type your message..."
-                                    rows={1}
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault();
-                                            handleSendMessage(e as any);
-                                        }
-                                    }}
-                                />
-                                <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute right-3 bottom-3 text-gray-400">
-                                    <Paperclip className="w-5 h-5" />
-                                </button>
-                                <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => e.target.files && setAttachment(e.target.files[0])} />
-                            </div>
-                            <Button type="submit" disabled={isSending || (!newMessage.trim() && !attachment)} className="h-[46px] w-[46px] rounded-xl flex items-center justify-center p-0 bg-green-600 hover:bg-green-700 text-white">
-                                {isSending ? '...' : <Send className="w-5 h-5" />}
-                            </Button>
+                    {isResolved ? (
+                        <div className="flex items-center justify-center p-2 text-gray-500 dark:text-gray-400 text-sm italic bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                            <Lock className="w-4 h-4 mr-2" />
+                            This ticket has been resolved. To continue, reopen the ticket.
                         </div>
-                    </form>
+                    ) : (
+                        <form onSubmit={handleSendMessage}>
+                            {attachment && (
+                                <div className="mb-2 inline-flex items-center bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-xs">
+                                    <span className="truncate max-w-[200px]">{attachment.name}</span>
+                                    <button type="button" onClick={() => { setAttachment(null); if(fileInputRef.current) fileInputRef.current.value=''; }} className="ml-2 text-red-500"><XCircle className="w-4 h-4" /></button>
+                                </div>
+                            )}
+                            <div className="flex items-end gap-2">
+                                <div className="flex-1 relative">
+                                    <textarea
+                                        className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 pr-10 bg-gray-50 dark:bg-gray-900 text-sm resize-none dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none"
+                                        placeholder="Type your message..."
+                                        rows={1}
+                                        value={newMessage}
+                                        onChange={(e) => setNewMessage(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                handleSendMessage(e as any);
+                                            }
+                                        }}
+                                    />
+                                    <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute right-3 bottom-3 text-gray-400">
+                                        <Paperclip className="w-5 h-5" />
+                                    </button>
+                                    <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => e.target.files && setAttachment(e.target.files[0])} />
+                                </div>
+                                <Button type="submit" disabled={isSending || (!newMessage.trim() && !attachment)} className="h-[46px] w-[46px] rounded-xl flex items-center justify-center p-0 bg-green-600 hover:bg-green-700 text-white">
+                                    {isSending ? '...' : <Send className="w-5 h-5" />}
+                                </Button>
+                            </div>
+                        </form>
+                    )}
                 </div>
             </div>
         </div>
 
         {/* RIGHT: Details Sidebar */}
         <div className="hidden lg:flex lg:flex-col h-full overflow-hidden">
-            {/* Replaced Card here too for consistency, though overflow-y-auto on Card content also works */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-full flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700">
                 <div className="p-4 border-b border-gray-100 dark:border-gray-700">
                     <h3 className="font-bold text-gray-900 dark:text-white">Ticket Details</h3>
                 </div>
                 <div className="p-6 overflow-y-auto space-y-6 text-sm">
-                    {/* Requester */}
                     <div>
                         <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Requester</span>
                         <div className="flex items-center gap-3">
@@ -234,7 +238,6 @@ const TechTicketDetail: React.FC = () => {
                         </div>
                     </div>
                     <hr className="border-gray-100 dark:border-gray-700" />
-                    {/* Metadata */}
                     <div className="space-y-4">
                         <div>
                             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Category</span>
@@ -251,7 +254,6 @@ const TechTicketDetail: React.FC = () => {
                         </div>
                     </div>
                     <hr className="border-gray-100 dark:border-gray-700" />
-                    {/* Description */}
                     <div>
                         <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Description</span>
                         <div className="text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700 text-xs leading-relaxed">
