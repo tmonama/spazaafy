@@ -4,7 +4,7 @@ import { techApi } from '../../api/techApi';
 import { useAuth } from '../../hooks/useAuth';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
-import { Paperclip, XCircle, ArrowLeft, Clock, Send } from 'lucide-react';
+import { Paperclip, XCircle, ArrowLeft, Clock, Send, User } from 'lucide-react';
 
 interface TechMessage {
   id: string;
@@ -19,8 +19,6 @@ interface TechMessage {
 const TechTicketDetail: React.FC = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
   const { user } = useAuth();
-  
-  // Need token from storage manually to avoid TS errors if not in context type
   const authToken = sessionStorage.getItem('access') || localStorage.getItem('access') || '';
 
   const [ticket, setTicket] = useState<any>(null);
@@ -67,7 +65,7 @@ const TechTicketDetail: React.FC = () => {
         const mData = await techApi.getMessages(ticketId, authToken);
         setMessages(mData);
       } catch {
-        // ignore transient polling errors
+        // ignore polling errors
       }
     }, 5000);
     return () => clearInterval(interval);
@@ -111,11 +109,13 @@ const TechTicketDetail: React.FC = () => {
   if (loading) return <div className="p-8 text-center">Loading Ticket Data...</div>;
   if (!ticket) return <div className="p-8 text-center text-red-500">Ticket not found or access denied.</div>;
 
-  const backLink = '/tech/tickets';
+  // Determine back link
+  const backLink = user?.role === 'admin' ? "/tech/tickets" : "/support";
 
   return (
-    // H-SCREEN container minus header height approx, so inner parts can scroll
-    <div className="p-4 sm:p-6 h-[calc(100vh-64px)] flex flex-col bg-gray-50 dark:bg-gray-900">
+    // ✅ FIX: Fixed Height calculation (Viewport - Header/Padding)
+    // 12rem accounts for: Header (~4rem) + Top/Bottom Padding (~4rem) + Link Margin (~3rem)
+    <div className="flex flex-col h-[calc(100vh-12rem)]">
       
       {/* Top Navigation */}
       <div className="mb-4 flex-shrink-0">
@@ -125,17 +125,19 @@ const TechTicketDetail: React.FC = () => {
         </Link>
       </div>
 
-      {/* Main Content Grid */}
+      {/* Main Content Grid (Takes remaining height) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full min-h-0">
         
         {/* LEFT: Chat Area (Span 2) */}
-        <div className="lg:col-span-2 flex flex-col min-h-0 h-full">
+        <div className="lg:col-span-2 flex flex-col h-full min-h-0">
             <Card className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col flex-1 h-full min-h-0">
                 
                 {/* Header (Fixed) */}
                 <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-white dark:bg-gray-800 shrink-0">
                     <div>
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">{ticket.title}</h2>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            {ticket.title}
+                        </h2>
                         <p className="text-xs text-gray-500">Ref: #{String(ticket.id).slice(0, 8)}</p>
                     </div>
 
@@ -160,6 +162,7 @@ const TechTicketDetail: React.FC = () => {
                     {messages.map((msg) => {
                         const isMe = isMyMessage(msg);
                         const alignClass = isMe ? 'justify-end' : 'justify-start';
+                        // Green for me, Grey for others
                         const bubbleClass = isMe
                             ? 'bg-green-600 text-white rounded-tr-none'
                             : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-tl-none border border-gray-100 dark:border-gray-600';
@@ -276,11 +279,11 @@ const TechTicketDetail: React.FC = () => {
                         <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Requester</span>
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
-                                {ticket.requester_name?.charAt(0)}
+                                {ticket.requester_name?.charAt(0).toUpperCase() || <User size={16} />}
                             </div>
                             <div>
                                 <div className="font-medium text-gray-900 dark:text-white">{ticket.requester_name}</div>
-                                <div className="text-xs text-gray-500">{ticket.requester_role}</div>
+                                <div className="text-xs text-gray-500 uppercase">{ticket.requester_role}</div>
                             </div>
                         </div>
                     </div>
@@ -297,13 +300,10 @@ const TechTicketDetail: React.FC = () => {
                         </div>
 
                         <div>
-                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Created On</span>
+                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Created</span>
                             <div className="flex items-center text-gray-700 dark:text-gray-300">
                                 <Clock className="w-4 h-4 mr-2 text-gray-400" />
                                 {new Date(ticket.created_at).toLocaleDateString()} 
-                                <span className="text-xs text-gray-400 ml-1">
-                                    at {new Date(ticket.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                </span>
                             </div>
                         </div>
                     </div>
@@ -312,7 +312,7 @@ const TechTicketDetail: React.FC = () => {
 
                     {/* Description Box */}
                     <div>
-                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Original Request</span>
+                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Description</span>
                         <div className="text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 text-xs leading-relaxed max-h-60 overflow-y-auto">
                             {ticket.description}
                         </div>
