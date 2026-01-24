@@ -4,8 +4,8 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import { 
-    CheckCircle, XCircle, AlertTriangle, FileText, Clock, 
-    Calendar, Filter, AlertOctagon 
+    CheckCircle, XCircle, FileText, Clock, 
+    Calendar, AlertOctagon 
 } from 'lucide-react';
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -21,6 +21,8 @@ const STATUS_TABS = [
     { label: 'Pending', value: 'SUBMITTED' },
     { label: 'In Review', value: 'UNDER_REVIEW' },
     { label: 'Amend Req.', value: 'AMENDMENT_REQ' },
+    // ✅ Include the new status in the filtering logic
+    { label: 'Amend. Submitted', value: 'AMENDMENT_SUBMITTED' }, 
     { label: 'Approved/Filed', value: 'APPROVED_FILED' },
     { label: 'Rejected', value: 'REJECTED' },
     { label: 'All', value: 'ALL' }
@@ -34,7 +36,6 @@ const URGENCY_FILTERS = [
     { label: 'Routine (14d)', value: 'ROUTINE' }
 ];
 
-// Define SLA (Service Level Agreement) in Days
 const URGENCY_SLA_DAYS: Record<string, number> = {
     'CRITICAL': 1,
     'URGENT': 2,
@@ -54,11 +55,9 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     
-    // Filters
     const [activeStatusFilter, setActiveStatusFilter] = useState('SUBMITTED');
     const [activeUrgencyFilter, setActiveUrgencyFilter] = useState('ALL');
     
-    // Modal State
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
     const [actionType, setActionType] = useState<string>(''); 
@@ -81,7 +80,6 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
         fetchRequests();
     }, []);
 
-    // --- Helper: Calculate Deadline & Time Left ---
     const getDeadlineData = (created_at: string, urgency: string) => {
         const daysAllowed = URGENCY_SLA_DAYS[urgency] || 14;
         const createdDate = new Date(created_at);
@@ -115,21 +113,13 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
     const filteredAndSortedRequests = useMemo(() => {
         let list = [...requests];
 
-        // 1. Filter by Category
         if (!isOverview) {
             const mapKey = activeCategoryKey?.toLowerCase();
             const targetCategory = CATEGORY_MAP[mapKey];
-
             if (!targetCategory) return [];
-
-            list = list.filter(r => {
-                const apiValue = r.category?.toUpperCase() || '';
-                const target = targetCategory.toUpperCase();
-                return apiValue === target;
-            });
+            list = list.filter(r => r.category?.toUpperCase() === targetCategory.toUpperCase());
         }
 
-        // 2. Filter by Status Tab
         if (activeStatusFilter !== 'ALL') {
             if (activeStatusFilter === 'APPROVED_FILED') {
                 list = list.filter(r => r.status === 'APPROVED' || r.status === 'FILED');
@@ -138,24 +128,16 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
             }
         }
 
-        // 3. Filter by Urgency
         if (activeUrgencyFilter !== 'ALL') {
             list = list.filter(r => r.urgency === activeUrgencyFilter);
         }
 
-        // 4. SORT by Time Left (Ascending: Overdue -> Urgent -> Safe)
-        // Completed items pushed to bottom
         list.sort((a, b) => {
             const isAComplete = ['APPROVED', 'FILED', 'REJECTED'].includes(a.status);
             const isBComplete = ['APPROVED', 'FILED', 'REJECTED'].includes(b.status);
-
             if (isAComplete && !isBComplete) return 1;
             if (!isAComplete && isBComplete) return -1;
-
-            const deadlineA = getDeadlineData(a.created_at, a.urgency).diffMs;
-            const deadlineB = getDeadlineData(b.created_at, b.urgency).diffMs;
-
-            return deadlineA - deadlineB; // Lowest time (including negative/overdue) first
+            return getDeadlineData(a.created_at, a.urgency).diffMs - getDeadlineData(b.created_at, b.urgency).diffMs;
         });
 
         return list;
@@ -192,6 +174,7 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
             case 'SUBMITTED': return 'bg-blue-100 text-blue-800 border-blue-200';
             case 'UNDER_REVIEW': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
             case 'AMENDMENT_REQ': return 'bg-orange-100 text-orange-800 border-orange-200';
+            case 'AMENDMENT_SUBMITTED': return 'bg-cyan-100 text-cyan-800 border-cyan-200'; // ✅ New Color
             case 'APPROVED': return 'bg-green-100 text-green-800 border-green-200';
             case 'REJECTED': return 'bg-red-100 text-red-800 border-red-200';
             case 'FILED': return 'bg-purple-100 text-purple-800 border-purple-200';
@@ -211,9 +194,7 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{pageTitle}</h1>
             </div>
 
-            {/* FILTERS CONTAINER */}
             <Card className="p-4 space-y-4">
-                {/* 1. Status Tabs */}
                 <div className="flex flex-wrap gap-2 border-b border-gray-100 pb-4">
                     <span className="text-sm font-bold text-gray-500 self-center mr-2 uppercase tracking-wide text-xs">Status:</span>
                     {STATUS_TABS.map((tab) => (
@@ -231,7 +212,6 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                     ))}
                 </div>
 
-                {/* 2. Urgency Dropdown/Chips */}
                 <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-bold text-gray-500 self-center mr-2 uppercase tracking-wide text-xs">Urgency:</span>
                     {URGENCY_FILTERS.map((urg) => (
@@ -260,6 +240,10 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                     {filteredAndSortedRequests.map((req) => {
                         const deadlineData = getDeadlineData(req.created_at, req.urgency);
                         const isComplete = ['APPROVED', 'FILED', 'REJECTED'].includes(req.status);
+                        
+                        // ✅ Logic for button label
+                        // 'is_revised' comes from serializer if revision_file exists
+                        const showRevLabel = req.status === 'AMENDMENT_SUBMITTED' || req.is_revised;
 
                         return (
                             <div key={req.id} className={`p-6 rounded-lg bg-white shadow-sm border-l-4 ${
@@ -270,20 +254,13 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                                 <div className="flex flex-col lg:flex-row justify-between gap-6">
                                     <div className="flex-1">
                                         <div className="flex flex-wrap items-center gap-3 mb-3">
-                                            {/* Status Badge */}
                                             <span className={`px-2 py-1 rounded text-xs font-bold border ${getStatusStyle(req.status)}`}>
                                                 {req.status_label}
                                             </span>
-                                            
-                                            {/* ID */}
                                             <span className="text-xs font-mono text-gray-400">#{req.id.slice(0, 8)}</span>
-                                            
-                                            {/* Category */}
                                             <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
                                                 {req.category_label}
                                             </span>
-
-                                            {/* TIME LEFT BADGE (Only for active items) */}
                                             {!isComplete && (
                                                 <span className={`flex items-center px-2 py-1 rounded text-xs font-bold border ${deadlineData.colorClass}`}>
                                                     <Clock size={12} className="mr-1" /> {deadlineData.label}
@@ -302,9 +279,14 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                                             <strong>Context:</strong> {req.description}
                                         </div>
 
+                                        {/* ✅ Updated View Document Button */}
                                         {req.file_url ? (
-                                            <a href={req.file_url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                                📄 View Attached Document
+                                            <a href={req.file_url} target="_blank" rel="noreferrer" className={`inline-flex items-center justify-center px-4 py-2 border shadow-sm text-sm font-medium rounded-md transition-colors ${
+                                                showRevLabel 
+                                                ? 'bg-cyan-50 text-cyan-800 border-cyan-200 hover:bg-cyan-100' 
+                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                            }`}>
+                                                {showRevLabel ? '🔄 View Amended Document' : '📄 View Attached Document'}
                                             </a>
                                         ) : (
                                             <span className="text-red-500 text-sm italic">No file attached</span>
@@ -320,7 +302,8 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                                             </Button>
                                         )}
 
-                                        {(req.status === 'UNDER_REVIEW' || req.status === 'AMENDMENT_REQ') && (
+                                        {/* ✅ Show actions for AMENDMENT_SUBMITTED as well */}
+                                        {(req.status === 'UNDER_REVIEW' || req.status === 'AMENDMENT_REQ' || req.status === 'AMENDMENT_SUBMITTED') && (
                                             <>
                                                 <Button variant="neutral" size="sm" onClick={() => openActionModal(req, 'AMENDMENT_REQ')}>
                                                     Request Amendment
@@ -354,7 +337,6 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                 </div>
             )}
 
-            {/* ACTION MODAL */}
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Update Status">
                 <div className="space-y-4">
                     <p className="text-gray-700">

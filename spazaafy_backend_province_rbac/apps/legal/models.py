@@ -29,6 +29,7 @@ class LegalStatus(models.TextChoices):
     SUBMITTED = "SUBMITTED", "Submitted"
     UNDER_REVIEW = "UNDER_REVIEW", "Under Review"
     AMENDMENT_REQ = "AMENDMENT_REQ", "Amendment Required"
+    AMENDMENT_SUBMITTED = "AMENDMENT_SUBMITTED", "Amendment Submitted"
     APPROVED = "APPROVED", "Approved & Executed"
     REJECTED = "REJECTED", "Rejected"
     FILED = "FILED", "Filed (IP/Gov)"

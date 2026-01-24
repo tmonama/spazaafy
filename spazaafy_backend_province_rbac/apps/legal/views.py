@@ -46,7 +46,7 @@ class SubmitAmendmentView(generics.UpdateAPIView):
 
         instance.revision_file = file_obj
         # Reset status so Legal knows it's back for review
-        instance.status = LegalStatus.UNDER_REVIEW 
+        instance.status = LegalStatus.AMENDMENT_SUBMITTED
         instance.internal_notes += f"\n[SYSTEM]: Amendment uploaded by user on {instance.updated_at}"
         # Clear token to prevent reuse (One-time link)
         instance.amendment_token = None 
