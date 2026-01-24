@@ -163,42 +163,59 @@ const InternalTechTicketDetail: React.FC = () => {
               {messages.map((msg) => {
                 const isMe = isMyMessage(msg);
 
+                // YOUR RULE:
+                // Outgoing (me) = LEFT + GREEN
+                // Incoming = RIGHT + GREY
+                const alignClass = isMe ? 'justify-start' : 'justify-end';
+                const bubbleClass = isMe
+                    ? 'bg-green-600 text-white rounded-tl-none'
+                    : 'bg-gray-200 text-gray-900 rounded-tr-none';
+
                 return (
-                  <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] sm:max-w-[70%] rounded-2xl p-3 shadow-sm ${
-                      isMe
-                        ? 'bg-green-600 text-white rounded-tr-none'
-                        : 'bg-gray-200 text-gray-900 rounded-tl-none'
-                    }`}>
-                      {!isMe && (
-                        <div className="text-[10px] font-bold opacity-70 mb-1">
-                          {msg.sender_name} <span className="font-normal opacity-50">• {msg.sender_role}</span>
+                    <div key={msg.id} className={`flex ${alignClass}`}>
+                    <div className={`max-w-[85%] sm:max-w-[70%] rounded-2xl p-3 shadow-sm ${bubbleClass}`}>
+                        
+                        {/* Show sender label ONLY for incoming (right side) */}
+                        {!isMe && (
+                        <div className="text-[10px] font-bold opacity-70 mb-1 text-right">
+                            {msg.sender_name}
+                            <span className="font-normal opacity-50"> • {msg.sender_role}</span>
                         </div>
-                      )}
+                        )}
 
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
 
-                      {msg.attachment && (
+                        {msg.attachment && (
                         <a
-                          href={msg.attachment}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={`mt-2 flex items-center p-2 rounded-lg text-xs transition-colors ${
-                            isMe ? 'bg-green-700 hover:bg-green-800' : 'bg-white/60 hover:bg-white'
-                          }`}
+                            href={msg.attachment}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`mt-2 flex items-center p-2 rounded-lg text-xs transition-colors ${
+                            isMe
+                                ? 'bg-green-700 hover:bg-green-800'
+                                : 'bg-white/70 hover:bg-white'
+                            }`}
                         >
-                          <Paperclip className="w-3 h-3 mr-2" />
-                          View Attachment
+                            <Paperclip className="w-3 h-3 mr-2" />
+                            View Attachment
                         </a>
-                      )}
+                        )}
 
-                      <div className={`text-[10px] mt-1 text-right ${isMe ? 'text-green-100' : 'text-gray-600'}`}>
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
+                        <div
+                        className={`text-[10px] mt-1 ${
+                            isMe ? 'text-green-100 text-left' : 'text-gray-600 text-right'
+                        }`}
+                        >
+                        {new Date(msg.created_at).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        })}
+                        </div>
                     </div>
-                  </div>
+                    </div>
                 );
-              })}
+                })}
+
 
               <div ref={messagesEndRef} />
             </div>
