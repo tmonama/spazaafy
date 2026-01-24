@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { techApi } from '../../api/techApi';
-import { 
-  Search, Filter, ChevronRight, CheckCircle, Clock 
-} from 'lucide-react';
 
 const TechTickets: React.FC = () => {
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('ALL');
@@ -14,7 +13,7 @@ const TechTickets: React.FC = () => {
 
   const fetchTickets = async () => {
     try {
-      if(token) {
+      if (token) {
         setLoading(true);
         const data = await techApi.getTickets(token);
         setTickets(data);
@@ -28,6 +27,7 @@ const TechTickets: React.FC = () => {
 
   useEffect(() => {
     fetchTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
@@ -55,14 +55,14 @@ const TechTickets: React.FC = () => {
   };
 
   const getCategoryBadge = (cat: string) => {
-      switch (cat) {
-          case 'BUG': return <span className="px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-800">BUG</span>;
-          case 'IT_SUPPORT': return <span className="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">IT SUPPORT</span>;
-          case 'ACCESS': return <span className="px-2 py-1 rounded text-xs font-bold bg-purple-100 text-purple-800">ACCESS</span>;
-          case 'REFERRAL': return <span className="px-2 py-1 rounded text-xs font-bold bg-orange-100 text-orange-800">REFERRAL</span>;
-          default: return null;
-      }
-  }
+    switch (cat) {
+      case 'BUG': return <span className="px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-800">BUG</span>;
+      case 'IT_SUPPORT': return <span className="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">IT SUPPORT</span>;
+      case 'ACCESS': return <span className="px-2 py-1 rounded text-xs font-bold bg-purple-100 text-purple-800">ACCESS</span>;
+      case 'REFERRAL': return <span className="px-2 py-1 rounded text-xs font-bold bg-orange-100 text-orange-800">REFERRAL</span>;
+      default: return null;
+    }
+  };
 
   return (
     <div className="p-8 min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -77,11 +77,10 @@ const TechTickets: React.FC = () => {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition-colors ${
-              filter === f 
-                ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' 
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300'
-            }`}
+            className={`px-4 py-2 rounded-full text-xs font-bold transition-colors ${filter === f
+              ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300'
+              }`}
           >
             {f}
           </button>
@@ -105,40 +104,51 @@ const TechTickets: React.FC = () => {
                 <th className="p-4 text-xs font-bold text-gray-500 uppercase text-right">Actions</th>
               </tr>
             </thead>
+
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {filteredTickets.map(ticket => (
-                <tr key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <tr
+                  key={ticket.id}
+                  onClick={() => navigate(`/tech/tickets/${ticket.id}`)}
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                >
                   <td className="p-4">
                     <div className="font-bold text-gray-900 dark:text-white">{ticket.title}</div>
                     <div className="text-sm text-gray-500 line-clamp-1">{ticket.description}</div>
                   </td>
+
                   <td className="p-4 text-sm text-gray-600 dark:text-gray-300">
                     <div>{ticket.requester_name}</div>
                     <div className="text-xs text-gray-400">{ticket.requester_role}</div>
                   </td>
+
                   <td className="p-4">
                     {getCategoryBadge(ticket.category)}
                   </td>
+
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${getStatusColor(ticket.status)}`}>
                       {ticket.status}
                     </span>
                   </td>
-                  <td className="p-4 text-right">
-                    <select 
-                       className="text-xs border rounded p-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-                       value={ticket.status}
-                       onChange={(e) => handleStatusUpdate(ticket.id, e.target.value)}
+
+                  {/* IMPORTANT: prevent row click when changing status */}
+                  <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
+                    <select
+                      className="text-xs border rounded p-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                      value={ticket.status}
+                      onChange={(e) => handleStatusUpdate(ticket.id, e.target.value)}
                     >
-                        <option value="PENDING">Pending</option>
-                        <option value="INVESTIGATING">Investigating</option>
-                        <option value="FIXING">Fixing</option>
-                        <option value="RESOLVED">Resolved</option>
+                      <option value="PENDING">Pending</option>
+                      <option value="INVESTIGATING">Investigating</option>
+                      <option value="FIXING">Fixing</option>
+                      <option value="RESOLVED">Resolved</option>
                     </select>
                   </td>
                 </tr>
               ))}
             </tbody>
+
           </table>
         )}
       </div>

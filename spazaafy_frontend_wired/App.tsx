@@ -88,6 +88,7 @@ import TechLayout from './pages/tech/TechLayout';
 import TechDashboard from './pages/tech/TechDashboard';
 import TechTickets from './pages/tech/TechTickets';
 import TechTicketDetail from './pages/tech/TechTicketDetail';
+import InternalTechTicketDetail from './pages/support/InternalTechTicketDetail';
 
 import { UserRole } from './types';
 
@@ -190,7 +191,7 @@ function App() {
                 <Route path="announcements" element={<AnnouncementsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="support" element={<SupportPage />} />
-                <Route path="tech/tickets/:ticketId" element={<ProtectedRoute><TechTicketDetail /></ProtectedRoute>} />
+                <Route path="support/tech/:ticketId" element={<ProtectedRoute><InternalTechTicketDetail /></ProtectedRoute>} />
                 <Route path="account" element={<AccountPage />} />
             </Route>
 
@@ -210,7 +211,7 @@ function App() {
                 <Route path="dashboard" element={<LegalCategoryPage isOverview={true} />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="support" element={<SupportPage />} />
-                <Route path="tech/tickets/:ticketId" element={<ProtectedRoute><TechTicketDetail /></ProtectedRoute>} />
+                <Route path="support/tech/:ticketId" element={<ProtectedRoute><InternalTechTicketDetail /></ProtectedRoute>} />
                 <Route path="account" element={<AccountPage />} />
                 
                 {/* Categories */}
@@ -244,7 +245,7 @@ function App() {
                 <Route path="resign" element={<EmployeeResignationPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="support" element={<SupportPage />} />
-                <Route path="tech/tickets/:ticketId" element={<ProtectedRoute><TechTicketDetail /></ProtectedRoute>} />
+                <Route path="support/tech/:ticketId" element={<ProtectedRoute><InternalTechTicketDetail /></ProtectedRoute>} />
                 <Route path="account" element={<AccountPage />} />
             </Route>
 
@@ -270,7 +271,7 @@ function App() {
               <Route path="assistance/:requestId" element={<AdminAssistanceDetailPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="support" element={<SupportPage />} />
-              <Route path="tech/tickets/:ticketId" element={<ProtectedRoute><TechTicketDetail /></ProtectedRoute>} />
+              <Route path="support/tech/:ticketId" element={<ProtectedRoute><InternalTechTicketDetail /></ProtectedRoute>} />
               <Route path="account" element={<AccountPage />} />
             </Route>
 
