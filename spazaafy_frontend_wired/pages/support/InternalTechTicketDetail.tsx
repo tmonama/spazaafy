@@ -19,7 +19,7 @@ interface TechMessage {
 const InternalTechTicketDetail: React.FC = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
   const { user } = useAuth();
-  const authToken = sessionStorage.getItem('access') || '';
+  const authToken = sessionStorage.getItem('access') || localStorage.getItem('access') || '';
 
   // Determine portal prefix from URL for proper "Back" link
   const portalPrefix = (() => {
@@ -73,8 +73,8 @@ const InternalTechTicketDetail: React.FC = () => {
       try {
         const mData = await techApi.getMessages(ticketId, authToken);
         setMessages(mData);
-      } catch (e) {
-        // keep quiet
+      } catch {
+        // ignore transient polling errors
       }
     }, 5000);
     return () => clearInterval(interval);
@@ -85,8 +85,8 @@ const InternalTechTicketDetail: React.FC = () => {
   }, [messages]);
 
   const isMyMessage = (msg: TechMessage) => {
-    if (user?.id) return msg.sender === user.id;
-    return false;
+    if (user?.id == null) return false;
+    return String(msg.sender) === String(user.id);
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -123,7 +123,10 @@ const InternalTechTicketDetail: React.FC = () => {
   return (
     <div className="p-4 sm:p-8 min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="mb-6">
-        <Link to={backLink} className="flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors">
+        <Link
+          to={backLink}
+          className="flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors"
+        >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Support
         </Link>
@@ -131,23 +134,26 @@ const InternalTechTicketDetail: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* LEFT: Chat */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="flex flex-col h-[600px] shadow-lg border-0 dark:bg-gray-800">
+        <div className="lg:col-span-2 flex flex-col h-[calc(100vh-180px)]">
+          <Card className="bg-white dark:bg-dark-surface rounded-lg shadow-md overflow-hidden flex flex-col h-full">
             {/* Header */}
-            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-white dark:bg-gray-800 rounded-t-xl">
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-white dark:bg-gray-800">
               <div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                  {ticket.title}
-                </h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">{ticket.title}</h2>
                 <p className="text-xs text-gray-500">Ref: #{String(ticket.id).slice(0, 8)}</p>
               </div>
 
-              <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${
-                ticket.status === 'RESOLVED' ? 'bg-green-100 text-green-800' :
-                ticket.status === 'FIXING' ? 'bg-blue-100 text-blue-800' :
-                ticket.status === 'INVESTIGATING' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
+              <span
+                className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                  ticket.status === 'RESOLVED'
+                    ? 'bg-green-100 text-green-800'
+                    : ticket.status === 'FIXING'
+                    ? 'bg-blue-100 text-blue-800'
+                    : ticket.status === 'INVESTIGATING'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-gray-100 text-gray-800'
+                }`}
+              >
                 {ticket.status}
               </span>
             </div>
@@ -163,65 +169,57 @@ const InternalTechTicketDetail: React.FC = () => {
               {messages.map((msg) => {
                 const isMe = isMyMessage(msg);
 
-                // YOUR RULE:
+                // ✅ YOUR RULE:
                 // Outgoing (me) = LEFT + GREEN
                 // Incoming = RIGHT + GREY
                 const alignClass = isMe ? 'justify-start' : 'justify-end';
                 const bubbleClass = isMe
-                    ? 'bg-green-600 text-white rounded-tl-none'
-                    : 'bg-gray-200 text-gray-900 rounded-tr-none';
+                  ? 'bg-green-600 text-white rounded-tl-none'
+                  : 'bg-gray-200 text-gray-900 rounded-tr-none';
 
                 return (
-                    <div key={msg.id} className={`flex ${alignClass}`}>
+                  <div key={msg.id} className={`flex ${alignClass}`}>
                     <div className={`max-w-[85%] sm:max-w-[70%] rounded-2xl p-3 shadow-sm ${bubbleClass}`}>
-                        
-                        {/* Show sender label ONLY for incoming (right side) */}
-                        {!isMe && (
+                      {!isMe && (
                         <div className="text-[10px] font-bold opacity-70 mb-1 text-right">
-                            {msg.sender_name}
-                            <span className="font-normal opacity-50"> • {msg.sender_role}</span>
+                          {msg.sender_name}
+                          <span className="font-normal opacity-50"> • {msg.sender_role}</span>
                         </div>
-                        )}
+                      )}
 
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
 
-                        {msg.attachment && (
+                      {msg.attachment && (
                         <a
-                            href={msg.attachment}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={`mt-2 flex items-center p-2 rounded-lg text-xs transition-colors ${
-                            isMe
-                                ? 'bg-green-700 hover:bg-green-800'
-                                : 'bg-white/70 hover:bg-white'
-                            }`}
+                          href={msg.attachment}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={`mt-2 flex items-center p-2 rounded-lg text-xs transition-colors ${
+                            isMe ? 'bg-green-700 hover:bg-green-800' : 'bg-white/70 hover:bg-white'
+                          }`}
                         >
-                            <Paperclip className="w-3 h-3 mr-2" />
-                            View Attachment
+                          <Paperclip className="w-3 h-3 mr-2" />
+                          View Attachment
                         </a>
-                        )}
+                      )}
 
-                        <div
+                      <div
                         className={`text-[10px] mt-1 ${
-                            isMe ? 'text-green-100 text-left' : 'text-gray-600 text-right'
+                          isMe ? 'text-green-100 text-left' : 'text-gray-600 text-right'
                         }`}
-                        >
-                        {new Date(msg.created_at).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                        })}
-                        </div>
+                      >
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
                     </div>
-                    </div>
+                  </div>
                 );
-                })}
-
+              })}
 
               <div ref={messagesEndRef} />
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-b-xl">
+            <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
               {ticket.status === 'RESOLVED' ? (
                 <p className="text-center text-sm text-gray-500">
                   This ticket is resolved. If you need more help, ask Tech to re-open it.
@@ -255,7 +253,8 @@ const InternalTechTicketDetail: React.FC = () => {
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            handleSendMessage(e);
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            handleSendMessage(e as any);
                           }
                         }}
                       />
@@ -331,7 +330,6 @@ const InternalTechTicketDetail: React.FC = () => {
             </div>
           </Card>
         </div>
-
       </div>
     </div>
   );
