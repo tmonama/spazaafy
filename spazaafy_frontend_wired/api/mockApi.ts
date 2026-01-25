@@ -809,6 +809,45 @@ const assistance = {
     }
 };
 
-const mockApi = { auth, users, shops, documents, tickets, visits, site, core, reports, assistance };
+const crm = {
+    async listCampaigns() {
+        return request('/core/crm/');
+    },
+    async createCampaign(name: string) {
+        return request('/core/crm/create_campaign/', {
+            method: 'POST',
+            body: JSON.stringify({ name })
+        });
+    },
+    async getCampaign(id: string) {
+        return request(`/core/crm/${id}/`);
+    },
+    async getTemplates(campaignId: string) {
+        return request(`/core/crm/${campaignId}/templates/`);
+    },
+    async createTemplate(campaignId: string, data: any) {
+        return request(`/core/crm/${campaignId}/create_template/`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+    async sendEmail(templateId: string, recipients: string[]) {
+        return request(`/core/crm/send_email/`, {
+            method: 'POST',
+            body: JSON.stringify({ template_id: templateId, recipients })
+        });
+    },
+    async updateCampaignStatus(id: string, status: string) {
+        return request(`/core/crm/${id}/`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status })
+        });
+    },
+    async getTemplateAnalytics(templateId: string) {
+        return request(`/core/crm/template_analytics/?template_id=${templateId}`);
+    },
+};
+
+const mockApi = { auth, users, shops, documents, tickets, visits, site, core, reports, assistance, crm };
 
 export default mockApi;

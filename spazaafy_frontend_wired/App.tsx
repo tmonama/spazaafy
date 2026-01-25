@@ -40,7 +40,10 @@ import AdminSiteVisitsPage from './pages/admin/AdminSiteVisitsPage';
 import AdminSiteVisitDetailPage from './pages/admin/AdminSiteVisitDetailPage';
 import AdminAssistancePage from './pages/admin/AdminAssistancePage';
 import AdminAssistanceDetailPage from './pages/admin/AdminAssistanceDetailPage';
-import PublicSiteVisitForm from './pages/PublicSiteVisitForm'; 
+import PublicSiteVisitForm from './pages/PublicSiteVisitForm';
+import AdminCRMPage from './pages/admin/AdminCRMPage';
+import AdminCampaignDetail from './pages/admin/AdminCampaignDetail';
+import AdminTemplateAnalytics from './pages/admin/AdminTemplateAnalytics';
 
 // --- Legal Portal ---
 import LegalRegisterPage from './pages/legal/LegalRegisterPage';
@@ -275,6 +278,9 @@ function App() {
               <Route path="support" element={<SupportPage />} />
               <Route path="support/tech/:ticketId" element={<ProtectedRoute><InternalTechTicketDetail /></ProtectedRoute>} />
               <Route path="account" element={<AccountPage />} />
+              <Route path="crm" element={<AdminCRMPage />} />
+              <Route path="crm/:id" element={<AdminCampaignDetail />} />
+              <Route path="crm/template/:templateId/analytics" element={<AdminTemplateAnalytics />} />
             </Route>
 
             {/* --- SHOP OWNER / USER PORTAL --- */}

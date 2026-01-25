@@ -13,6 +13,7 @@ import {
   UserCircle,
   Settings,
   LifeBuoy,
+  Users
 } from 'lucide-react';
 
 const AdminSidebar: React.FC = () => {
@@ -98,7 +99,13 @@ const AdminSidebar: React.FC = () => {
           <Handshake className="h-5 w-5 mr-3" />
           Assistance Requests
         </NavLink>
+
+        <NavLink to="/admin/crm" className={getNavLinkClass} onClick={handleLinkClick}>
+            <Users className="h-5 w-5 mr-3" />
+            CRM
+        </NavLink>
       </nav>
+
 
       {/* Bottom Section */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-1">
