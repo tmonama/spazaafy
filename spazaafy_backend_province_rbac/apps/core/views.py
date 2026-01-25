@@ -259,3 +259,22 @@ class CRMViewSet(viewsets.ModelViewSet):
             "breakdown": by_group,
             "logs": recent_logs
         })
+    
+    @action(detail=False, methods=['patch'])
+    def update_template(self, request):
+        """
+        Endpoint: /api/core/crm/update_template/
+        Body: { id: "uuid", name: "...", ... }
+        """
+        template_id = request.data.get('id')
+        if not template_id:
+            return Response({"detail": "Template ID required"}, status=400)
+            
+        template = get_object_or_404(EmailTemplate, id=template_id)
+        
+        # Pass partial=True so we don't have to send every single field if we don't want to
+        serializer = EmailTemplateSerializer(template, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)

@@ -31,8 +31,12 @@ const AdminCampaignDetail: React.FC = () => {
     const [templates, setTemplates] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // --- Create Template Modal State ---
+    // --- Template Form State (Create & Edit) ---
     const [createModalOpen, setCreateModalOpen] = useState(false);
+    
+    // If null, we are creating. If string, we are editing that ID.
+    const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+
     const [newTemplate, setNewTemplate] = useState({
         name: '',
         subject: '',
@@ -41,7 +45,7 @@ const AdminCampaignDetail: React.FC = () => {
         links: [] as { label: string, url: string, type: 'button' | 'text' }[]
     });
     
-    // Temporary Link State (for the "Add Link" section)
+    // Temporary Link State (for the "Add Link" section inputs)
     const [tempLink, setTempLink] = useState({ label: '', url: '', type: 'button' as 'button' | 'text' });
 
     // --- Send Email Modal State ---
@@ -71,8 +75,32 @@ const AdminCampaignDetail: React.FC = () => {
         fetchData();
     }, [id]);
 
-    // 2. Handlers
-    const handleCreateTemplate = async () => {
+    // 2. Form Handlers
+
+    // Open Modal for Creation
+    const openCreateModal = () => {
+        setEditingTemplateId(null); // Reset edit state
+        setNewTemplate({ name: '', subject: '', purpose: 'GENERAL', content: '', links: [] });
+        setTempLink({ label: '', url: '', type: 'button' });
+        setCreateModalOpen(true);
+    };
+
+    // Open Modal for Editing (Pre-fill)
+    const openEditModal = (tpl: any) => {
+        setEditingTemplateId(tpl.id);
+        setNewTemplate({
+            name: tpl.name,
+            subject: tpl.subject,
+            purpose: tpl.purpose,
+            content: tpl.content,
+            links: tpl.links || []
+        });
+        setTempLink({ label: '', url: '', type: 'button' });
+        setCreateModalOpen(true);
+    };
+
+    // Handle Save (Create OR Update)
+    const handleSaveTemplate = async () => {
         if (!id) return;
         if (!newTemplate.name || !newTemplate.subject || !newTemplate.content) {
             alert("Please fill in all required fields.");
@@ -80,15 +108,20 @@ const AdminCampaignDetail: React.FC = () => {
         }
 
         try {
-            await mockApi.crm.createTemplate(id, newTemplate);
+            if (editingTemplateId) {
+                // UPDATE
+                await mockApi.crm.updateTemplate(editingTemplateId, newTemplate);
+            } else {
+                // CREATE
+                await mockApi.crm.createTemplate(id, newTemplate);
+            }
+
             setCreateModalOpen(false);
-            // Reset Form
-            setNewTemplate({ name: '', subject: '', purpose: 'GENERAL', content: '', links: [] });
-            setTempLink({ label: '', url: '', type: 'button' });
-            fetchData();
+            setEditingTemplateId(null);
+            fetchData(); // Refresh list
         } catch (e) {
             console.error(e);
-            alert("Failed to create template.");
+            alert("Failed to save template.");
         }
     };
 
@@ -106,6 +139,7 @@ const AdminCampaignDetail: React.FC = () => {
         });
     };
 
+    // 3. Send Handlers
     const handleSendEmail = async () => {
         if (!selectedTemplateId || selectedRecipients.length === 0) return;
         setSending(true);
@@ -122,6 +156,7 @@ const AdminCampaignDetail: React.FC = () => {
         }
     };
 
+    // 4. Campaign Status Handler
     const toggleStatus = async () => {
         if (!campaign) return;
         const newStatus = campaign.status === 'OPEN' ? 'CLOSED' : 'OPEN';
@@ -164,7 +199,7 @@ const AdminCampaignDetail: React.FC = () => {
                         {campaign.status === 'OPEN' ? 'Close Campaign' : 'Re-open Campaign'}
                     </Button>
                     {campaign.status === 'OPEN' && (
-                        <Button onClick={() => setCreateModalOpen(true)}>
+                        <Button onClick={openCreateModal}>
                             <Plus className="w-4 h-4 mr-2" /> New Template
                         </Button>
                     )}
@@ -215,9 +250,15 @@ const AdminCampaignDetail: React.FC = () => {
                                 </div>
                             </Link>
 
-                            {/* FOOTER ACTIONS (Stop Propagation) */}
+                            {/* FOOTER ACTIONS */}
                             <div className="p-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-between items-center">
-                                <button className="text-xs font-medium text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center">
+                                <button 
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        openEditModal(tpl);
+                                    }}
+                                    className="text-xs font-medium text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center"
+                                >
                                     <Settings className="w-3 h-3 mr-1" /> Edit
                                 </button>
                                 
@@ -244,8 +285,8 @@ const AdminCampaignDetail: React.FC = () => {
                 </div>
             )}
 
-            {/* --- CREATE TEMPLATE MODAL --- */}
-            <Modal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} title="Create Email Template">
+            {/* --- CREATE/EDIT TEMPLATE MODAL --- */}
+            <Modal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} title={editingTemplateId ? "Edit Template" : "Create Email Template"}>
                 <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-2">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -363,7 +404,9 @@ const AdminCampaignDetail: React.FC = () => {
 
                     <div className="flex justify-end pt-4 gap-2">
                         <Button variant="neutral" onClick={() => setCreateModalOpen(false)}>Cancel</Button>
-                        <Button onClick={handleCreateTemplate}>Create Template</Button>
+                        <Button onClick={handleSaveTemplate}>
+                            {editingTemplateId ? 'Save Changes' : 'Create Template'}
+                        </Button>
                     </div>
                 </div>
             </Modal>

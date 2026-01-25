@@ -843,9 +843,17 @@ const crm = {
             body: JSON.stringify({ status })
         });
     },
+    
     async getTemplateAnalytics(templateId: string) {
         return request(`/core/crm/template_analytics/?template_id=${templateId}`);
     },
+
+    async updateTemplate(id: string, data: any) {
+        return request(`/core/crm/update_template/`, {
+            method: 'PATCH',
+            body: JSON.stringify({ id, ...data })
+        });
+    }
 };
 
 const mockApi = { auth, users, shops, documents, tickets, visits, site, core, reports, assistance, crm };
