@@ -322,11 +322,23 @@ function clearTokens() {
 // ✅ NEW HELPER: Detects if we are in Admin or Standard mode and redirects accordingly
 function handleSessionExpiry() {
     clearTokens();
-    // Check if the current URL is an admin URL
-    if (window.location.hash.includes('/admin') || window.location.pathname.includes('/admin')) {
-        window.location.href = '/#/admin/login';
+    
+    // Check current URL to decide where to redirect
+    // We check window.location because we are outside React Context here
+    const path = window.location.pathname || window.location.hash;
+
+    if (path.includes('/legal')) {
+        window.location.href = '/legal/login';
+    } else if (path.includes('/hr')) {
+        window.location.href = '/hr/login';
+    } else if (path.includes('/tech')) {
+        window.location.href = '/tech/login';
+    } else if (path.includes('/employee')) {
+        window.location.href = '/employee/login';
+    } else if (path.includes('/admin')) {
+        window.location.href = '/admin-login';
     } else {
-        window.location.href = '/#/login';
+        window.location.href = '/login';
     }
 }
 
