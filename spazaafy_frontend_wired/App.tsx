@@ -1,9 +1,10 @@
 import React from 'react';
 import { AlertsProvider } from './components/AlertsContext';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute'; 
+import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
+import Header from './components/Header';
 
 // --- General Pages ---
 import WelcomePage from './pages/WelcomePage';
@@ -95,6 +96,18 @@ import TechTicketDetail from './pages/tech/TechTicketDetail';
 import InternalTechTicketDetail from './pages/support/InternalTechTicketDetail';
 
 import { UserRole } from './types';
+
+// ✅ NEW: Main Layout for Consumers/Shop Owners
+// This ensures the Header appears on their pages but NOT on Admin pages
+const MainLayout: React.FC = () => {
+  return (
+    <>
+      <Header />
+      {/* Add padding-top to account for fixed header if necessary, or manage in components */}
+      <Outlet />
+    </>
+  );
+};
 
 function App() {
   return (
@@ -283,15 +296,16 @@ function App() {
               <Route path="crm/template/:templateId/analytics" element={<AdminTemplateAnalytics />} />
             </Route>
 
-            {/* --- SHOP OWNER / USER PORTAL --- */}
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-            <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
-            <Route path="/support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-            <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
-            <Route path="/request-assistance" element={<ProtectedRoute><RequestAssistancePage /></ProtectedRoute>} />
-
-            <Route path="*" element={<NotFoundPage />} />
+            {/* ================= PROTECTED CONSUMER/OWNER ROUTES ================= */}
+            {/* ✅ WRAPPED IN MAIN LAYOUT to provide Header */}
+            <Route element={<MainLayout />}>
+                <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
+                <Route path="/support/:ticketId" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+                <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+                <Route path="/request-assistance" element={<ProtectedRoute><RequestAssistancePage /></ProtectedRoute>} />
+            </Route>
           </Routes>
         </AlertsProvider>
       </BrowserRouter>
