@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../components/Header';
 import Button from '../components/Button';
 import { useAuth } from '../hooks/useAuth';
 import mockApi from '../api/mockApi';
@@ -39,7 +38,6 @@ const RequestAssistancePage: React.FC = () => {
   if (user && user.role !== UserRole.SHOP_OWNER) {
       return (
         <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
-            <Header />
             <div className="p-8 text-center text-gray-700 dark:text-gray-300">
                 Access Restricted to Shop Owners.
             </div>
@@ -81,7 +79,6 @@ const RequestAssistancePage: React.FC = () => {
   if (successData) {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
-        <Header />
         <div className="container mx-auto px-4 py-8 max-w-lg">
           <div className="bg-white dark:bg-dark-surface rounded-lg shadow-md p-8 text-center">
             {/* Success Icon */}
@@ -121,7 +118,6 @@ const RequestAssistancePage: React.FC = () => {
   // --- RENDER FORM (Standard View) ---
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
-      <Header />
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="bg-white dark:bg-dark-surface rounded-lg shadow-md p-6 sm:p-8">
           <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
