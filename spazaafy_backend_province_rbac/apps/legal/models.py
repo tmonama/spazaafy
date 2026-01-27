@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
 import uuid
+from datetime import timedelta
 
 # ✅ 1. Define the Validator
 def validate_file_size(value):
@@ -68,6 +69,17 @@ class LegalRequest(models.Model):
 
     # ✅ NEW: Security Token for Public Upload Link
     amendment_token = models.UUIDField(null=True, blank=True)
+
+    # ✅ NEW: Timer Logic Fields
+    # When status becomes AMENDMENT_REQ, we set this.
+    paused_at = models.DateTimeField(null=True, blank=True)
+    
+    # Accumulates total time spent in "AMENDMENT_REQ" status.
+    # This value (in seconds or duration) is subtracted from the SLA calculation.
+    total_paused_duration = models.DurationField(default=timedelta(0))
+    
+    # The specific deadline given to the user to upload the amendment.
+    amendment_deadline = models.DateTimeField(null=True, blank=True)
 
     
     # 5.3 Tracking & Status
