@@ -19,14 +19,14 @@ export const legalApi = {
     return res.json();
   },
 
-  updateStatus: async (id: string, status: string, note: string, token: string) => {
+  updateStatus: async (id: string, status: string, note: string, token: string, amendmentDays?: number) => {
     const res = await fetch(`${API_BASE}/legal/admin/requests/${id}/update_status/`, {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}` 
         },
-        body: JSON.stringify({ status, note })
+        body: JSON.stringify({ status, note, amendment_days: amendmentDays })
     });
     return res.json();
   },

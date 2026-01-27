@@ -9,6 +9,8 @@ from django.core.mail import send_mail
 from django.conf import settings 
 from django.shortcuts import get_object_or_404
 import uuid
+from django.utils import timezone
+from datetime import timedelta
 
 # 5.2 Public Intake Form Endpoint
 class PublicLegalSubmissionView(generics.CreateAPIView):
@@ -50,6 +52,18 @@ class SubmitAmendmentView(generics.UpdateAPIView):
         instance.internal_notes += f"\n[SYSTEM]: Amendment uploaded by user on {instance.updated_at}"
         # Clear token to prevent reuse (One-time link)
         instance.amendment_token = None 
+
+        # ✅ RESUME TIMER LOGIC
+        if instance.paused_at:
+            # Calculate how long it was paused
+            pause_duration = timezone.now() - instance.paused_at
+            # Add to total paused duration
+            instance.total_paused_duration += pause_duration
+            # Clear paused_at to indicate timer is running again
+            instance.paused_at = None
+            # Clear specific amendment deadline as it is fulfilled
+            instance.amendment_deadline = None
+
         instance.save()
 
         # Notify Legal Team
@@ -75,6 +89,8 @@ class LegalAdminViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         new_status = request.data.get('status')
         note = request.data.get('note', '')
+        # ✅ Get days allowed from request (default to 7 if not provided)
+        amendment_days = int(request.data.get('amendment_days', 7))
 
         if new_status:
             # 1. Update the Legal Request itself
@@ -85,14 +101,18 @@ class LegalAdminViewSet(viewsets.ModelViewSet):
 
                 # ✅ AMENDMENT LOGIC
                 upload_link = ""
+                # ✅ PAUSE TIMER LOGIC
                 if new_status == 'AMENDMENT_REQ':
-                    # 1. Generate Token
                     token = uuid.uuid4()
                     instance.amendment_token = token
-                    
-                    # 2. Generate Link (Frontend URL)
                     frontend_url = settings.FRONTEND_URL.rstrip('/')
                     upload_link = f"{frontend_url}/legal/amend/{token}"
+                    
+                    # Set Paused Timestamp
+                    instance.paused_at = timezone.now()
+                    
+                    # Set specific deadline for the user
+                    instance.amendment_deadline = timezone.now() + timedelta(days=amendment_days)
 
             instance.save()
             
@@ -119,7 +139,7 @@ class LegalAdminViewSet(viewsets.ModelViewSet):
                     print(f"Warning: Linked Employee {instance.related_employee_id} not found.")
 
             # 3. Notify Submitter (HR or Partner) via Email
-            # ✅ UPDATED EMAIL LOGIC
+            # ✅ UPDATED EMAIL
             if instance.submitter_email:
                 email_body = f"""
                 The status of your legal request has changed.
@@ -131,13 +151,19 @@ class LegalAdminViewSet(viewsets.ModelViewSet):
                 """
 
                 if upload_link:
+                    deadline_str = instance.amendment_deadline.strftime('%d %B %Y')
                     email_body += f"""
                     
                     --------------------------------------------------
                     ACTION REQUIRED:
-                    Please upload the amended document using the link below:
-                    {upload_link}
+                    Please upload the amended document using the link below.
+                    
+                    DEADLINE FOR AMENDMENT: {deadline_str} ({amendment_days} Days)
+                    
+                    Link: {upload_link}
                     --------------------------------------------------
+                    
+                    Note: The SLA timer for this case is PAUSED until you submit the amendment.
                     """
 
                 send_mail(

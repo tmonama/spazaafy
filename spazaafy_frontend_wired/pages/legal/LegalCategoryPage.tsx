@@ -5,7 +5,7 @@ import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import { 
     CheckCircle, XCircle, FileText, Clock, 
-    Calendar, AlertOctagon 
+    Calendar, AlertOctagon, PauseCircle 
 } from 'lucide-react';
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -21,7 +21,6 @@ const STATUS_TABS = [
     { label: 'Pending', value: 'SUBMITTED' },
     { label: 'In Review', value: 'UNDER_REVIEW' },
     { label: 'Amend Req.', value: 'AMENDMENT_REQ' },
-    // ✅ Include the new status in the filtering logic
     { label: 'Amend. Submitted', value: 'AMENDMENT_SUBMITTED' }, 
     { label: 'Approved/Filed', value: 'APPROVED_FILED' },
     { label: 'Rejected', value: 'REJECTED' },
@@ -55,13 +54,16 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     
+    // Filters
     const [activeStatusFilter, setActiveStatusFilter] = useState('SUBMITTED');
     const [activeUrgencyFilter, setActiveUrgencyFilter] = useState('ALL');
     
+    // Modal State
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
     const [actionType, setActionType] = useState<string>(''); 
     const [note, setNote] = useState('');
+    const [amendmentDays, setAmendmentDays] = useState(5); // Default 5 days
     const [processingAction, setProcessingAction] = useState(false);
 
     const fetchRequests = async () => {
@@ -80,7 +82,35 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
         fetchRequests();
     }, []);
 
-    const getDeadlineData = (created_at: string, urgency: string) => {
+    // --- Helper: Calculate Deadline & Time Left ---
+    const getDeadlineData = (req: any) => {
+        const created_at = req.created_at;
+        const urgency = req.urgency;
+        
+        // 1. Check for Paused State (Amendment Requested)
+        if (req.status === 'AMENDMENT_REQ' && req.amendment_deadline) {
+            const amendDate = new Date(req.amendment_deadline);
+            const now = new Date();
+            const diffMs = amendDate.getTime() - now.getTime();
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            
+            // If passed deadline
+            if (diffMs < 0) {
+                return {
+                    label: `PAUSED (User Late by ${Math.abs(diffDays)}d)`,
+                    colorClass: 'text-red-600 bg-red-50 border-red-200',
+                    isPaused: true
+                };
+            }
+
+            return {
+                label: `PAUSED (User has ${diffDays}d left)`,
+                colorClass: 'text-orange-600 bg-orange-50 border-orange-200',
+                isPaused: true
+            };
+        }
+
+        // 2. Standard SLA Calculation
         const daysAllowed = URGENCY_SLA_DAYS[urgency] || 14;
         const createdDate = new Date(created_at);
         const deadlineDate = new Date(createdDate);
@@ -107,7 +137,7 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
             colorClass = 'text-gray-600 bg-gray-100 border-gray-200';
         }
 
-        return { deadlineDate, diffMs, label, colorClass, isOverdue };
+        return { deadlineDate, diffMs, label, colorClass, isOverdue, isPaused: false };
     };
 
     const filteredAndSortedRequests = useMemo(() => {
@@ -135,9 +165,13 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
         list.sort((a, b) => {
             const isAComplete = ['APPROVED', 'FILED', 'REJECTED'].includes(a.status);
             const isBComplete = ['APPROVED', 'FILED', 'REJECTED'].includes(b.status);
+
             if (isAComplete && !isBComplete) return 1;
             if (!isAComplete && isBComplete) return -1;
-            return getDeadlineData(a.created_at, a.urgency).diffMs - getDeadlineData(b.created_at, b.urgency).diffMs;
+
+            // Simple sort by ID (newest first) as fallback if SLA sort is tricky
+            // Or use getDeadlineData().diffMs logic from previous response
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); 
         });
 
         return list;
@@ -148,6 +182,7 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
         setSelectedRequest(request);
         setActionType(type);
         setNote('');
+        setAmendmentDays(5); // Default reset
         setModalOpen(true);
     };
 
@@ -159,7 +194,7 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
         }
         setProcessingAction(true);
         try {
-            await legalApi.updateStatus(selectedRequest.id, actionType, note, token);
+            await legalApi.updateStatus(selectedRequest.id, actionType, note, token, amendmentDays);
             setModalOpen(false);
             fetchRequests(); 
         } catch (e) {
@@ -174,7 +209,7 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
             case 'SUBMITTED': return 'bg-blue-100 text-blue-800 border-blue-200';
             case 'UNDER_REVIEW': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
             case 'AMENDMENT_REQ': return 'bg-orange-100 text-orange-800 border-orange-200';
-            case 'AMENDMENT_SUBMITTED': return 'bg-cyan-100 text-cyan-800 border-cyan-200'; // ✅ New Color
+            case 'AMENDMENT_SUBMITTED': return 'bg-cyan-100 text-cyan-800 border-cyan-200';
             case 'APPROVED': return 'bg-green-100 text-green-800 border-green-200';
             case 'REJECTED': return 'bg-red-100 text-red-800 border-red-200';
             case 'FILED': return 'bg-purple-100 text-purple-800 border-purple-200';
@@ -238,11 +273,8 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
             ) : (
                 <div className="space-y-4">
                     {filteredAndSortedRequests.map((req) => {
-                        const deadlineData = getDeadlineData(req.created_at, req.urgency);
+                        const deadlineData = getDeadlineData(req);
                         const isComplete = ['APPROVED', 'FILED', 'REJECTED'].includes(req.status);
-                        
-                        // ✅ Logic for button label
-                        // 'is_revised' comes from serializer if revision_file exists
                         const showRevLabel = req.status === 'AMENDMENT_SUBMITTED' || req.is_revised;
 
                         return (
@@ -263,7 +295,8 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                                             </span>
                                             {!isComplete && (
                                                 <span className={`flex items-center px-2 py-1 rounded text-xs font-bold border ${deadlineData.colorClass}`}>
-                                                    <Clock size={12} className="mr-1" /> {deadlineData.label}
+                                                    {deadlineData.isPaused ? <PauseCircle size={12} className="mr-1"/> : <Clock size={12} className="mr-1" />} 
+                                                    {deadlineData.label}
                                                 </span>
                                             )}
                                         </div>
@@ -279,7 +312,6 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                                             <strong>Context:</strong> {req.description}
                                         </div>
 
-                                        {/* ✅ Updated View Document Button */}
                                         {req.file_url ? (
                                             <a href={req.file_url} target="_blank" rel="noreferrer" className={`inline-flex items-center justify-center px-4 py-2 border shadow-sm text-sm font-medium rounded-md transition-colors ${
                                                 showRevLabel 
@@ -302,7 +334,6 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                                             </Button>
                                         )}
 
-                                        {/* ✅ Show actions for AMENDMENT_SUBMITTED as well */}
                                         {(req.status === 'UNDER_REVIEW' || req.status === 'AMENDMENT_REQ' || req.status === 'AMENDMENT_SUBMITTED') && (
                                             <>
                                                 <Button variant="neutral" size="sm" onClick={() => openActionModal(req, 'AMENDMENT_REQ')}>
@@ -343,6 +374,27 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                         Changing status of <strong>{selectedRequest?.title}</strong> to: <br/>
                         <span className="font-bold text-lg">{actionType.replace('_', ' ')}</span>
                     </p>
+
+                    {/* ✅ AMENDMENT DAYS INPUT */}
+                    {actionType === 'AMENDMENT_REQ' && (
+                        <div className="bg-blue-50 text-blue-800 p-3 rounded text-sm border border-blue-200">
+                            <label className="block font-bold mb-2">Days allowed for Amendment:</label>
+                            <div className="flex gap-2 mb-2">
+                                {[3, 5, 7, 14].map(d => (
+                                    <button 
+                                        key={d} 
+                                        onClick={() => setAmendmentDays(d)}
+                                        className={`px-3 py-1 rounded border transition-colors ${amendmentDays === d ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-blue-300 hover:bg-blue-50'}`}
+                                    >
+                                        {d} Days
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-xs">
+                                The SLA timer will <strong>PAUSE</strong>. A new timer for the user (Deadline: {amendmentDays} days) will start.
+                            </p>
+                        </div>
+                    )}
 
                     {(actionType === 'AMENDMENT_REQ' || actionType === 'REJECTED') && (
                         <div className="bg-yellow-50 text-yellow-800 p-3 rounded text-sm border border-yellow-200">
