@@ -1,21 +1,22 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  // Make these optional with defaults so your existing Admin routes don't break
   allowedRoles?: UserRole[]; 
   loginPath?: string;
 }
 
 const AdminProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  allowedRoles = [UserRole.ADMIN], // Default to Admin only
-  loginPath = "/admin-login"       // Default to Admin login
+  // Default to ADMIN only and /admin-login if props aren't passed
+  allowedRoles = [UserRole.ADMIN], 
+  loginPath = "/admin-login" 
 }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -25,9 +26,22 @@ const AdminProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // Check if user exists AND if their role is in the allowed list
-  if (!user || !allowedRoles.includes(user.role)) {
-    return <Navigate to={loginPath} replace />;
+  // 1. Not Logged In -> Redirect to specific loginPath
+  if (!user) {
+    // state={{ from: location }} allows the Login page to redirect them back after successful login
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
+  }
+
+  // 2. Logged In, but wrong Role -> Redirect to a safe default
+  // (e.g. A Consumer trying to access Admin Portal gets sent to their Dashboard)
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    // If they are internal (HR/Tech) but trying to access Global Admin, send them back to their portal
+    if (user.role === UserRole.HR) return <Navigate to="/hr/hiring" replace />;
+    if (user.role === UserRole.LEGAL) return <Navigate to="/legal/dashboard" replace />;
+    if (user.role === UserRole.EMPLOYEE) return <Navigate to="/employee/dashboard" replace />;
+    
+    // Default fallback for consumers or unknown roles
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
