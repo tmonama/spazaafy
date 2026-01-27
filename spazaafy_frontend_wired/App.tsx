@@ -111,8 +111,8 @@ const MainLayout: React.FC = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <AlertsProvider>
           <Routes>
             {/* ================= PUBLIC ROUTES ================= */}
@@ -308,8 +308,8 @@ function App() {
             </Route>
           </Routes>
         </AlertsProvider>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
