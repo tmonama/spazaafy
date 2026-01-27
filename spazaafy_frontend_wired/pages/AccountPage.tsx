@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import { UserRole, SpazaShop } from '../types';
-import Header from '../components/Header';
 import Card from '../components/Card';
 import Input from '../components/Input';
 import Button from '../components/Button';
@@ -173,7 +172,6 @@ const AccountPage: React.FC = () => {
     if (loading || !user) {
         return (
             <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
-                <Header />
                 <main className="container mx-auto p-4">
                     <p>{t('accountPage.loading')}</p>
                 </main>
@@ -185,7 +183,6 @@ const AccountPage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-dark-bg">
-            <Header />
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="max-w-4xl mx-auto space-y-8">
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
