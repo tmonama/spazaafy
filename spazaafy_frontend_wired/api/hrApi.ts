@@ -112,7 +112,7 @@ export const hrApi = {
     },
 
     updateEmployeeStatus: async (id: string, status: string, token: string, extraData: any = {}) => {
-        return request(`/hr/admin/employees/${id}/`, {
+        return request(`/hr/admin/employees/${id}/update_status/`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ status, ...extraData })
