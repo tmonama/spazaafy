@@ -7,7 +7,6 @@ import Modal from '../../components/Modal';
 import Input from '../../components/Input';
 import { UserPlus, Search, Upload, Filter, Briefcase, Users } from 'lucide-react';
 
-// ✅ Local Constants to ensure dropdowns work immediately
 const DEPARTMENTS = [
   { value: 'EXECUTIVE', label: 'Executive & Leadership' },
   { value: 'TECH', label: 'Technology & Development' },
@@ -152,9 +151,8 @@ const EmployeesPage: React.FC = () => {
         </Button>
       </div>
 
-      {/* Filters Bar - Responsive & Spaced */}
+      {/* Filters Bar */}
       <Card className="p-5 mb-8 flex flex-col lg:flex-row gap-5 items-start lg:items-center justify-between bg-white shadow-sm border border-gray-100">
-        {/* Search */}
         <div className="relative w-full lg:w-96">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
           <input
@@ -167,7 +165,6 @@ const EmployeesPage: React.FC = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-          {/* Department Filter */}
           <div className="relative w-full sm:w-64">
             <Briefcase size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
             <select
@@ -184,7 +181,6 @@ const EmployeesPage: React.FC = () => {
             </select>
           </div>
 
-          {/* Status Filter */}
           <div className="relative w-full sm:w-48">
             <Filter size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
             <select
@@ -202,8 +198,7 @@ const EmployeesPage: React.FC = () => {
         </div>
       </Card>
 
-      {/* Employee Grid (WIDER CARDS) */}
-      {/* Fewer columns on large screens = wider cards */}
+      {/* Employee Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         {filtered.map((emp) => (
           <div
@@ -211,9 +206,10 @@ const EmployeesPage: React.FC = () => {
             onClick={() => navigate(`/hr/employees/${emp.id}`)}
             className="cursor-pointer group h-full"
           >
-            {/* Optional min width so cards stay wide */}
             <Card className="p-6 hover:shadow-lg transition-all border border-gray-200 flex flex-col items-center text-center h-full min-w-[260px]">
-              <div className="w-24 h-24 rounded-full bg-gray-100 overflow-hidden mb-4 border-4 border-white shadow-md group-hover:scale-105 transition-transform">
+              
+              {/* ✅ ADDED 'mx-auto' HERE to force centering */}
+              <div className="w-24 h-24 mx-auto rounded-full bg-gray-100 overflow-hidden mb-4 border-4 border-white shadow-md group-hover:scale-105 transition-transform">
                 {emp.photo_url ? (
                   <img src={emp.photo_url} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
@@ -252,7 +248,6 @@ const EmployeesPage: React.FC = () => {
       <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Add New Employee">
         <div className="max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
           <form onSubmit={handleCreate} className="space-y-5 p-1">
-            {/* Profile Picture Upload */}
             <div className="flex flex-col items-center mb-4">
               <label className="cursor-pointer group relative">
                 <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center border-2 border-dashed border-gray-300 group-hover:border-green-500 transition overflow-hidden">
@@ -341,7 +336,6 @@ const EmployeesPage: React.FC = () => {
               </select>
             </div>
 
-            {/* CV Upload */}
             <div className="border-2 border-dashed border-gray-300 p-4 rounded-lg text-center hover:bg-gray-50 transition">
               <label className="block text-sm font-bold mb-2 text-gray-700">Upload CV (PDF)</label>
               <input
