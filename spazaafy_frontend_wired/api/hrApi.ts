@@ -183,6 +183,15 @@ export const hrApi = {
         });
     },
 
+    //Promotions/Transfers
+    promoteTransferEmployee: async (id: string, data: { type: 'PROMOTION' | 'TRANSFER', department: string, role_title: string, reason: string }, token: string) => {
+        return request(`/hr/admin/employees/${id}/promote_transfer/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(data)
+        });
+    },
+
     //Complaints
     getComplaints: async (token: string) => {
         return request('/hr/admin/complaints/', { headers: { Authorization: `Bearer ${token}` } });

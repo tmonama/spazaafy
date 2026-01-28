@@ -19,7 +19,7 @@ User = get_user_model()
 
 ROLE_CHOICES = ('CONSUMER', 'OWNER', 'ADMIN')
 ALLOWED_ADMIN_DOMAINS = ['spazaafy.com', 'spazaafy.co.za']
-ALLOWED_SPECIFIC_EMAILS = ['spazaafy@gmail.com']
+ALLOWED_SPECIFIC_EMAILS = ['spazaafy@gmail.com', 'admin@spazaafy.co.za']
 
 class AdminRequestCodeSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -293,7 +293,9 @@ ALLOWED_TECH_EMAILS = [
     'frontend@spazaafy.co.za',
     'mobile@spazaafy.co.za',
     'qa@spazaafy.co.za',
-    'ux@spazaafy.co.za'
+    'ux@spazaafy.co.za',
+    'cto@spazaafy.co.za',
+    'thakgalang.m@spazaafy.co.za'
 ]
 
 # ✅ 2. Tech Code Request Serializer

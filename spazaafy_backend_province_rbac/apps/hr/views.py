@@ -560,6 +560,88 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         emp.status = 'TERMINATED'
         emp.save()
         return Response({'status': 'Terminated'})
+    
+    # ✅ NEW ACTION: Transfer or Promote
+    @action(detail=True, methods=['post'])
+    def promote_transfer(self, request, pk=None):
+        employee = self.get_object()
+        
+        action_type = request.data.get('type') # 'PROMOTION' or 'TRANSFER'
+        new_department = request.data.get('department')
+        new_role_title = request.data.get('role_title')
+        reason = request.data.get('reason', '')
+
+        if not new_department or not new_role_title:
+            return Response({"detail": "New department and role title are required."}, status=400)
+
+        # Capture old details for the email/history
+        old_dept = employee.get_department_display()
+        old_role = employee.role_title
+
+        # Update Employee Record
+        employee.department = new_department
+        employee.role_title = new_role_title
+        employee.save()
+
+        # Construct Email
+        subject = ""
+        message = ""
+
+        if action_type == 'PROMOTION':
+            subject = f"Congratulations! Promotion to {new_role_title}"
+            message = f"""
+            Dear {employee.first_name},
+
+            We are pleased to inform you that you have been promoted!
+
+            New Role: {new_role_title}
+            New Department: {employee.get_department_display()}
+            
+            Comments:
+            {reason}
+
+            We appreciate your hard work and dedication.
+
+            Regards,
+            Spazaafy HR
+            """
+        else: # TRANSFER
+            subject = f"Update: Internal Transfer to {employee.get_department_display()}"
+            message = f"""
+            Dear {employee.first_name},
+
+            This email confirms your internal transfer.
+
+            Previous Role: {old_role} ({old_dept})
+            
+            New Role: {new_role_title}
+            New Department: {employee.get_department_display()}
+            
+            Comments:
+            {reason}
+
+            Please contact HR for any handover details.
+
+            Regards,
+            Spazaafy HR
+            """
+
+        # Send Email
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[employee.email],
+                fail_silently=True
+            )
+        except Exception as e:
+            print(f"Failed to send email: {e}")
+
+        return Response({
+            "detail": f"Employee successfully {action_type.lower()}ed.",
+            "employee": EmployeeSerializer(employee).data
+        })
 
 # ✅ New ViewSet for Complaints
 class HRComplaintViewSet(viewsets.ModelViewSet):

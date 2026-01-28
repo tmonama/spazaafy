@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { hrApi } from '../../api/hrApi';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
@@ -7,8 +7,21 @@ import Modal from '../../components/Modal';
 import Input from '../../components/Input';
 import { 
     ArrowLeft, Mail, Phone, Briefcase, Upload, FileText, 
-    CheckCircle, XCircle, RefreshCcw, AlertTriangle, Calendar, UserMinus, Award
+    CheckCircle, XCircle, RefreshCcw, AlertTriangle, Calendar, 
+    UserMinus, Award, TrendingUp, RefreshCw, User
 } from 'lucide-react';
+
+const DEPARTMENTS = [
+    { value: 'EXECUTIVE', label: 'Executive & Leadership' },
+    { value: 'TECH', label: 'Technology & Development' },
+    { value: 'FINANCE', label: 'Finance & Administration' },
+    { value: 'LEGAL', label: 'Legal & Compliance' },
+    { value: 'SUPPORT', label: 'Customer Support' },
+    { value: 'FIELD', label: 'Field Operations' },
+    { value: 'COMMUNITY', label: 'Community Engagement' },
+    { value: 'MEDIA', label: 'Media & Content' },
+    { value: 'HR', label: 'Training & Onboarding (HR)' },
+];
 
 const EmployeeDetailPage: React.FC = () => {
     const { id } = useParams();
@@ -18,16 +31,30 @@ const EmployeeDetailPage: React.FC = () => {
     const [emp, setEmp] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
-    // Modal State
-    const [modalType, setModalType] = useState<'RESIGN' | null>(null);
+    // Resignation Modal State
+    const [modalType, setModalType] = useState<'RESIGN' | 'TRANSFER' | null>(null);
     const [resignReason, setResignReason] = useState('');
     const [noticeDays, setNoticeDays] = useState(30);
+
+    // Promotion/Transfer State
+    const [transferType, setTransferType] = useState<'PROMOTION' | 'TRANSFER'>('PROMOTION');
+    const [transferData, setTransferData] = useState({
+        department: '',
+        role_title: '',
+        reason: ''
+    });
+    const [processingTransfer, setProcessingTransfer] = useState(false);
 
     const fetchData = async () => {
         setLoading(true);
         try {
             const data = await hrApi.getEmployeeById(id!, token);
             setEmp(data);
+            setTransferData({
+                department: data.department,
+                role_title: data.role_title,
+                reason: ''
+            });
         } catch (e) {
             console.error(e);
         } finally {
@@ -111,6 +138,27 @@ const EmployeeDetailPage: React.FC = () => {
         }
     };
 
+    // New: Handle Promotion/Transfer
+    const submitTransfer = async () => {
+        setProcessingTransfer(true);
+        try {
+            await hrApi.promoteTransferEmployee(id!, {
+                type: transferType,
+                department: transferData.department,
+                role_title: transferData.role_title,
+                reason: transferData.reason
+            }, token);
+            
+            alert(`Employee successfully ${transferType === 'PROMOTION' ? 'Promoted' : 'Transferred'}`);
+            setModalType(null);
+            fetchData();
+        } catch (e) {
+            alert("Failed to update role.");
+        } finally {
+            setProcessingTransfer(false);
+        }
+    };
+
     if (loading) return <div className="p-8 text-center text-gray-500">Loading Profile...</div>;
     if (!emp) return <div className="p-8 text-center text-red-500">Employee not found.</div>;
 
@@ -148,7 +196,7 @@ const EmployeeDetailPage: React.FC = () => {
                             {emp.photo_url ? (
                                 <img src={emp.photo_url} alt="Profile" className="w-full h-full object-cover" />
                             ) : (
-                                <span className="text-gray-400 text-4xl font-bold">{emp.first_name[0]}{emp.last_name[0]}</span>
+                                <User className="w-16 h-16 text-gray-400" />
                             )}
                         </div>
                         <label className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
@@ -197,13 +245,15 @@ const EmployeeDetailPage: React.FC = () => {
                                 <div className="bg-purple-50 p-2 rounded-lg mt-1"><Briefcase className="text-purple-600" size={20} /></div>
                                 <div>
                                     <p className="text-xs text-gray-500 font-semibold uppercase">Department</p>
-                                    <p className="text-sm font-medium text-gray-900">{emp.department}</p>
+                                    <p className="text-sm font-medium text-gray-900">
+                                        {DEPARTMENTS.find(d => d.value === emp.department)?.label || emp.department}
+                                    </p>
                                 </div>
                             </div>
                         </div>
                     </Card>
 
-                    {/* ✅ Training & Qualifications (NEW SECTION) */}
+                    {/* ✅ Training & Qualifications */}
                     <Card className="p-6">
                         <h3 className="text-lg font-bold mb-4 border-b pb-2 text-gray-800 flex items-center">
                             <Award size={20} className="mr-2 text-purple-600" />
@@ -267,7 +317,7 @@ const EmployeeDetailPage: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                             <Button variant="outline" onClick={() => handleStatusChange('SUSPENDED')}>
                                 Suspend
                             </Button>
@@ -283,6 +333,11 @@ const EmployeeDetailPage: React.FC = () => {
                                 </Button>
                             )}
                         </div>
+
+                        {/* ✅ NEW: Promote / Transfer Button */}
+                        <Button className="w-full" onClick={() => setModalType('TRANSFER')}>
+                            <TrendingUp size={18} className="mr-2" /> Manage Role (Promote / Transfer)
+                        </Button>
                     </Card>
 
                     {/* Termination Zone */}
@@ -321,6 +376,7 @@ const EmployeeDetailPage: React.FC = () => {
                 </div>
             </div>
 
+            {/* --- RESIGNATION MODAL --- */}
             <Modal isOpen={modalType === 'RESIGN'} onClose={() => setModalType(null)} title="Process Resignation">
                 <div className="space-y-4">
                     <div className="bg-orange-50 p-3 rounded text-sm text-orange-800 border border-orange-200">
@@ -344,6 +400,78 @@ const EmployeeDetailPage: React.FC = () => {
                     </div>
                     <div className="pt-2">
                         <Button onClick={submitResignation} className="w-full">Confirm Resignation</Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* --- ✅ PROMOTION / TRANSFER MODAL --- */}
+            <Modal isOpen={modalType === 'TRANSFER'} onClose={() => setModalType(null)} title="Change Employee Role">
+                <div className="space-y-4">
+                    {/* Action Selector */}
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div 
+                            onClick={() => setTransferType('PROMOTION')}
+                            className={`cursor-pointer p-3 border rounded-lg text-center transition-all ${
+                                transferType === 'PROMOTION' 
+                                ? 'bg-green-50 border-green-500 text-green-700 font-bold shadow-sm' 
+                                : 'hover:bg-gray-50 border-gray-200 text-gray-600'
+                            }`}
+                        >
+                            <TrendingUp className="w-5 h-5 mx-auto mb-1" />
+                            Promotion
+                        </div>
+                        <div 
+                            onClick={() => setTransferType('TRANSFER')}
+                            className={`cursor-pointer p-3 border rounded-lg text-center transition-all ${
+                                transferType === 'TRANSFER' 
+                                ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold shadow-sm' 
+                                : 'hover:bg-gray-50 border-gray-200 text-gray-600'
+                            }`}
+                        >
+                            <RefreshCw className="w-5 h-5 mx-auto mb-1" />
+                            Transfer
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1 text-gray-700">New Department</label>
+                        <select 
+                            className="w-full border border-gray-300 rounded p-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={transferData.department}
+                            onChange={(e) => setTransferData({...transferData, department: e.target.value})}
+                        >
+                            {DEPARTMENTS.map(d => (
+                                <option key={d.value} value={d.value}>{d.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1 text-gray-700">New Role Title</label>
+                        <input 
+                            className="w-full border border-gray-300 rounded p-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="e.g. Senior Operations Manager"
+                            value={transferData.role_title}
+                            onChange={(e) => setTransferData({...transferData, role_title: e.target.value})}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1 text-gray-700">Reason / Comments</label>
+                        <textarea 
+                            className="w-full border border-gray-300 rounded p-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                            rows={3}
+                            placeholder={`Explain the reason for this ${transferType.toLowerCase()}...`}
+                            value={transferData.reason}
+                            onChange={(e) => setTransferData({...transferData, reason: e.target.value})}
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="neutral" onClick={() => setModalType(null)}>Cancel</Button>
+                        <Button onClick={submitTransfer} disabled={processingTransfer}>
+                            {processingTransfer ? 'Processing...' : 'Confirm Change'}
+                        </Button>
                     </div>
                 </div>
             </Modal>
