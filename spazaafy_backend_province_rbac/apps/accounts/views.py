@@ -103,7 +103,7 @@ class RequestAdminVerificationCodeView(generics.GenericAPIView):
         send_email_with_fallback(
             subject="Spazaafy Admin Code",
             recipient_list=[email],
-            template_id=2, 
+            template_id=None, 
             context_data={'CODE': code},
             backup_body=f"Your Spazaafy Admin Verification Code is: {code}"
         )
@@ -248,7 +248,7 @@ class RequestLegalCodeView(generics.GenericAPIView):
         send_email_with_fallback(
             subject="Spazaafy Legal Access Code",
             recipient_list=[email],
-            template_id=2, 
+            template_id=None, 
             context_data={'CODE': code},
             backup_body=f"Your Legal Portal verification code is: {code}"
         )
@@ -283,7 +283,7 @@ class RequestTechCodeView(generics.GenericAPIView):
         send_email_with_fallback(
             subject="Spazaafy Tech Portal Access",
             recipient_list=[email],
-            template_id=2, 
+            template_id=None, 
             context_data={'CODE': code},
             backup_body=f"Your Tech Portal verification code is: {code}"
         )
@@ -317,7 +317,7 @@ class RequestHRCodeView(generics.GenericAPIView):
         send_email_with_fallback(
             subject="Spazaafy HR Portal Access",
             recipient_list=[email],
-            template_id=2, 
+            template_id=None, 
             context_data={'CODE': code},
             backup_body=f"Your HR Portal verification code is: {code}"
         )

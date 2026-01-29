@@ -85,7 +85,7 @@ class EmployeeRegisterInitView(APIView):
         send_email_with_fallback(
             subject="Spazaafy Employee Verification",
             recipient_list=[email],
-            template_id=2, 
+            template_id=None, 
             context_data={'CODE': code},
             backup_body=f"Your verification code is: {code}"
         )
@@ -175,7 +175,7 @@ class EmployeeRegistrationView(viewsets.ViewSet):
         send_email_with_fallback(
             subject="Spazaafy Employee Portal Code",
             recipient_list=[data['email']],
-            template_id=2, 
+            template_id=None, 
             context_data={'CODE': code},
             backup_body=f"Your verification code is: {code}"
         )
