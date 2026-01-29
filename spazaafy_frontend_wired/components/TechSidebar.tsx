@@ -9,16 +9,18 @@ import {
   UserCircle,
   Activity 
 } from 'lucide-react';
-import { useSidebar } from './SidebarContext';
+
+// ✅ Imports fixed for "Same Folder" location
+import { useSidebar } from './SidebarContext'; 
 import { useAuth } from '../hooks/useAuth';
 
 const TechSidebar: React.FC = () => {
   const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
   const { logout } = useAuth();
 
-  // ✅ Renamed from 'linkClass' to 'getNavLinkClass' to match usage below
+  // ✅ Defined as 'getNavLinkClass' to match usage below
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+    `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 mb-1 ${
       isActive
         ? 'bg-blue-600 text-white'
         : 'text-gray-300 hover:bg-gray-800 hover:text-white'
@@ -41,25 +43,35 @@ const TechSidebar: React.FC = () => {
     >
       {/* Header */}
       <div className="p-6 border-b border-gray-800 pt-20 lg:pt-6">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-          Tech Portal
-        </h1>
-        <p className="text-xs text-gray-500 mt-1">IT & System Management</p>
+        <div className="flex items-center space-x-3">
+            <div className="bg-gradient-to-tr from-blue-500 to-purple-600 p-2 rounded-lg">
+                <LayoutDashboard className="w-5 h-5 text-white" />
+            </div>
+            <div>
+                <h1 className="text-lg font-bold text-white tracking-tight">Tech Portal</h1>
+                <p className="text-xs text-gray-500">IT & System Admin</p>
+            </div>
+        </div>
       </div>
 
       {/* Nav Links */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
+            Analytics
+        </div>
         <NavLink to="/tech/dashboard" className={getNavLinkClass} onClick={handleLinkClick}>
           <LayoutDashboard className="w-5 h-5 mr-3" />
           Analytics Dashboard
         </NavLink>
         
+        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-6 px-2">
+            Operations
+        </div>
         <NavLink to="/tech/tickets" className={getNavLinkClass} onClick={handleLinkClick}>
           <List className="w-5 h-5 mr-3" />
           Ticket Management
         </NavLink>
 
-        {/* ✅ This will now work because getNavLinkClass is defined */}
         <NavLink to="/tech/status" className={getNavLinkClass} onClick={handleLinkClick}>
             <Activity className="w-5 h-5 mr-3" />
             System Status
@@ -87,7 +99,7 @@ const TechSidebar: React.FC = () => {
         <NavLink
           to="/admin/dashboard"
           onClick={handleLinkClick}
-          className="flex items-center px-4 py-2 text-sm text-gray-400 hover:text-white"
+          className="flex items-center px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Admin
