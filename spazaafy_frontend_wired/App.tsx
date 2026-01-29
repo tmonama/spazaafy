@@ -94,6 +94,8 @@ import TechDashboard from './pages/tech/TechDashboard';
 import TechTickets from './pages/tech/TechTickets';
 import TechTicketDetail from './pages/tech/TechTicketDetail';
 import InternalTechTicketDetail from './pages/support/InternalTechTicketDetail';
+import PublicStatusPage from './pages/PublicStatusPage';
+import TechStatusPage from './pages/tech/TechStatusPage';
 
 import { UserRole } from './types';
 
@@ -120,6 +122,7 @@ function App() {
             <Route path="/download" element={<DownloadAppPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/about" element={<AboutUsPage />} />
+            <Route path="/status" element={<PublicStatusPage />} />
             
             {/* General Auth */}
             <Route path="/login" element={<LoginPage />} />
@@ -180,6 +183,7 @@ function App() {
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="account" element={<AccountPage />} />
                 <Route path="tickets/:ticketId" element={<TechTicketDetail />} />
+                <Route path="status" element={<TechStatusPage />} />
             </Route>
 
             {/* --- HR PORTAL --- */}

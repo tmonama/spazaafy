@@ -59,3 +59,52 @@ class EmailLog(models.Model):
 
     def __str__(self):
         return f"{self.recipient_email} - {self.status}"
+    
+
+class ComponentStatus(models.TextChoices):
+    OPERATIONAL = 'OPERATIONAL', 'Operational'
+    DEGRADED = 'DEGRADED', 'Degraded Performance'
+    PARTIAL_OUTAGE = 'PARTIAL_OUTAGE', 'Partial Outage'
+    MAJOR_OUTAGE = 'MAJOR_OUTAGE', 'Major Outage'
+    MAINTENANCE = 'MAINTENANCE', 'Under Maintenance'
+
+class SystemComponent(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100) # e.g. "API", "Mobile App", "Database"
+    description = models.CharField(max_length=255, blank=True)
+    status = models.CharField(
+        max_length=20, 
+        choices=ComponentStatus.choices, 
+        default=ComponentStatus.OPERATIONAL
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} - {self.get_status_display()}"
+
+class IncidentStatus(models.TextChoices):
+    INVESTIGATING = 'INVESTIGATING', 'Investigating'
+    IDENTIFIED = 'IDENTIFIED', 'Identified'
+    MONITORING = 'MONITORING', 'Monitoring'
+    RESOLVED = 'RESOLVED', 'Resolved'
+
+class SystemIncident(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    status = models.CharField(
+        max_length=20, 
+        choices=IncidentStatus.choices, 
+        default=IncidentStatus.INVESTIGATING
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.title} ({self.status})"

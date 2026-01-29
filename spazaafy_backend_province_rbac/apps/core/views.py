@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions
-from .models import Province, Campaign, EmailTemplate, EmailLog
-from .serializers import ProvinceSerializer, CampaignSerializer, EmailTemplateSerializer
+from .models import Province, Campaign, EmailTemplate, EmailLog, SystemComponent, SystemIncident
+from .serializers import ProvinceSerializer, CampaignSerializer, EmailTemplateSerializer, SystemComponentSerializer, SystemIncidentSerializer
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
@@ -278,3 +278,49 @@ class CRMViewSet(viewsets.ModelViewSet):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
+    
+
+class StatusPageViewSet(viewsets.ViewSet):
+    """
+    Public API for the Status Page
+    """
+    permission_classes = [permissions.AllowAny]
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        components = SystemComponent.objects.all()
+        # Get incidents from the last 7 days or active ones
+        incidents = SystemIncident.objects.all().order_by('-created_at')[:5]
+        
+        return Response({
+            "components": SystemComponentSerializer(components, many=True).data,
+            "incidents": SystemIncidentSerializer(incidents, many=True).data
+        })
+
+class StatusAdminViewSet(viewsets.ModelViewSet):
+    """
+    Tech Admin API to manage components and incidents
+    """
+    permission_classes = [permissions.IsAdminUser]
+    
+    def get_serializer_class(self):
+        if self.request.query_params.get('type') == 'incident':
+            return SystemIncidentSerializer
+        return SystemComponentSerializer
+
+    def get_queryset(self):
+        if self.request.query_params.get('type') == 'incident':
+            return SystemIncident.objects.all()
+        return SystemComponent.objects.all()
+
+    @action(detail=False, methods=['post'])
+    def update_component(self, request):
+        c_id = request.data.get('id')
+        status = request.data.get('status')
+        try:
+            comp = SystemComponent.objects.get(id=c_id)
+            comp.status = status
+            comp.save()
+            return Response(SystemComponentSerializer(comp).data)
+        except SystemComponent.DoesNotExist:
+            return Response({"detail": "Not found"}, 404)

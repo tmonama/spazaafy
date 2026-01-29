@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, List, LogOut, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, List, LogOut, ArrowLeft, Activity } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useSidebar } from './SidebarContext';
 
@@ -45,6 +45,10 @@ const TechSidebar: React.FC = () => {
         <NavLink to="/tech/tickets" className={linkClass} onClick={handleLinkClick}>
           <List className="w-5 h-5 mr-3" />
           Ticket Management
+        </NavLink>
+        <NavLink to="/tech/status" className={getNavLinkClass} onClick={handleLinkClick}>
+            <Activity className="w-5 h-5 mr-3" />
+            System Status
         </NavLink>
       </nav>
 
