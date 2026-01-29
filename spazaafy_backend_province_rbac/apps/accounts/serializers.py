@@ -367,3 +367,75 @@ class TechRegistrationSerializer(serializers.ModelSerializer):
         # Cleanup Code
         AdminVerificationCode.objects.filter(email=email).delete()
         return user
+    
+    
+# ✅ DEFINE HR ALLOW LIST
+ALLOWED_HR_EMAILS = [
+    'hr@spazaafy.co.za',
+    'recruitment@spazaafy.co.za',
+    'people@spazaafy.co.za',
+    'payroll@spazaafy.co.za',
+    'training@spazaafy.co.za',
+    'thakgalangmonama@gmail.com',
+    'spazaafy@gmail.com'
+]
+
+# ✅ HR Code Request Serializer
+class HRRequestCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value: str) -> str:
+        email = value.strip().lower()
+        if email not in ALLOWED_HR_EMAILS:
+            raise serializers.ValidationError("Access Denied: This email is not authorized for the HR Portal.")
+        return email
+
+# ✅ HR Registration Serializer
+class HRRegistrationSerializer(serializers.ModelSerializer):
+    code = serializers.CharField(write_only=True, max_length=6)
+    first_name = serializers.CharField(write_only=True)
+    last_name = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ('email', 'first_name', 'last_name', 'password', 'code')
+        extra_kwargs = {'password': {'write_only': True, 'min_length': 8}}
+
+    def validate(self, attrs):
+        email = (attrs.get('email') or '').strip().lower()
+        code = (attrs.get('code') or '').strip()
+
+        if email not in ALLOWED_HR_EMAILS:
+            raise serializers.ValidationError("Unauthorized email.")
+
+        if User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError("User already exists. Please log in.")
+
+        try:
+            verification = AdminVerificationCode.objects.get(email=email)
+            if verification.code != code:
+                raise serializers.ValidationError("Invalid verification code.")
+        except AdminVerificationCode.DoesNotExist:
+            raise serializers.ValidationError("No verification code found.")
+
+        validate_password(attrs.get('password'))
+        attrs['email'] = email
+        return attrs
+
+    def create(self, validated_data):
+        email = validated_data['email']
+        password = validated_data['password']
+        
+        user = User.objects.create_user(
+            username=email, 
+            email=email, 
+            password=password, 
+            first_name=validated_data['first_name'], 
+            last_name=validated_data['last_name'], 
+            role='ADMIN' 
+        )
+        user.is_staff = True
+        user.save()
+
+        AdminVerificationCode.objects.filter(email=email).delete()
+        return user
