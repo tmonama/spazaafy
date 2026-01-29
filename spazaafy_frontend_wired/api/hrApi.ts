@@ -2,11 +2,21 @@ import { API_BASE } from './mockApi';
 
 async function request(url: string, options: RequestInit = {}) {
     const res = await fetch(`${API_BASE}${url}`, options);
+    
+    // Handle Errors
     if (!res.ok) {
         const text = await res.text();
         throw new Error(text || `HTTP ${res.status}`);
     }
-    return res.json();
+
+    // Handle 204 No Content (Common for DELETE)
+    if (res.status === 204) {
+        return {};
+    }
+
+    // Handle JSON parsing safely
+    const text = await res.text();
+    return text ? JSON.parse(text) : {};
 }
 
 export const hrApi = {
