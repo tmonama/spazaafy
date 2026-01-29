@@ -119,6 +119,13 @@ export const hrApi = {
         });
     },
 
+    deleteEmployee: async (id: string, token: string) => {
+        return request(`/hr/admin/employees/${id}/`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+
     // --- Admin (Training) ---
     getTrainings: async (token: string) => {
         return request('/hr/admin/training/', {

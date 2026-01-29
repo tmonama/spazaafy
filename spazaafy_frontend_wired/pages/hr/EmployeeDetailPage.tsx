@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom'; // Removed Link (unused)
 import { hrApi } from '../../api/hrApi';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
@@ -8,7 +8,7 @@ import Input from '../../components/Input';
 import { 
     ArrowLeft, Mail, Phone, Briefcase, Upload, FileText, 
     CheckCircle, XCircle, RefreshCcw, AlertTriangle, Calendar, 
-    UserMinus, Award, TrendingUp, RefreshCw, User
+    UserMinus, Award, TrendingUp, RefreshCw, User, Trash2 // ✅ Added Trash2
 } from 'lucide-react';
 
 const DEPARTMENTS = [
@@ -138,7 +138,20 @@ const EmployeeDetailPage: React.FC = () => {
         }
     };
 
-    // New: Handle Promotion/Transfer
+    // ✅ NEW: Handle Delete Record
+    const handleDeleteRecord = async () => {
+        if (!window.confirm("⚠️ DANGER: Are you sure you want to permanently DELETE this record? This cannot be undone.")) return;
+        
+        try {
+            await hrApi.deleteEmployee(id!, token);
+            alert("Employee record deleted.");
+            navigate('/hr/employees');
+        } catch (e) {
+            console.error(e);
+            alert("Failed to delete record. Ensure you have admin permissions.");
+        }
+    };
+
     const submitTransfer = async () => {
         setProcessingTransfer(true);
         try {
@@ -253,7 +266,7 @@ const EmployeeDetailPage: React.FC = () => {
                         </div>
                     </Card>
 
-                    {/* ✅ Training & Qualifications */}
+                    {/* Training */}
                     <Card className="p-6">
                         <h3 className="text-lg font-bold mb-4 border-b pb-2 text-gray-800 flex items-center">
                             <Award size={20} className="mr-2 text-purple-600" />
@@ -334,44 +347,56 @@ const EmployeeDetailPage: React.FC = () => {
                             )}
                         </div>
 
-                        {/* ✅ NEW: Promote / Transfer Button */}
                         <Button className="w-full" onClick={() => setModalType('TRANSFER')}>
                             <TrendingUp size={18} className="mr-2" /> Manage Role (Promote / Transfer)
                         </Button>
                     </Card>
 
-                    {/* Termination Zone */}
+                    {/* Termination & Delete Zone */}
                     <Card className="p-6 border border-red-200 bg-red-50/10">
                         <h3 className="text-lg font-bold mb-4 text-red-700 flex items-center border-b border-red-100 pb-2">
-                            <AlertTriangle size={20} className="mr-2"/> Termination Zone
+                            <AlertTriangle size={20} className="mr-2"/> Danger Zone
                         </h3>
                         
-                        {emp.status === 'EMPLOYED' || emp.status === 'SUSPENDED' ? (
-                            <div>
-                                <p className="text-sm text-gray-600 mb-3">Initiating termination will send a request to the Legal Department for review.</p>
-                                <Button variant="danger" onClick={handleTerminate} className="w-full">
-                                    Initiate Termination (Send to Legal)
-                                </Button>
-                            </div>
-                        ) : emp.status === 'PENDING_TERMINATION' ? (
-                            <div className="bg-yellow-50 p-4 rounded text-yellow-800 text-center border border-yellow-200">
-                                <p className="font-bold">⚠️ Under Legal Review</p>
-                                <p className="text-sm mt-1">Please wait for the Legal Authority decision.</p>
-                            </div>
-                        ) : emp.status === 'NOTICE_GIVEN' ? (
-                            <div className="space-y-4">
-                                <div className="bg-green-50 p-3 text-green-800 text-center text-sm rounded border border-green-200">
-                                    <strong>Legal Approved:</strong> Employee is currently serving notice.
+                        {/* Termination Workflow */}
+                        <div className="mb-6">
+                            <p className="text-xs font-bold text-red-800 uppercase mb-2">Termination Process</p>
+                            {emp.status === 'EMPLOYED' || emp.status === 'SUSPENDED' ? (
+                                <div>
+                                    <p className="text-sm text-gray-600 mb-3">Initiating termination will send a request to the Legal Department for review.</p>
+                                    <Button variant="danger" onClick={handleTerminate} className="w-full">
+                                        Initiate Termination (Send to Legal)
+                                    </Button>
                                 </div>
-                                <Button variant="danger" onClick={handleFinalizeTermination} className="w-full">
-                                    Finalize Termination (Exit)
-                                </Button>
-                            </div>
-                        ) : (
-                            <p className="text-gray-400 text-sm italic text-center">
-                                Termination actions unavailable in current status.
-                            </p>
-                        )}
+                            ) : emp.status === 'PENDING_TERMINATION' ? (
+                                <div className="bg-yellow-50 p-4 rounded text-yellow-800 text-center border border-yellow-200">
+                                    <p className="font-bold">⚠️ Under Legal Review</p>
+                                    <p className="text-sm mt-1">Please wait for the Legal Authority decision.</p>
+                                </div>
+                            ) : emp.status === 'NOTICE_GIVEN' ? (
+                                <div className="space-y-4">
+                                    <div className="bg-green-50 p-3 text-green-800 text-center text-sm rounded border border-green-200">
+                                        <strong>Legal Approved:</strong> Employee is currently serving notice.
+                                    </div>
+                                    <Button variant="danger" onClick={handleFinalizeTermination} className="w-full">
+                                        Finalize Termination (Exit)
+                                    </Button>
+                                </div>
+                            ) : (
+                                <p className="text-gray-400 text-sm italic text-center border border-gray-200 p-2 rounded">
+                                    Termination actions unavailable in current status.
+                                </p>
+                            )}
+                        </div>
+
+                        {/* ✅ Delete Record Section */}
+                        <div className="pt-4 border-t border-red-200">
+                            <p className="text-xs font-bold text-red-800 uppercase mb-2">Data Deletion</p>
+                            <p className="text-sm text-gray-600 mb-3">Permanently delete this employee record and all associated data.</p>
+                            <Button variant="danger" onClick={handleDeleteRecord} className="w-full bg-red-800 hover:bg-red-900 border-red-900">
+                                <Trash2 size={16} className="mr-2" /> Delete Record Permanently
+                            </Button>
+                        </div>
                     </Card>
                 </div>
             </div>
@@ -404,10 +429,9 @@ const EmployeeDetailPage: React.FC = () => {
                 </div>
             </Modal>
 
-            {/* --- ✅ PROMOTION / TRANSFER MODAL --- */}
+            {/* --- PROMOTION / TRANSFER MODAL --- */}
             <Modal isOpen={modalType === 'TRANSFER'} onClose={() => setModalType(null)} title="Change Employee Role">
                 <div className="space-y-4">
-                    {/* Action Selector */}
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div 
                             onClick={() => setTransferType('PROMOTION')}
