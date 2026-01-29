@@ -9,7 +9,7 @@ import {
   UserCircle,
   Activity 
 } from 'lucide-react';
-import { useSidebar } from '../components/SidebarContext';
+import { useSidebar } from './SidebarContext';
 import { useAuth } from '../hooks/useAuth';
 
 const TechSidebar: React.FC = () => {
