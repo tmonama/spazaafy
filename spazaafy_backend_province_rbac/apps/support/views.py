@@ -5,10 +5,9 @@ from .serializers import TicketSerializer, MessageSerializer, AssistanceRequestS
 from apps.core.permissions import ProvinceScopedMixin
 from .models import mark_ticket_as_read
 from apps.shops.models import SpazaShop
-from django.core.mail import EmailMessage
 from django.conf import settings
 from rest_framework.decorators import action
-from apps.core.utils import send_expo_push_notification
+from apps.core.utils import send_expo_push_notification, send_email_with_fallback # ✅ Import utility
 from django.db.models import Count 
 from django.utils import timezone
 
@@ -58,7 +57,6 @@ class MessageViewSet(viewsets.ModelViewSet):
         serializer.save(ticket=ticket, sender=sender)
 
         # ✅ IF ADMIN REPLIES, NOTIFY USER
-        # (Note: DB 'unread' status is handled automatically by signals in models.py)
         if sender.is_staff:
             send_expo_push_notification(
                 user=ticket.user,
@@ -68,7 +66,7 @@ class MessageViewSet(viewsets.ModelViewSet):
             )
 
 
-# ✅ UPDATED VIEW
+# ✅ UPDATED VIEW: RequestAssistanceView (Uses Fallback Email)
 class RequestAssistanceView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = AssistanceRequestSerializer
@@ -125,6 +123,13 @@ class RequestAssistanceView(generics.GenericAPIView):
 
         STATUS: Pending
         """
+        
+        # ✅ Send to Admin via Fallback
+        send_email_with_fallback(
+            subject=admin_subject,
+            recipient_list=['spazaafy@gmail.com'],
+            backup_body=admin_body
+        )
 
         # ---------------------------------------------------------
         # EMAIL 2: TO SHOP OWNER (Confirmation)
@@ -150,31 +155,13 @@ class RequestAssistanceView(generics.GenericAPIView):
         Kind Regards,
         The Spazaafy Team
         """
-
-        # Send both emails
-        try:
-            # 1. Send to Admin
-            email_to_admin = EmailMessage(
-                subject=admin_subject,
-                body=admin_body,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=['spazaafy@gmail.com'], 
-                reply_to=[user.email]
-            )
-            email_to_admin.send()
-
-            # 2. Send to User
-            email_to_user = EmailMessage(
-                subject=user_subject,
-                body=user_body,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[user.email]
-            )
-            email_to_user.send()
-
-        except Exception as e:
-            print(f"Error sending assistance emails: {e}")
-            # We don't return an error to the frontend because the DB record was saved successfully.
+        
+        # ✅ Send to User via Fallback
+        send_email_with_fallback(
+            subject=user_subject,
+            recipient_list=[user.email],
+            backup_body=user_body
+        )
 
         return Response({
             "detail": "Assistance request sent successfully.",
@@ -224,17 +211,12 @@ class AdminAssistanceViewSet(viewsets.ModelViewSet):
         Spazaafy Admin Team
         """
 
-        # 3. Send Email
-        try:
-            email = EmailMessage(
-                subject=f"New Referrals from Spazaafy ({requests_to_refer.count()} Leads)",
-                body=email_body,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[partner_email]
-            )
-            email.send()
-        except Exception:
-            return Response({"detail": "Failed to email partner."}, status=500)
+        # 3. Send Email (Fallback enabled)
+        send_email_with_fallback(
+            subject=f"New Referrals from Spazaafy ({requests_to_refer.count()} Leads)",
+            recipient_list=[partner_email],
+            backup_body=email_body
+        )
 
         # 4. Update Status to REFERRED
         requests_to_refer.update(status='REFERRED')
@@ -262,33 +244,29 @@ class AdminAssistanceViewSet(viewsets.ModelViewSet):
         if new_status == 'CANCELLED':
             requests_to_cancel = AssistanceRequest.objects.filter(id__in=ids)
             for req in requests_to_cancel:
-                try:
-                    subject = f"Update on Request {req.reference_code}: Cancelled"
-                    body = f"""
-                    Dear {req.user.first_name},
+                subject = f"Update on Request {req.reference_code}: Cancelled"
+                body = f"""
+                Dear {req.user.first_name},
 
-                    Your request for assistance regarding "{req.assistance_type}" (Ref: {req.reference_code}) has been CANCELLED.
+                Your request for assistance regarding "{req.assistance_type}" (Ref: {req.reference_code}) has been CANCELLED.
 
-                    Reason for cancellation:
-                    --------------------------------------------------
-                    {cancellation_reason or "No specific reason provided."}
-                    --------------------------------------------------
+                Reason for cancellation:
+                --------------------------------------------------
+                {cancellation_reason or "No specific reason provided."}
+                --------------------------------------------------
 
-                    If you believe this is an error, please contact support or submit a new request with the correct details.
+                If you believe this is an error, please contact support or submit a new request with the correct details.
 
-                    Regards,
-                    Spazaafy Admin Team
-                    """
-                    
-                    email = EmailMessage(
-                        subject=subject,
-                        body=body,
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        to=[req.user.email]
-                    )
-                    email.send()
-                except Exception as e:
-                    print(f"Failed to send cancellation email to {req.user.email}: {e}")
+                Regards,
+                Spazaafy Admin Team
+                """
+                
+                # ✅ Send via Fallback
+                send_email_with_fallback(
+                    subject=subject,
+                    recipient_list=[req.user.email],
+                    backup_body=body
+                )
 
         return Response({"detail": f"Successfully updated {updated_count} requests."}, status=status.HTTP_200_OK)
 
@@ -303,30 +281,26 @@ class AdminAssistanceViewSet(viewsets.ModelViewSet):
 
         # If status changed to CANCELLED, send email
         if new_status == 'CANCELLED':
-            try:
-                subject = f"Update on Request {instance.reference_code}: Cancelled"
-                body = f"""
-                Dear {instance.user.first_name},
+            subject = f"Update on Request {instance.reference_code}: Cancelled"
+            body = f"""
+            Dear {instance.user.first_name},
 
-                Your request for assistance regarding "{instance.assistance_type}" (Ref: {instance.reference_code}) has been CANCELLED.
+            Your request for assistance regarding "{instance.assistance_type}" (Ref: {instance.reference_code}) has been CANCELLED.
 
-                Reason for cancellation:
-                --------------------------------------------------
-                {cancellation_reason or "No specific reason provided."}
-                --------------------------------------------------
+            Reason for cancellation:
+            --------------------------------------------------
+            {cancellation_reason or "No specific reason provided."}
+            --------------------------------------------------
 
-                Regards,
-                Spazaafy Admin Team
-                """
-                email = EmailMessage(
-                    subject=subject,
-                    body=body,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[instance.user.email]
-                )
-                email.send()
-            except Exception as e:
-                print(f"Error sending cancellation email: {e}")
+            Regards,
+            Spazaafy Admin Team
+            """
+            # ✅ Send via Fallback
+            send_email_with_fallback(
+                subject=subject,
+                recipient_list=[instance.user.email],
+                backup_body=body
+            )
 
         return response
     

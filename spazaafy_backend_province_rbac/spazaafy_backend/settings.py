@@ -164,6 +164,15 @@ ANYMAIL = {
 # 3. Keep your default sender
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@spazaafy.com')
 
+# ✅ Fallback Settings
+# If True, failed emails will just print to the Render/Terminal logs (100% reliable for Dev)
+# If False, you must provide EMAIL_BACKUP_USER and EMAIL_BACKUP_PASSWORD below
+USE_CONSOLE_ON_FAIL = True 
+
+# Optional: Real Gmail Backup (if you set USE_CONSOLE_ON_FAIL = False)
+EMAIL_BACKUP_USER = os.environ.get('EMAIL_BACKUP_USER', '')
+EMAIL_BACKUP_PASSWORD = os.environ.get('EMAIL_BACKUP_PASSWORD', '')
+
 
 
 # --- Frontend URL ---

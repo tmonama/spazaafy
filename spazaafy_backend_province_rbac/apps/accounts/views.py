@@ -4,9 +4,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions, viewsets, generics
 from django.utils import timezone
-from .serializers import (RegisterSerializer, LoginSerializer, UserSerializer, AdminRequestCodeSerializer, AdminVerifiedRegistrationSerializer, LegalRequestCodeSerializer, LegalRegistrationSerializer, TechRequestCodeSerializer, TechRegistrationSerializer)
+from .serializers import (
+    RegisterSerializer, LoginSerializer, UserSerializer, 
+    AdminRequestCodeSerializer, AdminVerifiedRegistrationSerializer, 
+    LegalRequestCodeSerializer, LegalRegistrationSerializer, 
+    TechRequestCodeSerializer, TechRegistrationSerializer,
+    HRRequestCodeSerializer, HRRegistrationSerializer
+)
 import random
-from django.core.mail import send_mail, EmailMessage # <--- Import EmailMessage
 from django.conf import settings
 from .models import User, AdminVerificationCode, EmailVerificationToken
 from django.db import IntegrityError
@@ -15,6 +20,7 @@ import traceback, sys
 from datetime import timedelta
 from .permissions import IsOwnerOrAdmin
 from django.views.generic import TemplateView
+from apps.core.utils import send_email_with_fallback # ✅ Import Utility
 
 # Google Imports
 from google.oauth2 import id_token
@@ -31,41 +37,28 @@ class GoogleAuthView(APIView):
             return Response({'detail': 'No token provided'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # 1. Verify the token signature
-            # We pass audience=None here because we check it manually against our list
             id_info = id_token.verify_oauth2_token(token, google_requests.Request(), audience=None)
-
-            # 2. Manual Audience Check
             token_audience = id_info.get('aud')
             if token_audience not in settings.GOOGLE_VALID_CLIENT_IDS:
                 return Response({'detail': 'Invalid Google Client ID'}, status=status.HTTP_403_FORBIDDEN)
 
-            # 3. Extract User Info
             email = id_info.get('email')
             first_name = id_info.get('given_name', '')
             last_name = id_info.get('family_name', '')
 
-            # 4. Check if user exists
             try:
                 user = User.objects.get(email=email)
-                
-                # Auto-verify if they existed but were inactive
                 if not user.is_active:
                     user.is_active = True
                     user.save()
-
-                # Login Success
                 refresh = RefreshToken.for_user(user)
-                
                 return Response({
                     "status": "LOGIN_SUCCESS",
                     "user": UserSerializer(user).data,
                     "refresh": str(refresh),
                     "access": str(refresh.access_token),
                 })
-
             except User.DoesNotExist:
-                # 5. User does not exist -> Frontend must register
                 return Response({
                     "status": "REGISTER_REQUIRED",
                     "email": email,
@@ -77,7 +70,6 @@ class GoogleAuthView(APIView):
             return Response({'detail': 'Invalid Google Token'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 # --- NEW ADMIN REGISTRATION VIEWS ---
 class RequestAdminVerificationCodeView(generics.GenericAPIView):
@@ -95,28 +87,14 @@ class RequestAdminVerificationCodeView(generics.GenericAPIView):
             defaults={'code': code, 'created_at': timezone.now()}
         )
 
-        try:
-            # --- UPDATED: Use Brevo Template for Admin Code ---
-            # You need to create a template in Brevo with ID X (e.g., 3)
-            # Variable in Brevo template: {{ params.CODE }}
-            
-            message = EmailMessage(
-                to=[email],
-                from_email=settings.DEFAULT_FROM_EMAIL,
-            )
-            
-            # REPLACE '3' WITH YOUR ACTUAL ADMIN CODE TEMPLATE ID
-            message.template_id = 2 
-            
-            message.merge_global_data = {
-                'CODE': code,
-            }
-            
-            message.send()
-            # --------------------------------------------------
-
-        except Exception as e:
-            return Response({"detail": f"Failed to send email. Please check server configuration. Error: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # ✅ Use Fallback
+        send_email_with_fallback(
+            subject="Spazaafy Admin Code",
+            recipient_list=[email],
+            template_id=2, # Admin Code Template
+            context_data={'CODE': code},
+            backup_body=f"Your Spazaafy Admin Verification Code is: {code}"
+        )
         
         return Response({"detail": "Verification code sent."}, status=status.HTTP_200_OK)
 
@@ -138,7 +116,6 @@ class AdminVerifiedRegistrationView(generics.CreateAPIView):
         user_data = UserSerializer(user).data
         return Response({'user': user_data}, status=status.HTTP_201_CREATED)
 
-
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -148,7 +125,6 @@ class RegisterView(APIView):
             user = ser.save()
             return Response(ser.to_representation(user), status=status.HTTP_201_CREATED)
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -174,34 +150,18 @@ class MeView(APIView):
             "role": u.role,
         })
     
-# ✅ THIS IS THE CORRECTED VIEWSET
 class UserViewSet(viewsets.ModelViewSet):
-    """
-    A viewset for viewing and editing user instances.
-    - Admins can list all users.
-    - Authenticated users can retrieve and update THEIR OWN profile.
-    """
     queryset = User.objects.all().order_by('first_name')
     serializer_class = UserSerializer
     
     def get_permissions(self):
-        """
-        Instantiates and returns the list of permissions that this view requires.
-        """
         if self.action == 'list':
-            # Only admins can list all users
             permission_classes = [permissions.IsAdminUser]
         else:
-            # For retrieve, update, partial_update, etc.,
-            # the user must be authenticated, and we'll check object-level permissions.
             permission_classes = [permissions.IsAuthenticated, IsOwnerOrAdmin]
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
-        """
-        This view should return a list of all users for admin users,
-        but only the current user for other authenticated users to prevent data leakage.
-        """
         user = self.request.user
         if user.is_staff:
             return User.objects.all().order_by('first_name')
@@ -217,7 +177,6 @@ class EmailVerificationConfirmView(generics.GenericAPIView):
         
         try:
             token_obj = EmailVerificationToken.objects.get(token=token_str)
-            
             if token_obj.is_expired():
                 token_obj.delete()
                 return Response({'detail': 'This verification link has expired.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -228,37 +187,22 @@ class EmailVerificationConfirmView(generics.GenericAPIView):
 
             user.is_active = True
             user.save()
-            
             token_obj.delete()
-            
             return Response({'detail': 'Your account has been successfully verified.'}, status=status.HTTP_200_OK)
         except EmailVerificationToken.DoesNotExist:
             return Response({'detail': 'Invalid verification link.'}, status=status.HTTP_400_BAD_REQUEST)
 
 class DeleteAccountView(APIView):
-    """
-    Authenticated user deletes their own account.
-    """
     permission_classes = [permissions.IsAuthenticated]
-
     def delete(self, request, *args, **kwargs):
         user = request.user
-        # If you ever want soft delete instead:
-        # user.is_active = False
-        # user.save(update_fields=["is_active"])
         user.delete()
-        return Response(
-            {"detail": "Your account and associated data have been deleted."},
-            status=status.HTTP_204_NO_CONTENT,
-        )
-
+        return Response({"detail": "Your account and associated data have been deleted."}, status=status.HTTP_204_NO_CONTENT)
 
 class DeleteAccountInfoView(TemplateView):
-    """
-    Simple info page used for Google Play's 'Delete account URL'.
-    """
     template_name = "delete_account.html"
 
+# --- PORTAL SPECIFIC REGISTRATION ---
 
 class RequestLegalCodeView(generics.GenericAPIView):
     serializer_class = LegalRequestCodeSerializer
@@ -269,27 +213,16 @@ class RequestLegalCodeView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data['email']
         
-        # Generate Code
         code = str(random.randint(100000, 999999))
         AdminVerificationCode.objects.update_or_create(
-            email=email,
-            defaults={'code': code, 'created_at': timezone.now()}
+            email=email, defaults={'code': code, 'created_at': timezone.now()}
         )
 
-        # Send Email
-        try:
-            message = EmailMessage(
-                subject="Spazaafy Legal Access Code",
-                to=[email],
-                from_email=settings.DEFAULT_FROM_EMAIL,
-            )
-            # Reuse your template ID or standard text
-            message.body = f"Your Legal Portal verification code is: {code}" 
-            # Or use template_id logic if you have a specific Brevo template
-            
-            message.send()
-        except Exception as e:
-            return Response({"detail": "Failed to send email."}, status=500)
+        send_email_with_fallback(
+            subject="Spazaafy Legal Access Code",
+            recipient_list=[email],
+            backup_body=f"Your Legal Portal verification code is: {code}"
+        )
         
         return Response({"detail": "Verification code sent to authorized email."}, status=200)
 
@@ -302,7 +235,6 @@ class LegalRegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
-    
 
 class RequestTechCodeView(generics.GenericAPIView):
     serializer_class = TechRequestCodeSerializer
@@ -318,22 +250,48 @@ class RequestTechCodeView(generics.GenericAPIView):
             email=email, defaults={'code': code, 'created_at': timezone.now()}
         )
 
-        try:
-            # Send Email
-            send_mail(
-                "Spazaafy Tech Portal Access",
-                f"Your Tech Portal verification code is: {code}",
-                settings.DEFAULT_FROM_EMAIL,
-                [email],
-                fail_silently=False
-            )
-        except Exception:
-            return Response({"detail": "Failed to send email."}, status=500)
+        send_email_with_fallback(
+            subject="Spazaafy Tech Portal Access",
+            recipient_list=[email],
+            backup_body=f"Your Tech Portal verification code is: {code}"
+        )
         
         return Response({"detail": "Code sent to authorized email."}, status=200)
 
 class TechRegisterView(generics.CreateAPIView):
     serializer_class = TechRegistrationSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+
+class RequestHRCodeView(generics.GenericAPIView):
+    serializer_class = HRRequestCodeSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        
+        code = str(random.randint(100000, 999999))
+        AdminVerificationCode.objects.update_or_create(
+            email=email, defaults={'code': code, 'created_at': timezone.now()}
+        )
+
+        send_email_with_fallback(
+            subject="Spazaafy HR Portal Access",
+            recipient_list=[email],
+            backup_body=f"Your HR Portal verification code is: {code}"
+        )
+        
+        return Response({"detail": "Code sent to authorized email."}, status=200)
+
+class HRRegisterView(generics.CreateAPIView):
+    serializer_class = HRRegistrationSerializer
     permission_classes = [permissions.AllowAny]
 
     def create(self, request, *args, **kwargs):

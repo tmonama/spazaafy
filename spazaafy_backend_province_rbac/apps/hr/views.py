@@ -1,3 +1,5 @@
+# apps/hr/views.py
+
 from rest_framework import viewsets, generics, permissions, status
 from rest_framework.views import APIView
 from django.db.models import Q, Sum
@@ -5,7 +7,7 @@ from datetime import datetime, date, timedelta
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
-from django.core.mail import send_mail, EmailMessage
+from django.core.mail import EmailMessage
 from django.conf import settings
 from apps.legal.models import LegalRequest, LegalCategory, LegalUrgency
 from apps.accounts.models import AdminVerificationCode
@@ -29,6 +31,7 @@ import io
 from apps.core.google_calendar import create_google_meet_event
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.contrib.auth import get_user_model
+from apps.core.utils import send_email_with_fallback
 
 User = get_user_model()
 
@@ -79,16 +82,13 @@ class EmployeeRegisterInitView(APIView):
             defaults={'code': code, 'created_at': timezone.now()}
         )
 
-        try:
-            send_mail(
-                "Spazaafy Employee Verification",
-                f"Your verification code is: {code}",
-                settings.DEFAULT_FROM_EMAIL,
-                [email],
-                fail_silently=False
-            )
-        except Exception as e:
-            return Response({"detail": "Failed to send email code."}, status=500)
+        send_email_with_fallback(
+            subject="Spazaafy Employee Verification",
+            recipient_list=[email],
+            template_id=2, 
+            context_data={'CODE': code},
+            backup_body=f"Your verification code is: {code}"
+        )
 
         return Response({"detail": "Verification code sent to your email."}, status=200)
 
@@ -172,17 +172,13 @@ class EmployeeRegistrationView(viewsets.ViewSet):
         )
 
         # 4. Send Email
-        try:
-            send_mail(
-                subject="Spazaafy Employee Portal Code",
-                message=f"Your verification code is: {code}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[data['email']],
-                fail_silently=False
-            )
-        except Exception as e:
-            print(e)
-            return Response({"detail": "Failed to send email."}, status=500)
+        send_email_with_fallback(
+            subject="Spazaafy Employee Portal Code",
+            recipient_list=[data['email']],
+            template_id=2, 
+            context_data={'CODE': code},
+            backup_body=f"Your verification code is: {code}"
+        )
 
         return Response({"detail": "Verification code sent."})
 
@@ -307,7 +303,6 @@ class HiringRequestViewSet(viewsets.ModelViewSet):
 
         req.save()
         
-        # Generate link (Frontend will handle the URL structure)
         return Response({'status': 'OPEN', 'deadline': req.application_deadline})
     
     @action(detail=True, methods=['patch'])
@@ -355,7 +350,7 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
                 # Fallback if API fails (e.g. bad credentials)
                 meeting_link = "https://meet.google.com/"
                 location_text = "Google Meet (Link pending)"
-                print(f"Google Calendar Error: {e}")
+                print(f"Google Calendar Error")
         else:
             location_text = location_input
             app.interview_location = location_input
@@ -370,26 +365,19 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
         app.hiring_request.status = 'INTERVIEWING'
         app.hiring_request.save()
         
-        # Send Email (same as before)
-        send_mail(
-            subject=f"Interview Invitation: {app.hiring_request.role_title}",
-            message=f"""Dear {app.first_name},
-
+        # Send Email
+        body = f"""Dear {app.first_name},
             We are pleased to invite you for an interview.
-
             Date: {date_time}
             Format: {i_type}
             Location/Link: {location_text}
-
             Notes: {notes}
-
-            A calendar invitation has also been sent to your email address.
-
-            Regards,
-            Spazaafy HR""",
-            from_email=settings.DEFAULT_FROM_EMAIL,
+            Regards, Spazaafy HR"""
+            
+        send_email_with_fallback(
+            subject=f"Interview Invitation: {app.hiring_request.role_title}",
             recipient_list=[app.email],
-            fail_silently=True
+            backup_body=body
         )
         
         return Response({'status': 'Scheduled', 'link': meeting_link})
@@ -417,24 +405,15 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
         )
 
         # ✅ Hired Email
-        send_mail(
-            subject="Congratulations! Job Offer from Spazaafy",
-            message=f"""Dear {app.first_name},
-
+        body = f"""Dear {app.first_name},
             We are delighted to inform you that you have been selected for the position of {req.role_title}!
-
-            Welcome to the team. We are excited to have you on board.
-
-            Next Steps:
-            You will receive further communication shortly regarding your contract, onboarding process, and training schedule.
-
-            Congratulations again!
-
-            Regards,
-            Spazaafy HR Team""",
-            from_email=settings.DEFAULT_FROM_EMAIL,
+            Welcome to the team.
+            Regards, Spazaafy HR Team"""
+            
+        send_email_with_fallback(
+            subject="Congratulations! Job Offer from Spazaafy",
             recipient_list=[app.email],
-            fail_silently=True
+            backup_body=body
         )
         
         return Response({'status': 'Selected & Profile Created'})
@@ -452,22 +431,16 @@ class JobApplicationViewSet(viewsets.ModelViewSet):
         # ✅ Rejection Email Logic
         if new_status == 'REJECTED':
             for app in apps_to_update:
-                if app.status != 'REJECTED': # Don't spam if already rejected
-                    send_mail(
+                if app.status != 'REJECTED': 
+                    body = f"""Dear {app.first_name},
+                        Thank you for your interest in the {app.hiring_request.role_title} position at Spazaafy.
+                        We regret to inform you that we will not be proceeding with your application at this time.
+                        Regards, Spazaafy HR Team"""
+                    
+                    send_email_with_fallback(
                         subject=f"Update on your application: {app.hiring_request.role_title}",
-                        message=f"""Dear {app.first_name},
-
-                        Thank you for your interest in the {app.hiring_request.role_title} position at Spazaafy and for taking the time to apply.
-
-                        We regret to inform you that we will not be proceeding with your application at this time. We received many qualified applicants and the decision was a difficult one.
-
-                        We wish you all the best in your future endeavors.
-
-                        Regards,
-                        Spazaafy HR Team""",
-                        from_email=settings.DEFAULT_FROM_EMAIL,
                         recipient_list=[app.email],
-                        fail_silently=True
+                        backup_body=body
                     )
 
         apps_to_update.update(status=new_status)
@@ -481,18 +454,14 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAdminUser]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
-    # ✅ Handle Status Updates (Fail/Complete Onboarding)
-    # apps/hr/views.py
-
     @action(detail=True, methods=['patch'])
     def update_status(self, request, pk=None):
         emp = self.get_object()
         new_status = request.data.get('status')
         reason = request.data.get('reason', '')
-        notice_days = request.data.get('notice_days') # Optional int
+        notice_days = request.data.get('notice_days') 
 
         if new_status == 'NOTICE':
-            # This status now means "Resigned with Notice"
             emp.status = 'NOTICE'
             if notice_days:
                 emp.notice_period_end_date = timezone.now().date() + timezone.timedelta(days=int(notice_days))
@@ -500,13 +469,11 @@ class EmployeeViewSet(viewsets.ModelViewSet):
                 emp.resignation_reason = reason
         
         elif new_status == 'EMPLOYED':
-            # Restore status logic
             emp.status = 'EMPLOYED'
             emp.notice_period_end_date = None
             emp.resignation_reason = None
             
         else:
-            # Standard update (Suspended, Retired, etc.)
             emp.status = new_status
             if reason:
                 emp.resignation_reason = reason
@@ -514,7 +481,6 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         emp.save()
         return Response({'status': 'Updated'})
 
-    # ✅ Handle Profile Picture Upload
     @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
     def upload_photo(self, request, pk=None):
         emp = self.get_object()
@@ -533,11 +499,9 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         if not reason:
             return Response({"detail": "Reason is required"}, status=400)
 
-        # 1. Update Employee Status
         emp.status = 'PENDING_TERMINATION'
         emp.save()
         
-        # 2. Automatically Create Legal Request
         LegalRequest.objects.create(
             title=f"Termination Review: {emp.first_name} {emp.last_name}",
             description=f"HR Request for Termination.\nReason: {reason}",
@@ -560,12 +524,11 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         emp.status = 'TERMINATED'
         emp.save()
         return Response({'status': 'Terminated'})
-    
+
     # ✅ NEW ACTION: Transfer or Promote
     @action(detail=True, methods=['post'])
     def promote_transfer(self, request, pk=None):
         employee = self.get_object()
-        
         action_type = request.data.get('type') # 'PROMOTION' or 'TRANSFER'
         new_department = request.data.get('department')
         new_role_title = request.data.get('role_title')
@@ -574,69 +537,24 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         if not new_department or not new_role_title:
             return Response({"detail": "New department and role title are required."}, status=400)
 
-        # Capture old details for the email/history
         old_dept = employee.get_department_display()
         old_role = employee.role_title
 
-        # Update Employee Record
         employee.department = new_department
         employee.role_title = new_role_title
         employee.save()
 
-        # Construct Email
         subject = ""
         message = ""
 
         if action_type == 'PROMOTION':
             subject = f"Congratulations! Promotion to {new_role_title}"
-            message = f"""
-            Dear {employee.first_name},
-
-            We are pleased to inform you that you have been promoted!
-
-            New Role: {new_role_title}
-            New Department: {employee.get_department_display()}
-            
-            Comments:
-            {reason}
-
-            We appreciate your hard work and dedication.
-
-            Regards,
-            Spazaafy HR
-            """
-        else: # TRANSFER
+            message = f"Dear {employee.first_name},\n\nYou have been promoted to {new_role_title}!\nComments: {reason}\nRegards, Spazaafy HR"
+        else: 
             subject = f"Update: Internal Transfer to {employee.get_department_display()}"
-            message = f"""
-            Dear {employee.first_name},
+            message = f"Dear {employee.first_name},\n\nConfirming your transfer to {new_role_title}.\nComments: {reason}\nRegards, Spazaafy HR"
 
-            This email confirms your internal transfer.
-
-            Previous Role: {old_role} ({old_dept})
-            
-            New Role: {new_role_title}
-            New Department: {employee.get_department_display()}
-            
-            Comments:
-            {reason}
-
-            Please contact HR for any handover details.
-
-            Regards,
-            Spazaafy HR
-            """
-
-        # Send Email
-        try:
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[employee.email],
-                fail_silently=True
-            )
-        except Exception as e:
-            print(f"Failed to send email: {e}")
+        send_email_with_fallback(subject=subject, recipient_list=[employee.email], backup_body=message)
 
         return Response({
             "detail": f"Employee successfully {action_type.lower()}ed.",
@@ -648,8 +566,6 @@ class HRComplaintViewSet(viewsets.ModelViewSet):
     queryset = HRComplaint.objects.all()
     serializer_class = HRComplaintSerializer
     permission_classes = [permissions.IsAdminUser]
-
-    # Enable file uploads
     parser_classes = (MultiPartParser, FormParser, JSONParser) 
 
     @action(detail=True, methods=['post'])
@@ -658,20 +574,11 @@ class HRComplaintViewSet(viewsets.ModelViewSet):
         complaint.status = 'INVESTIGATING'
         complaint.save()
 
-        # ✅ Notify Complainant
-        send_mail(
+        body = f"Dear {complaint.complainant.first_name},\nYour complaint is now UNDER INVESTIGATION."
+        send_email_with_fallback(
             subject=f"Update on your Complaint: {complaint.id}",
-            message=f"""Dear {complaint.complainant.first_name},
-
-            Your complaint regarding "{complaint.get_type_display()}" has been reviewed and is now officially UNDER INVESTIGATION.
-
-            HR will reach out to you if further information is required.
-
-            Regards,
-            Spazaafy HR Team""",
-            from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[complaint.complainant.email],
-            fail_silently=True
+            backup_body=body
         )
 
         return Response({'status': 'Investigating'})
@@ -679,27 +586,20 @@ class HRComplaintViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def close_complaint(self, request, pk=None):
         complaint = self.get_object()
-        
-        # 1. Get Data
         verdict = request.data.get('resolution_verdict')
         report = request.FILES.get('investigation_report')
-        related_ids_str = request.data.get('related_employees', '') # "id1,id2,id3"
+        related_ids_str = request.data.get('related_employees', '')
         
         if not verdict or not report:
              return Response({"detail": "Verdict and Report are required to close a case."}, status=400)
 
-        # 2. Update Model
         complaint.status = 'CLOSED'
         complaint.resolution_verdict = verdict
         complaint.investigation_report = report
         complaint.resolved_at = timezone.now()
         complaint.save()
 
-        # 3. Handle Emails
-        # Parse related IDs
         related_ids = [x.strip() for x in related_ids_str.split(',') if x.strip()]
-        
-        # Build Recipient List (Complainant + Related)
         recipients = [complaint.complainant.email]
         
         if related_ids:
@@ -707,25 +607,12 @@ class HRComplaintViewSet(viewsets.ModelViewSet):
             for emp in related_employees:
                 if emp.email: recipients.append(emp.email)
 
-        # Send Email
-        send_mail(
+        body = f"Complaint {complaint.id} CLOSED.\nVerdict: {verdict}"
+        
+        send_email_with_fallback(
             subject=f"Case Closed: Complaint {complaint.id}",
-            message=f"""Dear Employee,
-
-            The HR complaint case (ID: {str(complaint.id)[:8]}) has been concluded.
-
-            Status: CLOSED
-            
-            Resolution / Verdict:
-            {verdict}
-
-            For any questions, please contact the HR department.
-
-            Regards,
-            Spazaafy HR Team""",
-            from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=recipients,
-            fail_silently=True
+            backup_body=body
         )
 
         return Response({'status': 'Closed & Emails Sent'})
@@ -736,22 +623,14 @@ class TrainingViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAdminUser]
 
     def perform_create(self, serializer):
-        # 1. Save the Training Session
         training = serializer.save()
-        
-        # 2. Check if "Push to Announcements" was requested
         post_announcement = self.request.data.get('post_announcement', False)
         
         if post_announcement:
-            # ✅ Generate Direct Link
             frontend_url = settings.FRONTEND_URL.rstrip('/')
             signup_link = f"{frontend_url}/training/signup?session={training.id}"
-            
-            # ✅ Format Date Nicely (e.g., 20 January 2026 at 15:00)
             formatted_date = training.date_time.strftime('%d %B %Y at %H:%M')
 
-            # ✅ Construct Content with explicit newlines to prevent indentation issues
-            # We strip() the description to remove any accidental leading/trailing spaces
             announcement_content = (
                 f"{training.description.strip()}\n\n"
                 f"Date: {formatted_date}\n\n"
@@ -759,7 +638,6 @@ class TrainingViewSet(viewsets.ModelViewSet):
                 f"{signup_link}"
             )
 
-            # Create the announcement
             Announcement.objects.create(
                 title=f"Training Alert: {training.title}",
                 content=announcement_content,
@@ -782,7 +660,6 @@ class TrainingViewSet(viewsets.ModelViewSet):
 class EmployeePortalViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
-    # GET /api/hr/portal/me/
     @action(detail=False, methods=['get'])
     def me(self, request):
         try:
@@ -792,45 +669,34 @@ class EmployeePortalViewSet(viewsets.ViewSet):
         except Employee.DoesNotExist:
             return Response({"detail": "No employee profile linked to this user."}, status=404)
 
-    # ✅ UPDATED: Filter Announcements by Department
     @action(detail=False, methods=['get'])
     def announcements(self, request):
         try:
             employee = request.user.employee_profile
             dept = employee.department
             
-            # Logic: Show if target_departments is empty (ALL) OR contains my department
-            # Since JSONField filtering varies by DB, we can use a Python filter for safety 
-            # or a specific Q lookup. For broad compatibility:
-            
             all_anns = Announcement.objects.all()
             relevant_anns = []
             
             for ann in all_anns:
                 targets = ann.target_departments
-                # If list is empty (All) OR my dept is in list
                 if not targets or dept in targets:
                     relevant_anns.append(ann)
             
-            # Sort by date (newest first)
             relevant_anns.sort(key=lambda x: x.date_posted, reverse=True)
             
             return Response(AnnouncementSerializer(relevant_anns[:10], many=True).data)
         except Employee.DoesNotExist:
             return Response([])
 
-    # POST /api/hr/portal/resign/
     @action(detail=False, methods=['post'])
     def resign(self, request):
         try:
             employee = request.user.employee_profile
-            
-            # Get Data
             reason = request.data.get('reason')
             date = request.data.get('date')
-            exit_type = request.data.get('type', 'RESIGNATION') # 'RESIGNATION' or 'RETIREMENT'
+            exit_type = request.data.get('type', 'RESIGNATION') 
 
-            # Prepend type to reason for storage (Simple solution without DB migration)
             formatted_reason = f"[{exit_type}] {reason}"
             
             employee.status = 'RESIGNATION_REQUESTED'
@@ -838,20 +704,18 @@ class EmployeePortalViewSet(viewsets.ViewSet):
             employee.resignation_date = date
             employee.save()
             
-            # Notify HR
-            send_mail(
+            body = f"Type: {exit_type}\nReason: {reason}\nProposed Date: {date}"
+            
+            send_email_with_fallback(
                 subject=f"{exit_type.title()} Request: {employee.first_name} {employee.last_name}",
-                message=f"Type: {exit_type}\nReason: {reason}\nProposed Date: {date}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=['hr@spazaafy.co.za'],
-                fail_silently=True
+                backup_body=body
             )
             
             return Response({'status': 'Request Submitted'})
         except Employee.DoesNotExist:
             return Response({"detail": "Profile not found"}, 404)
 
-    # GET /api/hr/portal/complaints/
     @action(detail=False, methods=['get'])
     def my_complaints(self, request):
         try:
@@ -861,17 +725,13 @@ class EmployeePortalViewSet(viewsets.ViewSet):
         except:
             return Response([])
 
-    # POST /api/hr/portal/file_complaint/
     @action(detail=False, methods=['post'])
     def file_complaint(self, request):
         try:
-            # 1. Check if user is linked to an employee
             if not hasattr(request.user, 'employee_profile'):
                 return Response({"detail": "User is not linked to an Employee profile."}, 400)
 
             employee = request.user.employee_profile
-            
-            # 2. Create the complaint
             HRComplaint.objects.create(
                 complainant=employee,
                 type=request.data.get('type', 'GRIEVANCE'),
@@ -880,22 +740,18 @@ class EmployeePortalViewSet(viewsets.ViewSet):
             return Response({'status': 'Complaint Filed'})
 
         except Exception as e:
-             # ✅ This prints the REAL error to your terminal/logs
-             print(f"Error filing complaint: {e}") 
              return Response({"detail": str(e)}, 400)
         
-        # GET /api/hr/portal/timecards/
     @action(detail=False, methods=['get'])
     def timecards(self, request):
         employee = request.user.employee_profile
         qs = TimeCard.objects.filter(employee=employee).order_by('-work_date')[:31]
         return Response(TimeCardSerializer(qs, many=True).data)
 
-    # POST /api/hr/portal/open_timecard/
     @action(detail=False, methods=['post'])
     def open_timecard(self, request):
         employee = request.user.employee_profile
-        work_date_str = request.data.get('work_date')  # optional
+        work_date_str = request.data.get('work_date') 
         if work_date_str:
             work_date = datetime.strptime(work_date_str, "%Y-%m-%d").date()
         else:
@@ -904,14 +760,12 @@ class EmployeePortalViewSet(viewsets.ViewSet):
         card, _ = TimeCard.objects.get_or_create(employee=employee, work_date=work_date)
         return Response(TimeCardSerializer(card).data)
 
-    # GET /api/hr/portal/timecard/<uuid:id>/
     @action(detail=False, methods=['get'], url_path=r'timecard/(?P<pk>[^/.]+)')
     def timecard_detail(self, request, pk=None):
         employee = request.user.employee_profile
         card = TimeCard.objects.get(id=pk, employee=employee)
         return Response(TimeCardSerializer(card).data)
 
-    # POST /api/hr/portal/timecard/<uuid:id>/add_entry/
     @action(detail=False, methods=['post'], url_path=r'timecard/(?P<pk>[^/.]+)/add_entry')
     def add_time_entry(self, request, pk=None):
         employee = request.user.employee_profile
@@ -926,11 +780,9 @@ class EmployeePortalViewSet(viewsets.ViewSet):
             task_description=serializer.validated_data.get('task_description', ''),
             minutes=serializer.validated_data['minutes']
         )
-
         card.refresh_from_db()
         return Response(TimeCardSerializer(card).data)
 
-    # DELETE /api/hr/portal/timeentry/<uuid:id>/
     @action(detail=False, methods=['delete'], url_path=r'timeentry/(?P<pk>[^/.]+)')
     def delete_time_entry(self, request, pk=None):
         employee = request.user.employee_profile
@@ -938,7 +790,6 @@ class EmployeePortalViewSet(viewsets.ViewSet):
         entry.delete()
         return Response({'status': 'deleted'})
 
-    # GET /api/hr/portal/timecards_summary/?period=week|month|year&date=YYYY-MM-DD
     @action(detail=False, methods=['get'])
     def timecards_summary(self, request):
         employee = request.user.employee_profile
@@ -957,16 +808,13 @@ class EmployeePortalViewSet(viewsets.ViewSet):
             start = base_date.replace(day=1)
             next_month = (start.replace(day=28) + timedelta(days=4)).replace(day=1)
             end = next_month - timedelta(days=1)
-        else:  # year
+        else:
             start = base_date.replace(month=1, day=1)
             end = base_date.replace(month=12, day=31)
 
         cards = TimeCard.objects.filter(employee=employee, work_date__range=[start, end])
-
-        # total minutes
         total_minutes = TimeEntry.objects.filter(timecard__in=cards).aggregate(s=Sum('minutes'))['s'] or 0
 
-        # breakdown by task_name
         breakdown = (
             TimeEntry.objects
             .filter(timecard__in=cards)
@@ -984,8 +832,6 @@ class EmployeePortalViewSet(viewsets.ViewSet):
             'breakdown': list(breakdown),
         })
 
-    # POST /api/hr/portal/send_timecard_report/
-    # body: { "email": "...", "period": "week|month|year", "date": "YYYY-MM-DD" }
     @action(detail=False, methods=['post'])
     def send_timecard_report(self, request):
         employee = request.user.employee_profile
@@ -998,7 +844,6 @@ class EmployeePortalViewSet(viewsets.ViewSet):
 
         base_date = datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else timezone.now().date()
 
-        # Reuse same period logic
         if period == 'day':
             start = base_date
             end = base_date
@@ -1015,7 +860,6 @@ class EmployeePortalViewSet(viewsets.ViewSet):
 
         cards = TimeCard.objects.filter(employee=employee, work_date__range=[start, end]).order_by('work_date')
 
-        # Build CSV in memory
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(['work_date', 'task_name', 'task_description', 'minutes', 'hours'])
@@ -1033,26 +877,25 @@ class EmployeePortalViewSet(viewsets.ViewSet):
         csv_bytes = output.getvalue().encode('utf-8')
         filename = f"timecard_{employee.first_name}_{employee.last_name}_{start}_{end}.csv"
 
-        msg = EmailMessage(
-            subject=f"Time Card Report ({start} to {end})",
-            body=f"Attached is the time card report for {employee.first_name} {employee.last_name} ({start} to {end}).",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[email_to],
-        )
-        msg.attach(filename, csv_bytes, "text/csv")
-        msg.send(fail_silently=False)
+        try:
+            msg = EmailMessage(
+                subject=f"Time Card Report ({start} to {end})",
+                body=f"Attached is the time card report for {employee.first_name} {employee.last_name} ({start} to {end}).",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[email_to],
+            )
+            msg.attach(filename, csv_bytes, "text/csv")
+            msg.send(fail_silently=False)
+        except Exception as e:
+            print(f"Failed to send csv email: {e}")
 
         return Response({'status': 'sent', 'email': email_to})
 
         
 class AnnouncementViewSet(viewsets.ModelViewSet):
-    """
-    Allows HR Admins to manage company-wide announcements.
-    """
     queryset = Announcement.objects.all().order_by('-date_posted')
     serializer_class = AnnouncementSerializer
     permission_classes = [permissions.IsAdminUser]
 
     def perform_create(self, serializer):
-        # Automatically set the author to the logged-in HR user
         serializer.save(author=self.request.user)
