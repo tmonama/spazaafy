@@ -484,7 +484,14 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
     def upload_photo(self, request, pk=None):
         emp = self.get_object()
-        file = request.data.get('photo')
+        # ✅ DEBUGGING: Print what keys are actually being received
+        print(f"📸 Upload Photo Debug - FILES: {request.FILES.keys()}")
+        print(f"📸 Upload Photo Debug - DATA: {request.data.keys()}")
+
+        # Try to get the file from FILES first (standard), then data (DRF fallback)
+        # We check for 'photo' (what frontend sends) AND 'profile_picture' (model name) just in case
+        file = request.FILES.get('photo') or request.data.get('photo') or request.FILES.get('profile_picture')
+
         if file:
             emp.profile_picture = file
             emp.save()
