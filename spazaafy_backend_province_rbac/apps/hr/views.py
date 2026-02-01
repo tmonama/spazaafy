@@ -32,6 +32,9 @@ from apps.core.google_calendar import create_google_meet_event
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.contrib.auth import get_user_model
 from apps.core.utils import send_email_with_fallback
+from django.core.files.storage import default_storage
+from core.utils import resize_image_to_square
+import uuid
 
 User = get_user_model()
 
@@ -481,15 +484,58 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         emp.save()
         return Response({'status': 'Updated'})
 
-    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
+
+    @action(detail=True, methods=["post"], parser_classes=[MultiPartParser])
     def upload_photo(self, request, pk=None):
-        emp = self.get_object()
-        file = request.data.get('photo')
-        if file:
-            emp.profile_picture = file
-            emp.save()
-            return Response({'status': 'Photo Uploaded'})
-        return Response({'detail': 'No file provided'}, status=400)
+        MAX_PROFILE_PHOTO_SIZE = 2 * 1024 * 1024  # 2MB (before resize)
+        ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+        employee = self.get_object()
+
+        file = request.FILES.get("photo") or request.FILES.get("profile_picture")
+        if not file:
+            return Response(
+                {"detail": "Please select an image to upload."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate type
+        if getattr(file, "content_type", "") not in ALLOWED_IMAGE_TYPES:
+            return Response(
+                {"detail": "Upload a JPG, PNG, or WEBP image."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate size (original)
+        if file.size > MAX_PROFILE_PHOTO_SIZE:
+            return Response(
+                {"detail": "Image is too large. Max size is 2MB."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 🔄 Resize to 512×512 (center-cropped)
+        resized = resize_image_to_square(file, size=512)
+
+        # Generate clean filename
+        filename = f"employees/{employee.id}/profile-{uuid.uuid4().hex}.webp"
+
+        # Delete old photo (optional but recommended)
+        if employee.profile_picture and employee.profile_picture.name:
+            try:
+                default_storage.delete(employee.profile_picture.name)
+            except Exception:
+                pass
+
+        # Save resized image
+        employee.profile_picture.save(filename, resized, save=True)
+
+        return Response(
+            {
+                "detail": "Profile picture updated successfully.",
+                "profile_picture": employee.profile_picture.url,
+            },
+            status=status.HTTP_200_OK,
+        )
+
     
     @action(detail=True, methods=['post'])
     def initiate_termination(self, request, pk=None):

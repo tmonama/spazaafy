@@ -178,9 +178,15 @@ EMAIL_BACKUP_PASSWORD = os.environ.get('EMAIL_BACKUP_PASSWORD', '')
 # --- Frontend URL ---
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
+# Upload limits
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+
 FILE_UPLOAD_HANDLERS = [
     'django.core.files.uploadhandler.MemoryFileUploadHandler',
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
 ]
+
 
 # --- AWS S3 Settings ---
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')

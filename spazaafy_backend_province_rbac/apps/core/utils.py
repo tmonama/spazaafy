@@ -6,6 +6,45 @@ import socket
 from django.core.mail import EmailMessage, get_connection
 from django.conf import settings
 from requests.exceptions import ReadTimeout, ConnectionError
+from PIL import Image
+from io import BytesIO
+from django.core.files.base import ContentFile
+
+
+def resize_image_to_square(
+    image_file,
+    size=512,
+    format="WEBP",
+    quality=85,
+):
+    """
+    Resize image to a square (size x size), center-cropped,
+    converted to WEBP, and stripped of EXIF data.
+    """
+    img = Image.open(image_file).convert("RGB")
+
+    width, height = img.size
+    min_dim = min(width, height)
+
+    left = (width - min_dim) / 2
+    top = (height - min_dim) / 2
+    right = (width + min_dim) / 2
+    bottom = (height + min_dim) / 2
+
+    img = img.crop((left, top, right, bottom))
+    img = img.resize((size, size), Image.LANCZOS)
+
+    buffer = BytesIO()
+    img.save(
+        buffer,
+        format=format,
+        quality=quality,
+        optimize=True,
+    )
+    buffer.seek(0)
+
+    return ContentFile(buffer.read())
+
 
 logger = logging.getLogger(__name__)
 
