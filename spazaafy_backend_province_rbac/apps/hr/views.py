@@ -481,25 +481,15 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         emp.save()
         return Response({'status': 'Updated'})
 
-    @action(
-        detail=True,
-        methods=["post"],
-        parser_classes=[MultiPartParser],  # 🔥 ONLY THIS
-    )
+    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
     def upload_photo(self, request, pk=None):
-        file = request.FILES.get("photo") or request.FILES.get("profile_picture")
-
-        if not file:
-            return Response(
-                {"detail": "No file provided"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        employee = self.get_object()
-        employee.photo = file
-        employee.save()
-
-        return Response({"detail": "Photo uploaded successfully"})
+        emp = self.get_object()
+        file = request.data.get('photo')
+        if file:
+            emp.profile_picture = file
+            emp.save()
+            return Response({'status': 'Photo Uploaded'})
+        return Response({'detail': 'No file provided'}, status=400)
     
     @action(detail=True, methods=['post'])
     def initiate_termination(self, request, pk=None):

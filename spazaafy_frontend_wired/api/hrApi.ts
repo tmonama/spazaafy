@@ -1,6 +1,5 @@
 import { API_BASE } from './mockApi'; 
 
-// Helper for standard JSON requests
 async function request(url: string, options: RequestInit = {}) {
     const res = await fetch(`${API_BASE}${url}`, options);
     
@@ -20,18 +19,6 @@ async function request(url: string, options: RequestInit = {}) {
     return text ? JSON.parse(text) : {};
 }
 
-// Helper for File Uploads (FormData)
-async function requestWithFile(url: string, options: RequestInit = {}) {
-    // Note: We do NOT set 'Content-Type' here, the browser sets it with the boundary for FormData
-    const res = await fetch(`${API_BASE}${url}`, options);
-    
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `HTTP ${res.status}`);
-    }
-    return res.json();
-}
-
 export const hrApi = {
     // --- Public ---
     submitJobRequest: async (data: any) => {
@@ -41,15 +28,12 @@ export const hrApi = {
             body: JSON.stringify(data)
         });
     },
-    
-    // Uses requestWithFile for FormData
     submitApplication: async (formData: FormData) => {
-        return requestWithFile('/hr/public/apply/', {
+        return request('/hr/public/apply/', {
             method: 'POST',
-            body: formData 
+            body: formData // Browser handles boundary
         });
     },
-
     signupTraining: async (data: any) => {
         return request('/hr/public/training-signup/', {
             method: 'POST',
@@ -57,7 +41,7 @@ export const hrApi = {
             body: JSON.stringify(data)
         });
     },
-
+    // ✅ NEW: Public Fetch Methods
     getPublicJobDetails: async (id: string) => {
         return request(`/hr/public/jobs/${id}/`);
     },
@@ -104,6 +88,7 @@ export const hrApi = {
         });
     },
 
+    // ✅ Bulk Update Applications
     bulkUpdateApplications: async (ids: string[], status: string, token: string) => {
         return request(`/hr/admin/applications/bulk_update_status/`, {
             method: 'POST',
@@ -127,10 +112,10 @@ export const hrApi = {
         });
     },
 
-    // Uses requestWithFile for FormData
     createEmployee: async (formData: FormData, token: string) => {
-        return requestWithFile('/hr/admin/employees/', {
+        return request('/hr/admin/employees/', {
             method: 'POST',
+            // Do NOT set Content-Type here, let browser handle FormData
             headers: { Authorization: `Bearer ${token}` },
             body: formData
         });
@@ -144,51 +129,10 @@ export const hrApi = {
         });
     },
 
-    // ✅ Deletion fixed by updated 'request' function
     deleteEmployee: async (id: string, token: string) => {
         return request(`/hr/admin/employees/${id}/`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` }
-        });
-    },
-
-    getEmployeeById: async (id: string, token: string) => {
-        return request(`/hr/admin/employees/${id}/`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-    },
-
-    // Uses requestWithFile for FormData
-    uploadEmployeePhoto: async (id: string, file: File, token: string) => {
-        const formData = new FormData();
-        formData.append('photo', file);
-        return requestWithFile(`/hr/admin/employees/${id}/upload_photo/`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` }, 
-            body: formData
-        });
-    },
-
-    // --- Terminations & Promotions ---
-    initiateTermination: async (id: string, reason: string, token: string) => {
-        return request(`/hr/admin/employees/${id}/initiate_termination/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ reason })
-        });
-    },
-    finalizeTermination: async (id: string, token: string) => {
-        return request(`/hr/admin/employees/${id}/finalize_termination/`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` }
-        });
-    },
-
-    promoteTransferEmployee: async (id: string, data: { type: 'PROMOTION' | 'TRANSFER', department: string, role_title: string, reason: string }, token: string) => {
-        return request(`/hr/admin/employees/${id}/promote_transfer/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify(data)
         });
     },
 
@@ -224,8 +168,48 @@ export const hrApi = {
             headers: { Authorization: `Bearer ${token}` }
         });
     },
+    getEmployeeById: async (id: string, token: string) => {
+        return request(`/hr/admin/employees/${id}/`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
 
-    // --- Admin (Complaints) ---
+    // ✅ Upload Profile Photo
+    uploadEmployeePhoto: async (id: string, file: File, token: string) => {
+        const formData = new FormData();
+        formData.append('photo', file);
+        return request(`/hr/admin/employees/${id}/upload_photo/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }, // No Content-Type for FormData
+            body: formData
+        });
+    },
+
+    //Terminations
+    initiateTermination: async (id: string, reason: string, token: string) => {
+        return request(`/hr/admin/employees/${id}/initiate_termination/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ reason })
+        });
+    },
+    finalizeTermination: async (id: string, token: string) => {
+        return request(`/hr/admin/employees/${id}/finalize_termination/`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+
+    //Promotions/Transfers
+    promoteTransferEmployee: async (id: string, data: { type: 'PROMOTION' | 'TRANSFER', department: string, role_title: string, reason: string }, token: string) => {
+        return request(`/hr/admin/employees/${id}/promote_transfer/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(data)
+        });
+    },
+
+    //Complaints
     getComplaints: async (token: string) => {
         return request('/hr/admin/complaints/', { headers: { Authorization: `Bearer ${token}` } });
     },
@@ -243,16 +227,15 @@ export const hrApi = {
         });
     },
 
-    // Uses requestWithFile for FormData
     closeComplaint: async (id: string, formData: FormData, token: string) => {
-        return requestWithFile(`/hr/admin/complaints/${id}/close_complaint/`, {
+        return request(`/hr/admin/complaints/${id}/close_complaint/`, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${token}` }, 
+            headers: { Authorization: `Bearer ${token}` }, // Browser sets Content-Type for FormData
             body: formData
         });
     },
 
-    // --- Admin (Announcements) ---
+    //Announcements
     getAnnouncements: async (token: string) => {
         return request('/hr/admin/announcements/', {
             headers: { Authorization: `Bearer ${token}` }

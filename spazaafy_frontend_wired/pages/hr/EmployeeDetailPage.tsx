@@ -66,32 +66,12 @@ const EmployeeDetailPage: React.FC = () => {
         if (id) fetchData();
     }, [id]);
 
-    const handlePhotoUpload = async (
-        e: React.ChangeEvent<HTMLInputElement>
-        ) => {
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-
-        if (!file) {
-            console.warn("No file selected");
-            return;
-        }
-
-        try {
-            await hrApi.uploadEmployeePhoto(emp.id, file, token);
-            alert("Profile photo updated");
-
-            // 🔄 refresh employee data
-            const updated = await hrApi.getEmployeeById(emp.id, token);
-            setEmp(updated);
-        } catch (err: any) {
-            console.error("Photo upload failed:", err);
-            alert(err?.message || "Photo upload failed");
-        } finally {
-            // 👇 important: allow re-selecting the same file
-            e.target.value = "";
-        }
-        };
-
+        if (!file) return;
+        await hrApi.uploadEmployeePhoto(id!, file, token);
+        fetchData();
+    };
 
     const handleStatusChange = async (newStatus: string) => {
         if (newStatus === 'RESIGNED') {
