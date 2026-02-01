@@ -14,6 +14,8 @@ const DEPARTMENTS = [
   { value: 'LEGAL', label: 'Legal & Compliance' },
   { value: 'SUPPORT', label: 'Customer Support' },
   { value: 'FIELD', label: 'Field Operations' },
+  { value: 'SALES', label: 'Sales & Partnerships' },       
+  { value: 'MARKETING', label: 'Marketing & Relations' },
   { value: 'COMMUNITY', label: 'Community Engagement' },
   { value: 'MEDIA', label: 'Media & Content' },
   { value: 'HR', label: 'HR & Training' },

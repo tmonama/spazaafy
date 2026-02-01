@@ -20,6 +20,8 @@ DEPARTMENTS = [
     ('FINANCE', 'Finance & Administration'),
     ('LEGAL', 'Legal & Compliance'),
     ('SUPPORT', 'Customer Support & Internal Administration'),
+    ('SALES', 'Sales & Partnerships'),       # ✅ NEW
+    ('MARKETING', 'Marketing & Relations'), 
     ('FIELD', 'Field Operations'),
     ('COMMUNITY', 'Community Engagement'),
     ('MEDIA', 'Media, Content & Communications'),
