@@ -481,22 +481,25 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         emp.save()
         return Response({'status': 'Updated'})
 
-    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
+    @action(
+        detail=True,
+        methods=["post"],
+        parser_classes=[MultiPartParser],  # 🔥 ONLY THIS
+    )
     def upload_photo(self, request, pk=None):
-        emp = self.get_object()
-        # ✅ DEBUGGING: Print what keys are actually being received
-        print(f"📸 Upload Photo Debug - FILES: {request.FILES.keys()}")
-        print(f"📸 Upload Photo Debug - DATA: {request.data.keys()}")
+        file = request.FILES.get("photo") or request.FILES.get("profile_picture")
 
-        # Try to get the file from FILES first (standard), then data (DRF fallback)
-        # We check for 'photo' (what frontend sends) AND 'profile_picture' (model name) just in case
-        file = request.FILES.get('photo') or request.data.get('photo') or request.FILES.get('profile_picture')
+        if not file:
+            return Response(
+                {"detail": "No file provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        if file:
-            emp.profile_picture = file
-            emp.save()
-            return Response({'status': 'Photo Uploaded'})
-        return Response({'detail': 'No file provided'}, status=400)
+        employee = self.get_object()
+        employee.photo = file
+        employee.save()
+
+        return Response({"detail": "Photo uploaded successfully"})
     
     @action(detail=True, methods=['post'])
     def initiate_termination(self, request, pk=None):
