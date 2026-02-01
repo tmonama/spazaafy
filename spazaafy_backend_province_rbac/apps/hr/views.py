@@ -31,9 +31,8 @@ import io
 from apps.core.google_calendar import create_google_meet_event
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.contrib.auth import get_user_model
-from apps.core.utils import send_email_with_fallback
+from apps.core.utils import send_email_with_fallback, resize_image_to_square
 from django.core.files.storage import default_storage
-from core.utils import resize_image_to_square
 import uuid
 
 User = get_user_model()
