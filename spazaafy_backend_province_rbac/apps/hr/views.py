@@ -841,25 +841,41 @@ class EmployeePortalViewSet(viewsets.ViewSet):
         period = request.query_params.get('period', 'week')
         date_str = request.query_params.get('date')
 
-        base_date = datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else timezone.now().date()
+        # Use local date logic if possible, or fallback to server date
+        if date_str:
+            base_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        else:
+            base_date = timezone.now().date()
 
         if period == 'day':
             start = base_date
             end = base_date
         elif period == 'week':
+            # Assume Monday start
             start = base_date - timedelta(days=base_date.weekday())
             end = start + timedelta(days=6)
         elif period == 'month':
             start = base_date.replace(day=1)
+            # End of month calculation
             next_month = (start.replace(day=28) + timedelta(days=4)).replace(day=1)
             end = next_month - timedelta(days=1)
-        else:
+        elif period == 'year': # Corresponds to "Long Term"
+            # Show last 6 months as per requirement, or current year
+            # Let's do Current Year to match the label "Year" from frontend
             start = base_date.replace(month=1, day=1)
             end = base_date.replace(month=12, day=31)
+        else:
+             # Default to week
+            start = base_date - timedelta(days=base_date.weekday())
+            end = start + timedelta(days=6)
 
-        cards = TimeCard.objects.filter(employee=employee, work_date__range=[start, end])
+        # ✅ CRITICAL FIX: Ensure we select cards within the range INCLUSIVELY
+        cards = TimeCard.objects.filter(employee=employee, work_date__gte=start, work_date__lte=end)
+
+        # Aggregate
         total_minutes = TimeEntry.objects.filter(timecard__in=cards).aggregate(s=Sum('minutes'))['s'] or 0
 
+        # Group by Task Name
         breakdown = (
             TimeEntry.objects
             .filter(timecard__in=cards)
