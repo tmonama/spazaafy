@@ -78,6 +78,12 @@ export const employeeApi = {
     return res.json();
     },
 
+    getTimeCardsSummary: async (period: 'day' | 'week' | 'month' | 'year', token: string) => {
+        return request(`/hr/portal/timecards_summary/?period=${period}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+
     sendTimeCardReport: async (payload: any, token: string) => {
     const res = await fetch('/api/hr/portal/send_timecard_report/', {
         method: 'POST',
