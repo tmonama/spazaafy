@@ -55,9 +55,11 @@ class LegalRequest(models.Model):
     # ✅ 2. Update FileField: 
     # - upload_to: Organizes files in S3 folders (legal_intake/2024/01/...)
     # - validators: Enforces the 10MB limit
+    # ✅ UPDATE: Make this optional now, as we will use LegalAttachment
     document_file = models.FileField(
         upload_to='legal_intake/%Y/%m/', 
-        validators=[validate_file_size]
+        validators=[validate_file_size],
+        null=True, blank=True
     )
 
     # ✅ NEW: Revised Document (The amendment)
@@ -93,3 +95,17 @@ class LegalRequest(models.Model):
 
     def __str__(self):
         return f"LEG-{str(self.id)[:8]}: {self.title}"
+
+
+# ✅ NEW MODEL: Handles multiple files per request
+class LegalAttachment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    legal_request = models.ForeignKey(LegalRequest, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField(
+        upload_to='legal_intake/attachments/%Y/%m/',
+        validators=[validate_file_size]
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Attachment for {self.legal_request.id}"

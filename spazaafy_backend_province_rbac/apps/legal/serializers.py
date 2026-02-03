@@ -1,12 +1,20 @@
 from rest_framework import serializers
-from .models import LegalRequest, LegalCategory, LegalUrgency, LegalStatus
+from .models import LegalRequest, LegalCategory, LegalUrgency, LegalStatus, LegalAttachment
+
+# Helper Serializer for nested display
+class LegalAttachmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LegalAttachment
+        fields = ['id', 'file', 'uploaded_at']
+
 
 class LegalRequestPublicSerializer(serializers.ModelSerializer):
+    # ✅ We will handle 'documents' (list) manually in the view
     class Meta:
         model = LegalRequest
         fields = [
             'submitter_name', 'submitter_email', 'department', 
-            'category', 'urgency', 'title', 'description', 'document_file'
+            'category', 'urgency', 'title', 'description'
         ]
 
 class LegalRequestAdminSerializer(serializers.ModelSerializer):
@@ -18,8 +26,12 @@ class LegalRequestAdminSerializer(serializers.ModelSerializer):
     urgency = serializers.ChoiceField(choices=LegalUrgency.choices)
     status = serializers.ChoiceField(choices=LegalStatus.choices)
 
+    # ✅ Include the list of attachments
+    attachments = LegalAttachmentSerializer(many=True, read_only=True)
+
     # ✅ FIX: Use SerializerMethodField to get the S3 URL safely
     # We display the LATEST file (Revision if exists, else Original)
+    # Keep old logic for revision file fallback
     file_url = serializers.SerializerMethodField()
     is_revised = serializers.SerializerMethodField()
 

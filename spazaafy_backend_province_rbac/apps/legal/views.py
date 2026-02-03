@@ -3,7 +3,7 @@
 from rest_framework import viewsets, permissions, status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import LegalRequest, LegalStatus
+from .models import LegalRequest, LegalStatus, LegalAttachment
 from .serializers import LegalRequestPublicSerializer, LegalRequestAdminSerializer, AmendmentUploadSerializer
 from django.conf import settings 
 from django.shortcuts import get_object_or_404
@@ -20,7 +20,16 @@ class PublicLegalSubmissionView(generics.CreateAPIView):
     def perform_create(self, serializer):
         instance = serializer.save()
         
-        body = f"Urgency: {instance.get_urgency_display()}\nFrom: {instance.submitter_name} ({instance.department})\n\nAccess via Legal Admin Portal."
+        # ✅ Handle Multiple Files
+        files = self.request.FILES.getlist('documents') # Frontend must send 'documents' key
+        
+        for f in files:
+            LegalAttachment.objects.create(legal_request=instance, file=f)
+        
+        # Determine count for email text
+        file_count = len(files)
+        
+        body = f"Urgency: {instance.get_urgency_display()}\nFrom: {instance.submitter_name} ({instance.department})\nFiles Attached: {file_count}\n\nAccess via Legal Admin Portal."
         
         send_email_with_fallback(
             subject=f"⚖️ New Legal Request: {instance.title}",
