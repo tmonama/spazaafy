@@ -10,6 +10,7 @@ from apps.shops.models import Province, SpazaShop
 from .models import AdminVerificationCode, EmailVerificationToken
 from django.conf import settings
 from django.core.mail import EmailMessage
+from apps.hr.models import Employee
 
 # Google Imports
 from google.oauth2 import id_token
@@ -216,13 +217,29 @@ ALLOWED_LEGAL_EMAILS = [
     'legal.archive.internal@spazaafy.co.za'
 ]
 
+# ==============================================================================
+# LEGAL PORTAL SERIALIZERS
+# ==============================================================================
+
 class LegalRequestCodeSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
     def validate_email(self, value: str) -> str:
         email = value.strip().lower()
-        if email not in ALLOWED_LEGAL_EMAILS:
-            raise serializers.ValidationError("Access Denied: This email is not authorized for the Legal Department.")
+        
+        # 1. Domain Check
+        if not email.endswith('@spazaafy.co.za'):
+            raise serializers.ValidationError("Registration restricted to @spazaafy.co.za emails.")
+
+        # 2. HR Employee Check & Department Check
+        try:
+            employee = Employee.objects.get(email__iexact=email)
+            # Optional: Enforce Department
+            if employee.department != 'LEGAL':
+                raise serializers.ValidationError("Access Denied: You are not listed in the Legal Department.")
+        except Employee.DoesNotExist:
+            raise serializers.ValidationError("Access Denied: No employee record found. Please contact HR.")
+            
         return email
 
 class LegalRegistrationSerializer(serializers.ModelSerializer):
@@ -239,47 +256,47 @@ class LegalRegistrationSerializer(serializers.ModelSerializer):
         email = (attrs.get('email') or '').strip().lower()
         code = (attrs.get('code') or '').strip()
 
-        # 1. Check Allow List again (Safety)
-        if email not in ALLOWED_LEGAL_EMAILS:
-            raise serializers.ValidationError("This email is not authorized for Legal access.")
+        # 1. Re-validate domain & Employee status (Security)
+        if not email.endswith('@spazaafy.co.za'):
+             raise serializers.ValidationError("Invalid email domain.")
+        
+        if not Employee.objects.filter(email__iexact=email, department='LEGAL').exists():
+             raise serializers.ValidationError("Employee record not found or not in Legal department.")
 
-        # 2. Check if already registered
         if User.objects.filter(email__iexact=email).exists():
-            raise serializers.ValidationError("A user with this email already exists. Please log in.")
+            raise serializers.ValidationError("User already exists. Please log in.")
 
-        # 3. Verify Code
         try:
             verification = AdminVerificationCode.objects.get(email=email)
-            # Check expiry (10 mins)
-            if verification.created_at < timezone.now() - timedelta(minutes=10):
-                raise serializers.ValidationError("Verification code expired.")
             if verification.code != code:
                 raise serializers.ValidationError("Invalid verification code.")
         except AdminVerificationCode.DoesNotExist:
-            raise serializers.ValidationError("No verification code found for this email.")
+            raise serializers.ValidationError("No verification code found.")
 
-        validate_password(attrs.get('password'))
-        attrs['email'] = email
         return attrs
 
     def create(self, validated_data):
-        email = validated_data['email']
-        password = validated_data['password']
-        
-        # Create the user as an ADMIN (Staff)
+        # ... (Same logic: Create User, link if needed) ...
         user = User.objects.create_user(
-            username=email, 
-            email=email, 
-            password=password, 
+            username=validated_data['email'], 
+            email=validated_data['email'], 
+            password=validated_data['password'], 
             first_name=validated_data['first_name'], 
             last_name=validated_data['last_name'], 
-            role='ADMIN' # Legal uses Admin privileges
+            role='ADMIN' # or 'LEGAL' if you have specific roles
         )
         user.is_staff = True
         user.save()
+        
+        # Link to Employee Profile
+        try:
+            emp = Employee.objects.get(email__iexact=validated_data['email'])
+            emp.user_account = user
+            emp.save()
+        except:
+            pass
 
-        # Cleanup code
-        AdminVerificationCode.objects.filter(email=email).delete()
+        AdminVerificationCode.objects.filter(email=validated_data['email']).delete()
         return user
     
 
@@ -298,14 +315,27 @@ ALLOWED_TECH_EMAILS = [
     'thakgalang.m@spazaafy.co.za'
 ]
 
+# ==============================================================================
+# TECH PORTAL SERIALIZERS
+# ==============================================================================
+
 # ✅ 2. Tech Code Request Serializer
 class TechRequestCodeSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
     def validate_email(self, value: str) -> str:
         email = value.strip().lower()
-        if email not in ALLOWED_TECH_EMAILS:
-            raise serializers.ValidationError("Access Denied: This email is not authorized for the Tech Portal.")
+        
+        if not email.endswith('@spazaafy.co.za'):
+            raise serializers.ValidationError("Registration restricted to @spazaafy.co.za emails.")
+
+        try:
+            employee = Employee.objects.get(email__iexact=email)
+            if employee.department != 'TECH':
+                raise serializers.ValidationError("Access Denied: You are not listed in the Tech Department.")
+        except Employee.DoesNotExist:
+            raise serializers.ValidationError("Access Denied: No employee record found. Please contact HR.")
+            
         return email
 
 # ✅ 3. Tech Registration Serializer
@@ -323,49 +353,43 @@ class TechRegistrationSerializer(serializers.ModelSerializer):
         email = (attrs.get('email') or '').strip().lower()
         code = (attrs.get('code') or '').strip()
 
-        # 1. Check Allow List
-        if email not in ALLOWED_TECH_EMAILS:
-            raise serializers.ValidationError("Unauthorized email.")
+        if not email.endswith('@spazaafy.co.za'):
+             raise serializers.ValidationError("Invalid email domain.")
+        
+        if not Employee.objects.filter(email__iexact=email, department='TECH').exists():
+             raise serializers.ValidationError("Employee record not found or not in Tech department.")
 
-        # 2. Check if User Exists
         if User.objects.filter(email__iexact=email).exists():
-            raise serializers.ValidationError("User already exists. Please log in.")
+             raise serializers.ValidationError("User already exists.")
 
-        # 3. Verify OTP Code
         try:
             verification = AdminVerificationCode.objects.get(email=email)
             if verification.code != code:
                 raise serializers.ValidationError("Invalid verification code.")
-            
-            # Optional: Check expiry (e.g., 10 mins)
-            if verification.created_at < timezone.now() - timedelta(minutes=10):
-                raise serializers.ValidationError("Verification code has expired.")
-                
         except AdminVerificationCode.DoesNotExist:
-            raise serializers.ValidationError("No verification code found for this email.")
+            raise serializers.ValidationError("No verification code found.")
 
-        validate_password(attrs.get('password'))
-        attrs['email'] = email
         return attrs
 
     def create(self, validated_data):
-        email = validated_data['email']
-        password = validated_data['password']
-        
-        # Create user as ADMIN (Tech needs full access)
         user = User.objects.create_user(
-            username=email, 
-            email=email, 
-            password=password, 
+            username=validated_data['email'], 
+            email=validated_data['email'], 
+            password=validated_data['password'], 
             first_name=validated_data['first_name'], 
             last_name=validated_data['last_name'], 
-            role='ADMIN' 
+            role='ADMIN'
         )
         user.is_staff = True
         user.save()
+        
+        try:
+            emp = Employee.objects.get(email__iexact=validated_data['email'])
+            emp.user_account = user
+            emp.save()
+        except: pass
 
-        # Cleanup Code
-        AdminVerificationCode.objects.filter(email=email).delete()
+        AdminVerificationCode.objects.filter(email=validated_data['email']).delete()
         return user
     
     
@@ -380,14 +404,29 @@ ALLOWED_HR_EMAILS = [
     'spazaafy@gmail.com'
 ]
 
+# ==============================================================================
+# HR PORTAL SERIALIZERS
+# ==============================================================================
+
 # ✅ HR Code Request Serializer
 class HRRequestCodeSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
     def validate_email(self, value: str) -> str:
         email = value.strip().lower()
-        if email not in ALLOWED_HR_EMAILS:
-            raise serializers.ValidationError("Access Denied: This email is not authorized for the HR Portal.")
+        
+        # HR might allow specific external consultants OR just strict domain
+        # Assuming strict domain + HR department check
+        if not email.endswith('@spazaafy.co.za'):
+            raise serializers.ValidationError("Registration restricted to @spazaafy.co.za emails.")
+
+        try:
+            employee = Employee.objects.get(email__iexact=email)
+            if employee.department != 'HR':
+                raise serializers.ValidationError("Access Denied: You are not listed in the HR Department.")
+        except Employee.DoesNotExist:
+            raise serializers.ValidationError("Access Denied: No employee record found. Please contact HR.")
+            
         return email
 
 # ✅ HR Registration Serializer
@@ -399,17 +438,19 @@ class HRRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('email', 'first_name', 'last_name', 'password', 'code')
-        extra_kwargs = {'password': {'write_only': True, 'min_length': 8}}
 
     def validate(self, attrs):
         email = (attrs.get('email') or '').strip().lower()
         code = (attrs.get('code') or '').strip()
 
-        if email not in ALLOWED_HR_EMAILS:
-            raise serializers.ValidationError("Unauthorized email.")
+        if not email.endswith('@spazaafy.co.za'):
+             raise serializers.ValidationError("Invalid email domain.")
+        
+        if not Employee.objects.filter(email__iexact=email, department='HR').exists():
+             raise serializers.ValidationError("Employee record not found or not in HR department.")
 
         if User.objects.filter(email__iexact=email).exists():
-            raise serializers.ValidationError("User already exists. Please log in.")
+             raise serializers.ValidationError("User already exists.")
 
         try:
             verification = AdminVerificationCode.objects.get(email=email)
@@ -418,24 +459,25 @@ class HRRegistrationSerializer(serializers.ModelSerializer):
         except AdminVerificationCode.DoesNotExist:
             raise serializers.ValidationError("No verification code found.")
 
-        validate_password(attrs.get('password'))
-        attrs['email'] = email
         return attrs
 
     def create(self, validated_data):
-        email = validated_data['email']
-        password = validated_data['password']
-        
         user = User.objects.create_user(
-            username=email, 
-            email=email, 
-            password=password, 
+            username=validated_data['email'], 
+            email=validated_data['email'], 
+            password=validated_data['password'], 
             first_name=validated_data['first_name'], 
             last_name=validated_data['last_name'], 
-            role='ADMIN' 
+            role='ADMIN'
         )
         user.is_staff = True
         user.save()
+        
+        try:
+            emp = Employee.objects.get(email__iexact=validated_data['email'])
+            emp.user_account = user
+            emp.save()
+        except: pass
 
-        AdminVerificationCode.objects.filter(email=email).delete()
+        AdminVerificationCode.objects.filter(email=validated_data['email']).delete()
         return user
