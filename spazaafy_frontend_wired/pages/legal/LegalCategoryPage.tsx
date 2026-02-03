@@ -5,7 +5,7 @@ import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import { 
     CheckCircle, XCircle, FileText, Clock, 
-    Calendar, AlertOctagon, PauseCircle 
+    Calendar, AlertOctagon, PauseCircle, RefreshCw, AlertTriangle 
 } from 'lucide-react';
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -63,7 +63,7 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
     const [actionType, setActionType] = useState<string>(''); 
     const [note, setNote] = useState('');
-    const [amendmentDays, setAmendmentDays] = useState(5); // Default 5 days
+    const [amendmentDays, setAmendmentDays] = useState(5);
     const [processingAction, setProcessingAction] = useState(false);
 
     const fetchRequests = async () => {
@@ -87,14 +87,13 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
         const created_at = req.created_at;
         const urgency = req.urgency;
         
-        // 1. Check for Paused State (Amendment Requested)
+        // 1. Check for Paused State
         if (req.status === 'AMENDMENT_REQ' && req.amendment_deadline) {
             const amendDate = new Date(req.amendment_deadline);
             const now = new Date();
             const diffMs = amendDate.getTime() - now.getTime();
             const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
             
-            // If passed deadline
             if (diffMs < 0) {
                 return {
                     label: `PAUSED (User Late by ${Math.abs(diffDays)}d)`,
@@ -102,7 +101,6 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                     isPaused: true
                 };
             }
-
             return {
                 label: `PAUSED (User has ${diffDays}d left)`,
                 colorClass: 'text-orange-600 bg-orange-50 border-orange-200',
@@ -165,12 +163,8 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
         list.sort((a, b) => {
             const isAComplete = ['APPROVED', 'FILED', 'REJECTED'].includes(a.status);
             const isBComplete = ['APPROVED', 'FILED', 'REJECTED'].includes(b.status);
-
             if (isAComplete && !isBComplete) return 1;
             if (!isAComplete && isBComplete) return -1;
-
-            // Simple sort by ID (newest first) as fallback if SLA sort is tricky
-            // Or use getDeadlineData().diffMs logic from previous response
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); 
         });
 
@@ -182,7 +176,7 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
         setSelectedRequest(request);
         setActionType(type);
         setNote('');
-        setAmendmentDays(5); // Default reset
+        setAmendmentDays(5);
         setModalOpen(true);
     };
 
@@ -275,7 +269,10 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                     {filteredAndSortedRequests.map((req) => {
                         const deadlineData = getDeadlineData(req);
                         const isComplete = ['APPROVED', 'FILED', 'REJECTED'].includes(req.status);
-                        const showRevLabel = req.status === 'AMENDMENT_SUBMITTED' || req.is_revised;
+                        
+                        // We check both the single revision file OR the list of attachments
+                        const hasAttachments = req.attachments && req.attachments.length > 0;
+                        const hasRevision = !!req.file_url; 
 
                         return (
                             <div key={req.id} className={`p-6 rounded-lg bg-white shadow-sm border-l-4 ${
@@ -312,22 +309,48 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                                             <strong>Context:</strong> {req.description}
                                         </div>
 
-                                        {req.file_url ? (
-                                            <a href={req.file_url} target="_blank" rel="noreferrer" className={`inline-flex items-center justify-center px-4 py-2 border shadow-sm text-sm font-medium rounded-md transition-colors ${
-                                                showRevLabel 
-                                                ? 'bg-cyan-50 text-cyan-800 border-cyan-200 hover:bg-cyan-100' 
-                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                            }`}>
-                                                {showRevLabel ? '🔄 View Amended Document' : '📄 View Attached Document'}
-                                            </a>
-                                        ) : (
-                                            <span className="text-red-500 text-sm italic">No file attached</span>
-                                        )}
+                                        {/* ✅ FILES SECTION */}
+                                        <div className="space-y-2">
+                                            {/* 1. Revision / Amendment (Top Priority) */}
+                                            {hasRevision && (
+                                                <div className="mb-2">
+                                                    <a href={req.file_url} target="_blank" rel="noreferrer" className="inline-flex items-center px-4 py-2 border border-cyan-200 shadow-sm text-sm font-bold rounded-md text-cyan-800 bg-cyan-50 hover:bg-cyan-100">
+                                                        <RefreshCw size={16} className="mr-2" /> View Amended Document
+                                                    </a>
+                                                </div>
+                                            )}
+
+                                            {/* 2. Original Attachments List */}
+                                            {hasAttachments ? (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {req.attachments.map((att: any, idx: number) => (
+                                                        <a 
+                                                            key={att.id || idx}
+                                                            href={att.file}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                                            title="View Original Document"
+                                                        >
+                                                            <FileText size={14} className="mr-2 text-gray-400"/> 
+                                                            Original Doc {idx + 1}
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                // Only show error if NO revision AND NO attachments
+                                                !hasRevision && (
+                                                    <span className="text-red-500 text-sm italic flex items-center">
+                                                        <AlertTriangle size={14} className="mr-1" /> No files attached
+                                                    </span>
+                                                )
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="flex flex-col gap-3 min-w-[200px] border-t lg:border-t-0 lg:border-l border-gray-200 pt-4 lg:pt-0 lg:pl-6 justify-center">
                                         
-                                        {/* Actions logic */}
+                                        {/* Actions */}
                                         {req.status === 'SUBMITTED' && (
                                             <Button onClick={() => openActionModal(req, 'UNDER_REVIEW')}>
                                                 Start Review
@@ -375,7 +398,6 @@ const LegalCategoryPage: React.FC<LegalCategoryPageProps> = ({ isOverview = fals
                         <span className="font-bold text-lg">{actionType.replace('_', ' ')}</span>
                     </p>
 
-                    {/* ✅ AMENDMENT DAYS INPUT */}
                     {actionType === 'AMENDMENT_REQ' && (
                         <div className="bg-blue-50 text-blue-800 p-3 rounded text-sm border border-blue-200">
                             <label className="block font-bold mb-2">Days allowed for Amendment:</label>
