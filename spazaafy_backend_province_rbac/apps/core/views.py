@@ -3,13 +3,14 @@ from .models import Province, Campaign, EmailTemplate, EmailLog, SystemComponent
 from .serializers import ProvinceSerializer, CampaignSerializer, EmailTemplateSerializer, SystemComponentSerializer, SystemIncidentSerializer
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
-from django.utils.html import strip_tags
+from django.utils.html import strip_tags, linebreaks
 from django.utils import timezone
 from rest_framework.response import Response
 from django.conf import settings
 from apps.accounts.models import User
 from rest_framework.decorators import action
 from django.db.models import Count 
+from django.shortcuts import get_object_or_404
 
 class ProvinceViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -56,61 +57,57 @@ class CRMViewSet(viewsets.ModelViewSet):
         return Response(EmailTemplateSerializer(campaign.templates.all(), many=True).data)
 
     # ==========================================================================
-    # ACTION: SEND EMAIL
+    # ACTION: SEND EMAIL (Watermelon Theme + No Background Logo)
     # ==========================================================================
     @action(detail=False, methods=['post'])
     def send_email(self, request):
         template_id = request.data.get('template_id')
-        recipients_groups = request.data.get('recipients', []) # e.g. ['consumers', 'tech']
+        recipients_groups = request.data.get('recipients', []) 
         
         try:
             template = EmailTemplate.objects.get(id=template_id)
         except EmailTemplate.DoesNotExist:
             return Response({"detail": "Template not found"}, status=404)
 
-        # 1. Select Target Users based on roles
-        # Use a dictionary to avoid sending duplicate emails if a user has multiple roles (rare but possible)
-        # Key: UserID, Value: (UserObject, GroupLabel)
+        # 1. Select Targets
         targets_map = {}
-
         if 'consumers' in recipients_groups:
             users = User.objects.filter(role='CONSUMER', is_active=True)
             for u in users: targets_map[u.id] = (u, 'Consumer')
-            
         if 'owners' in recipients_groups:
             users = User.objects.filter(role='OWNER', is_active=True)
             for u in users: targets_map[u.id] = (u, 'Spaza Shop')
-            
         if 'employees' in recipients_groups:
             users = User.objects.filter(role='EMPLOYEE', is_active=True)
             for u in users: targets_map[u.id] = (u, 'Employee')
-            
         if 'admin' in recipients_groups:
-            # Targets HR, Legal, and Global Admins
             users = User.objects.filter(role='ADMIN', is_active=True)
             for u in users: targets_map[u.id] = (u, 'Admin/Internal')
 
         if not targets_map:
-            return Response({"detail": "No recipients found for selected groups."}, status=400)
+            return Response({"detail": "No recipients found."}, status=400)
 
-        # 2. Determine Design Theme based on Purpose
-        # #1e1e1e (Dark), #22c55e (Green), #ef4444 (Red)
-        theme_color = "#1e1e1e" # Default / General / New Feature
-        header_bg = "#1e1e1e"
-        text_color = "#333333"
-        
-        if template.purpose == 'NEW_FEATURE':
-            theme_color = "#1e1e1e" # Apple-style Dark
-            header_bg = "linear-gradient(135deg, #1e1e1e 0%, #434343 100%)"
-        elif template.purpose == 'EVENT':
-            theme_color = "#ef4444" # Vibrant Red
-            header_bg = "linear-gradient(135deg, #ef4444 0%, #f87171 100%)"
-        elif template.purpose == 'UPDATE':
-            theme_color = "#22c55e" # Green
-            header_bg = "#22c55e"
+        # 2. THEME CONFIGURATION
+        gradient_style = "background: linear-gradient(90deg, #ff3131 0%, #4ac351 100%);"
+        button_style = f"background: linear-gradient(90deg, #ff3131 0%, #4ac351 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 15px rgba(255, 49, 49, 0.2);"
+        link_color = "#ff3131"
 
-        # 3. Construct Links HTML
-        links_html = ""
+        # 3. Build Image HTML
+        image_html = ""
+        if template.hero_image:
+            img_url = template.hero_image.url
+            if not img_url.startswith('http'):
+                img_url = request.build_absolute_uri(img_url)
+            
+            image_html = f"""
+            <div style="margin: 20px 0 30px 0; text-align: center;">
+                <img src="{img_url}" alt="Update" 
+                     style="width: 100%; max-width: 100%; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); display: block;" />
+            </div>
+            """
+
+        # 4. Build Buttons
+        buttons_html = ""
         if template.links:
             for link in template.links:
                 url = link.get('url', '#')
@@ -118,56 +115,84 @@ class CRMViewSet(viewsets.ModelViewSet):
                 l_type = link.get('type', 'button')
 
                 if l_type == 'button':
-                    links_html += f'''
-                        <a href="{url}" style="background-color:{theme_color}; color:#ffffff; padding:12px 24px; 
-                           text-decoration:none; border-radius:6px; font-weight:bold; margin:5px; display:inline-block;">
-                           {label}
-                        </a>
-                    '''
+                    buttons_html += f'<div style="margin-top: 30px;"><a href="{url}" style="{button_style}">{label}</a></div>'
                 else:
-                    links_html += f'''
-                        <p style="margin-top:10px;">
-                            <a href="{url}" style="color:{theme_color}; text-decoration:underline;">{label}</a>
-                        </p>
-                    '''
+                    buttons_html += f'<p style="margin-top:20px;"><a href="{url}" style="color:{link_color}; text-decoration:underline; font-weight:500;">{label} &rarr;</a></p>'
 
-        # 4. Construct Full HTML Email
-        # Note: In production, put this in a dedicated template file (e.g., templates/emails/crm_base.html)
-        logo_url = "https://spazaafy-frontend-wired.onrender.com/media/spazaafy-logo.png" # Replace with your actual hosted logo URL
-        
+        # 5. Format Content
+        formatted_content = linebreaks(template.content)
+
+        # 6. Full HTML Template
+        # ✅ UPDATED LOGO URL
+        logo_url = "https://spazaafy-frontend-wired.onrender.com/media/spazaafy-logo-no-background.png"
+
         html_content = f"""
         <!DOCTYPE html>
         <html>
-        <body style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f5; margin: 0; padding: 40px 0;">
-            <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>{template.subject}</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 40px 0; color: #111827;">
+            
+            <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);">
                 
-                <!-- Header -->
-                <div style="background: {header_bg}; padding: 30px 20px; text-align: center;">
-                    <h2 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.5px;">
-                        Spazaafy
-                    </h2>
-                </div>
+                <!-- Top Gradient Bar -->
+                <div style="height: 8px; width: 100%; {gradient_style}"></div>
 
-                <!-- Body -->
-                <div style="padding: 40px 30px; color: {text_color};">
-                    <h3 style="color: {theme_color}; margin-top: 0; font-size: 20px;">{template.subject}</h3>
+                <!-- Main Content Area -->
+                <div style="padding: 40px;">
                     
-                    <div style="line-height: 1.6; font-size: 16px; margin-bottom: 30px; white-space: pre-wrap;">
-                        {template.content}
+                    <!-- Logo -->
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <img src="{logo_url}" alt="Spazaafy" width="140" style="display: inline-block;" />
                     </div>
 
-                    <!-- Links/Buttons -->
-                    <div style="text-align: center; margin-top: 35px; border-top: 1px solid #eeeeee; padding-top: 25px;">
-                        {links_html}
+                    <!-- Personalized Greeting Placeholder -->
+                    <p style="text-align: center; font-size: 18px; font-weight: 600; margin: 0 0 10px 0; color: #4b5563;">
+                        __GREETING__
+                    </p>
+
+                    <!-- Headline -->
+                    <h1 style="font-size: 24px; font-weight: 800; text-align: center; margin: 0 0 10px 0; color: #111827;">
+                        {template.subject}
+                    </h1>
+
+                    <!-- Image -->
+                    {image_html}
+
+                    <!-- Body Text -->
+                    <div style="font-size: 16px; line-height: 1.6; color: #4b5563; text-align: center;">
+                        {formatted_content}
                     </div>
+
+                    <!-- Call to Action -->
+                    <div style="text-align: center;">
+                        {buttons_html}
+                    </div>
+
+                    <!-- Fallback Link Block -->
+                    {f'''
+                    <div style="margin-top: 40px; padding: 20px; background-color: #f3f4f6; border-radius: 8px; text-align: center; font-size: 12px; color: #6b7280;">
+                        <p style="margin-bottom: 5px;">If the button doesn't work, copy and paste this link:</p>
+                        <a href="{template.links[0]['url']}" style="color: #ff3131; text-decoration: underline; word-break: break-all;">{template.links[0]['url']}</a>
+                    </div>
+                    ''' if template.links and template.links[0]['type'] == 'button' else ''}
+
                 </div>
 
                 <!-- Footer -->
-                <div style="background-color: #fafafa; padding: 20px; text-align: center; font-size: 12px; color: #999999; border-top: 1px solid #eeeeee;">
-                    <p style="margin: 0;">&copy; {timezone.now().year} Spazaafy Platform. All rights reserved.</p>
-                    <p style="margin: 5px 0 0;">This is an automated message. Please do not reply directly.</p>
+                <div style="padding: 30px; text-align: center; background-color: #ffffff; border-top: 1px solid #f3f4f6;">
+                    <p style="font-size: 12px; color: #9ca3af; margin: 0;">
+                        You received this email because you are a registered user of Spazaafy.
+                    </p>
+                    <p style="font-size: 12px; color: #9ca3af; margin-top: 10px;">
+                        &copy; {timezone.now().year} Spazaafy Platform. All rights reserved.
+                    </p>
                 </div>
             </div>
+
         </body>
         </html>
         """
@@ -175,43 +200,36 @@ class CRMViewSet(viewsets.ModelViewSet):
         text_content = strip_tags(html_content)
         sent_count = 0
         
-        # 5. Send Loop (Synchronous)
-        # Ideally, offload this to Celery for large lists.
         for user, group_name in targets_map.values():
-            if not user.email: 
-                continue
+            if not user.email: continue
             
+            # Personalize Greeting
+            user_name = user.first_name.strip() if user.first_name else "there"
+            greeting = f"Hi {user_name},"
+            
+            # Replace placeholder
+            personal_html = html_content.replace("__GREETING__", greeting)
+
             status_code = 'SENT'
             error_message = None
-            
             try:
                 msg = EmailMultiAlternatives(
-                    subject=template.subject,
-                    body=text_content,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[user.email]
+                    subject=template.subject, body=text_content,
+                    from_email=settings.DEFAULT_FROM_EMAIL, to=[user.email]
                 )
-                msg.attach_alternative(html_content, "text/html")
+                msg.attach_alternative(personal_html, "text/html")
                 msg.send()
                 sent_count += 1
             except Exception as e:
                 status_code = 'FAILED'
                 error_message = str(e)
-                print(f"Error sending email to {user.email}: {e}")
-
-            # 6. Create Log Entry
+            
             EmailLog.objects.create(
-                template=template,
-                recipient=user,
-                recipient_email=user.email,
-                target_group=group_name,
-                status=status_code,
-                error_message=error_message
+                template=template, recipient=user, recipient_email=user.email,
+                target_group=group_name, status=status_code, error_message=error_message
             )
 
-        return Response({
-            "detail": f"Campaign execution complete. Sent to {sent_count} of {len(targets_map)} targets."
-        })
+        return Response({"detail": f"Processed {len(targets_map)} emails. {sent_count} sent successfully."})
 
     # ==========================================================================
     # ACTION: GET TEMPLATE ANALYTICS
