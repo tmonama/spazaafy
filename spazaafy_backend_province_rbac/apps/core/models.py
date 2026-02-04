@@ -1,7 +1,13 @@
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 import uuid
 
+def validate_file_size(value):
+    limit = 5 * 1024 * 1024  # 5 MB
+    if value.size > limit:
+        raise ValidationError('File too large. Size should not exceed 5 MB.')
+    
 class Province(models.Model):
     name = models.CharField(max_length=100, unique=True)
     def __str__(self): return self.name
@@ -32,6 +38,12 @@ class EmailTemplate(models.Model):
     purpose = models.CharField(max_length=50, choices=PURPOSE_CHOICES, default='GENERAL')
     content = models.TextField() # HTML or Plain Text
     links = models.JSONField(default=list, blank=True) # List of {label:str, url:str, type:'button'|'text'}
+
+    hero_image = models.ImageField(
+        upload_to='crm/campaigns/', 
+        validators=[validate_file_size],
+        null=True, blank=True
+    )
     
     created_at = models.DateTimeField(auto_now_add=True)
 
