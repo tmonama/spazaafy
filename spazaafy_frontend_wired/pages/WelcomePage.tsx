@@ -3,60 +3,63 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-// Asset Paths
+// ----------------------------------------------------------------------
+// ASSETS & CONFIG
+// ----------------------------------------------------------------------
 const WELCOME_BG = '/media/welcome gradient.png';
 const PHONE_MOCKUP = '/media/phone-mockup.png';
 const APP_DOWNLOAD_URL = 'https://spazaafy.co.za/download';
 const APK_DOWNLOAD_URL = '/spazaafy.apk';
 
 const WelcomePage: React.FC = () => {
-  // -------------------------------------------------------
+  // ----------------------------------------------------------------------
   // STATE MANAGEMENT
-  // -------------------------------------------------------
+  // ----------------------------------------------------------------------
   
-  // We check sessionStorage to see if the user has already seen the intro in this session.
-  // If 'true', we skip the full-screen animation.
+  // 1. Check Session Storage
+  // We check if the user has already seen the intro animation in this session.
+  // If they have, we skip the sliding animation.
   const hasSeenIntro = sessionStorage.getItem('spazaafy_intro_seen');
   
+  // 2. Animation State
   // 'isAnimating' controls the layout state (Full screen vs Split screen)
+  // If !hasSeenIntro, start as true (Full Screen). Otherwise, false (Split Screen).
   const [isAnimating, setIsAnimating] = useState(!hasSeenIntro);
   
-  // 'showContent' controls the visibility of the text inside the layout
-  const [showContent, setShowContent] = useState(!hasSeenIntro);
-  
-  // Popup states
+  // 3. Popup State
   const [showPopup, setShowPopup] = useState(false);
   const [animatePopup, setAnimatePopup] = useState(false);
 
+  // ----------------------------------------------------------------------
+  // EFFECTS
+  // ----------------------------------------------------------------------
   useEffect(() => {
     if (!hasSeenIntro) {
-      // --- ANIMATION SEQUENCE FOR FRESH LOAD ---
+      // --- SCENARIO A: FRESH LOAD (Animation Required) ---
 
-      // 1. After 2.5 seconds, start sliding the panel to the left
+      // 1. Wait 2.5 seconds, then trigger the slide animation
+      // This changes the left panel from 100vw to 50% width
       const slideTimer = setTimeout(() => {
-        setIsAnimating(false); // This triggers the CSS width transition
+        setIsAnimating(false); 
+        // Mark as seen so if they click login and come back, it doesn't replay
         sessionStorage.setItem('spazaafy_intro_seen', 'true');
       }, 2500);
 
-      // 2. Shortly after slide starts, show the right-side form content
-      const contentTimer = setTimeout(() => {
-        setShowContent(false); 
-      }, 2500);
-
-      // 3. Show popup after everything settles (approx 4.5s total)
+      // 2. Show the popup after the layout has settled (approx 4.5s total)
       const popupTimer = setTimeout(() => {
         setShowPopup(true);
+        // Small delay for the fade-in effect
         setTimeout(() => setAnimatePopup(true), 100);
       }, 4500);
 
       return () => {
         clearTimeout(slideTimer);
-        clearTimeout(contentTimer);
         clearTimeout(popupTimer);
       };
     } else {
-      // --- NO ANIMATION (Already seen) ---
-      // Show popup after a short delay if coming back
+      // --- SCENARIO B: ALREADY SEEN (Instant Load) ---
+      
+      // Just show the popup shortly after mounting
       const popupTimer = setTimeout(() => {
         setShowPopup(true);
         setTimeout(() => setAnimatePopup(true), 100);
@@ -70,21 +73,20 @@ const WelcomePage: React.FC = () => {
     setTimeout(() => setShowPopup(false), 300);
   };
 
+  // ----------------------------------------------------------------------
+  // RENDER
+  // ----------------------------------------------------------------------
   return (
     <>
-      {/* 
-        ------------------------------------------------------------
-        CSS STYLES
-        ------------------------------------------------------------
-      */}
+      {/* CSS Animations */}
       <style>{`
-        /* Slower Pan Animation (30s) */
+        /* Slow Pan Animation for Background */
         @keyframes panImage {
           0% { object-position: 50% 0%; }
           100% { object-position: 50% 100%; }
         }
         
-        /* Blur Fade In for the word "Welcome" */
+        /* Blur Fade In for "Welcome" text */
         @keyframes blurFadeIn {
           0% { opacity: 0; filter: blur(20px); transform: scale(0.95); }
           100% { opacity: 1; filter: blur(0px); transform: scale(1); }
@@ -102,13 +104,13 @@ const WelcomePage: React.FC = () => {
       <div className="relative min-h-screen w-full bg-white dark:bg-dark-bg flex overflow-hidden font-sans">
         
         {/* 
-          ------------------------------------------------------------
+          =============================================
           LEFT PANEL (Background & Welcome Text)
-          ------------------------------------------------------------
+          =============================================
           Logic: 
-          - If isAnimating is true: Width is 100vw (Full Screen)
-          - If isAnimating is false: Width is 50% (Split Screen on Desktop)
-          - Transition duration handles the "Slide to Left" effect
+          - Slides from 100vw (Full Screen) to 50% width (Split Screen)
+          - Hidden on mobile after animation if strictly following split logic, 
+            but usually styled to hide on small screens in split mode.
         */}
         <div 
           className={`
@@ -126,7 +128,7 @@ const WelcomePage: React.FC = () => {
             />
           </div>
 
-          {/* Centered Welcome Text */}
+          {/* Centered Text */}
           <div className="absolute inset-0 flex items-center justify-center z-10">
             <h1 className="text-6xl md:text-8xl font-bold text-white tracking-wide animate-blur-fade">
               Welcome
@@ -135,12 +137,12 @@ const WelcomePage: React.FC = () => {
         </div>
 
         {/* 
-          ------------------------------------------------------------
+          =============================================
           RIGHT PANEL (Form Content)
-          ------------------------------------------------------------
+          =============================================
           Logic:
-          - Hidden/Zero width during initial animation
-          - Expands/Fades in when animation finishes
+          - Starts at 0 width/opacity during animation.
+          - Expands to 50% width when animation ends.
         */}
         <div 
           className={`
@@ -150,10 +152,9 @@ const WelcomePage: React.FC = () => {
           `}
         >
           
-          {/* Header Links */}
+          {/* Header Navigation */}
           <header className="flex justify-end items-center p-6 space-x-6 text-sm font-medium text-gray-600 dark:text-gray-300">
             <Link to="/about" className="hover:text-primary transition-colors">About us</Link>
-            {/* Updated Privacy Link */}
             <Link to="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <a 
               href={APP_DOWNLOAD_URL} 
@@ -163,9 +164,10 @@ const WelcomePage: React.FC = () => {
             </a>
           </header>
 
-          {/* Main Content */}
+          {/* Main Content Area */}
           <main className="flex-1 flex flex-col items-center justify-center px-6 md:px-12 w-full max-w-lg mx-auto">
             
+            {/* Branding */}
             <div className="text-center mb-10">
               <h1 className="text-5xl font-extrabold text-green-500 mb-2">
                 Spazaafy
@@ -175,29 +177,39 @@ const WelcomePage: React.FC = () => {
               </p>
             </div>
 
+            {/* Action Card */}
             <div className="w-full bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-100 dark:border-gray-700">
               <h2 className="text-2xl font-semibold text-gray-800 dark:text-white text-center mb-8">
                 Create an Account
               </h2>
               
               <div className="space-y-4">
+                {/* Consumer Button: Green Outline -> Solid Green on Hover */}
                 <Link
                   to="/register"
                   state={{ role: 'consumer' }}
-                  className="group flex items-center justify-center w-full py-3 px-4 border-2 border-green-500 text-lg font-medium rounded-lg text-gray-700 dark:text-white hover:bg-green-50 dark:hover:bg-gray-700 transition-all"
+                  className="group flex items-center justify-center w-full py-3 px-4 border-2 border-green-500 text-lg font-medium rounded-lg 
+                             text-gray-700 dark:text-white 
+                             hover:bg-green-500 hover:text-white hover:border-green-500
+                             transition-all duration-300"
                 >
                   I'm a consumer
                 </Link>
 
+                {/* Shop Owner Button: Red Outline -> Solid Red on Hover */}
                 <Link
                   to="/register"
                   state={{ role: 'shop_owner' }}
-                  className="group flex items-center justify-center w-full py-3 px-4 border-2 border-red-500 text-lg font-medium rounded-lg text-gray-700 dark:text-white hover:bg-red-50 dark:hover:bg-gray-700 transition-all"
+                  className="group flex items-center justify-center w-full py-3 px-4 border-2 border-red-500 text-lg font-medium rounded-lg 
+                             text-gray-700 dark:text-white 
+                             hover:bg-red-500 hover:text-white hover:border-red-500 
+                             transition-all duration-300"
                 >
                   I'm a Spaza shop owner
                 </Link>
               </div>
 
+              {/* Login Link */}
               <div className="mt-8 text-center">
                 <p className="text-gray-500 dark:text-gray-400 text-sm">
                   Already have an account?{' '}
@@ -226,9 +238,9 @@ const WelcomePage: React.FC = () => {
         </div>
 
         {/* 
-          ------------------------------------------------------------
+          =============================================
           DOWNLOAD POPUP (Modal)
-          ------------------------------------------------------------
+          =============================================
         */}
         {showPopup && (
           <div 
@@ -236,8 +248,10 @@ const WelcomePage: React.FC = () => {
               animatePopup ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6 md:p-8 transform transition-transform duration-500 scale-100">
+            {/* Modal Container: Max width set to xl for narrower look */}
+            <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-xl w-full p-6 md:p-8 transform transition-transform duration-500 scale-100">
               
+              {/* Close Icon */}
               <button 
                 onClick={handleClosePopup}
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
@@ -246,10 +260,10 @@ const WelcomePage: React.FC = () => {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
 
-              <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8">
                 
                 {/* Phone Image */}
-                <div className="flex-shrink-0 w-32 md:w-44">
+                <div className="flex-shrink-0 w-32 md:w-40">
                   <img 
                     src={PHONE_MOCKUP} 
                     alt="App Preview" 
@@ -257,7 +271,7 @@ const WelcomePage: React.FC = () => {
                   />
                 </div>
 
-                {/* Content */}
+                {/* Text & Actions */}
                 <div className="flex-1 flex flex-col justify-center text-center md:text-left pt-2">
                   <h3 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-2">
                     Download the app!
@@ -267,16 +281,16 @@ const WelcomePage: React.FC = () => {
                   </p>
                   
                   <div className="flex flex-col space-y-4 items-center md:items-start">
-                    {/* Option 1: APK Download Button */}
+                    {/* Primary Download Button */}
                     <a
                       href={APK_DOWNLOAD_URL}
                       download="Spazaafy.apk"
                       className="inline-flex items-center justify-center px-8 py-3 rounded-full text-base font-semibold text-white bg-gradient-to-r from-green-500 to-green-600 shadow-md hover:shadow-lg hover:opacity-95 transition-all transform hover:-translate-y-0.5"
                     >
-                      Download App
+                      Download Now
                     </a>
 
-                    {/* Option 2: Website Link */}
+                    {/* Secondary Link */}
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Or visit{' '}
                       <a 
