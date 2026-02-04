@@ -7,38 +7,63 @@ import { Link } from 'react-router-dom';
 const WELCOME_BG = '/media/welcome gradient.png';
 const PHONE_MOCKUP = '/media/phone-mockup.png';
 const APP_DOWNLOAD_URL = 'https://spazaafy.co.za/download';
+const APK_DOWNLOAD_URL = '/spazaafy.apk';
 
 const WelcomePage: React.FC = () => {
-  // State for the initial splash screen animation
-  const [showSplash, setShowSplash] = useState(true);
-  const [fadeSplash, setFadeSplash] = useState(false);
-
-  // State for the popup
+  // -------------------------------------------------------
+  // STATE MANAGEMENT
+  // -------------------------------------------------------
+  
+  // We check sessionStorage to see if the user has already seen the intro in this session.
+  // If 'true', we skip the full-screen animation.
+  const hasSeenIntro = sessionStorage.getItem('spazaafy_intro_seen');
+  
+  // 'isAnimating' controls the layout state (Full screen vs Split screen)
+  const [isAnimating, setIsAnimating] = useState(!hasSeenIntro);
+  
+  // 'showContent' controls the visibility of the text inside the layout
+  const [showContent, setShowContent] = useState(!hasSeenIntro);
+  
+  // Popup states
   const [showPopup, setShowPopup] = useState(false);
   const [animatePopup, setAnimatePopup] = useState(false);
 
   useEffect(() => {
-    // 1. Initial Splash Screen Timeline
-    // Allow the pan/blur animation to run for ~2.5 seconds, then fade out
-    const splashTimer = setTimeout(() => {
-      setFadeSplash(true); // Start fading out the overlay
-      setTimeout(() => {
-        setShowSplash(false); // Remove overlay from DOM
-      }, 800); // Wait for CSS transition to finish
-    }, 3000);
+    if (!hasSeenIntro) {
+      // --- ANIMATION SEQUENCE FOR FRESH LOAD ---
 
-    // 2. Popup Timeline
-    // Show popup shortly after the splash screen finishes
-    const popupTimer = setTimeout(() => {
-      setShowPopup(true);
-      setTimeout(() => setAnimatePopup(true), 100);
-    }, 4500);
+      // 1. After 2.5 seconds, start sliding the panel to the left
+      const slideTimer = setTimeout(() => {
+        setIsAnimating(false); // This triggers the CSS width transition
+        sessionStorage.setItem('spazaafy_intro_seen', 'true');
+      }, 2500);
 
-    return () => {
-      clearTimeout(splashTimer);
-      clearTimeout(popupTimer);
-    };
-  }, []);
+      // 2. Shortly after slide starts, show the right-side form content
+      const contentTimer = setTimeout(() => {
+        setShowContent(false); 
+      }, 2500);
+
+      // 3. Show popup after everything settles (approx 4.5s total)
+      const popupTimer = setTimeout(() => {
+        setShowPopup(true);
+        setTimeout(() => setAnimatePopup(true), 100);
+      }, 4500);
+
+      return () => {
+        clearTimeout(slideTimer);
+        clearTimeout(contentTimer);
+        clearTimeout(popupTimer);
+      };
+    } else {
+      // --- NO ANIMATION (Already seen) ---
+      // Show popup after a short delay if coming back
+      const popupTimer = setTimeout(() => {
+        setShowPopup(true);
+        setTimeout(() => setAnimatePopup(true), 100);
+      }, 1000);
+      return () => clearTimeout(popupTimer);
+    }
+  }, [hasSeenIntro]);
 
   const handleClosePopup = () => {
     setAnimatePopup(false);
@@ -49,70 +74,61 @@ const WelcomePage: React.FC = () => {
     <>
       {/* 
         ------------------------------------------------------------
-        CSS STYLES FOR ANIMATIONS 
-        (In a real app, you might put this in a CSS file or Tailwind config)
+        CSS STYLES
         ------------------------------------------------------------
       */}
       <style>{`
+        /* Slower Pan Animation (30s) */
         @keyframes panImage {
           0% { object-position: 50% 0%; }
           100% { object-position: 50% 100%; }
         }
+        
+        /* Blur Fade In for the word "Welcome" */
         @keyframes blurFadeIn {
           0% { opacity: 0; filter: blur(20px); transform: scale(0.95); }
           100% { opacity: 1; filter: blur(0px); transform: scale(1); }
         }
-        .animate-pan {
-          animation: panImage 4s ease-out forwards;
+
+        .animate-pan-slow {
+          animation: panImage 30s ease-out forwards;
         }
+
         .animate-blur-fade {
           animation: blurFadeIn 1.5s ease-out forwards;
         }
       `}</style>
 
-      <div className="relative min-h-screen w-full bg-white dark:bg-dark-bg flex flex-col md:flex-row overflow-hidden font-sans">
+      <div className="relative min-h-screen w-full bg-white dark:bg-dark-bg flex overflow-hidden font-sans">
         
         {/* 
           ------------------------------------------------------------
-          1. SPLASH OVERLAY (Mobile & Desktop Initial State)
+          LEFT PANEL (Background & Welcome Text)
           ------------------------------------------------------------
+          Logic: 
+          - If isAnimating is true: Width is 100vw (Full Screen)
+          - If isAnimating is false: Width is 50% (Split Screen on Desktop)
+          - Transition duration handles the "Slide to Left" effect
         */}
-        {showSplash && (
-          <div 
-            className={`fixed inset-0 z-50 flex items-center justify-center bg-white transition-opacity duration-700 ease-in-out ${
-              fadeSplash ? 'opacity-0' : 'opacity-100'
-            }`}
-          >
-            {/* Background Image with Pan Animation */}
-            <div className="absolute inset-0 w-full h-full overflow-hidden">
-               <img 
-                 src={WELCOME_BG} 
-                 alt="Background" 
-                 className="w-full h-full object-cover animate-pan"
-               />
-            </div>
-            {/* Centered Text with Blur Fade In */}
-            <h1 className="relative z-10 text-6xl md:text-8xl font-bold text-white animate-blur-fade tracking-wide">
-              Welcome
-            </h1>
+        <div 
+          className={`
+            relative flex-shrink-0 h-screen overflow-hidden bg-green-500
+            transition-all duration-[1200ms] ease-in-out
+            ${isAnimating ? 'w-[100vw]' : 'w-full md:w-1/2 hidden md:block'}
+          `}
+        >
+          {/* Background Image */}
+          <div className="absolute inset-0 w-full h-full">
+            <img 
+              src={WELCOME_BG} 
+              alt="Welcome Gradient" 
+              className="w-full h-full object-cover animate-pan-slow"
+            />
           </div>
-        )}
 
-
-        {/* 
-          ------------------------------------------------------------
-          2. LEFT PANEL (Desktop Only Visuals)
-          This stays visible on desktop after splash fades
-          ------------------------------------------------------------
-        */}
-        <div className="hidden md:block w-1/2 relative h-screen">
-          <img 
-            src={WELCOME_BG} 
-            alt="Welcome Gradient" 
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <h1 className="text-7xl font-bold text-white tracking-wide">
+          {/* Centered Welcome Text */}
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <h1 className="text-6xl md:text-8xl font-bold text-white tracking-wide animate-blur-fade">
               Welcome
             </h1>
           </div>
@@ -120,16 +136,25 @@ const WelcomePage: React.FC = () => {
 
         {/* 
           ------------------------------------------------------------
-          3. RIGHT PANEL (Content Area)
-          Contains Navigation, Form, and Footer
+          RIGHT PANEL (Form Content)
           ------------------------------------------------------------
+          Logic:
+          - Hidden/Zero width during initial animation
+          - Expands/Fades in when animation finishes
         */}
-        <div className="w-full md:w-1/2 flex flex-col h-screen overflow-y-auto bg-white dark:bg-gray-900 relative">
+        <div 
+          className={`
+            flex-1 flex flex-col h-screen overflow-y-auto bg-white dark:bg-gray-900 relative
+            transition-all duration-[1200ms] ease-in-out
+            ${isAnimating ? 'opacity-0 translate-x-20 w-0' : 'opacity-100 translate-x-0 w-full md:w-1/2'}
+          `}
+        >
           
           {/* Header Links */}
           <header className="flex justify-end items-center p-6 space-x-6 text-sm font-medium text-gray-600 dark:text-gray-300">
             <Link to="/about" className="hover:text-primary transition-colors">About us</Link>
-            <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+            {/* Updated Privacy Link */}
+            <Link to="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <a 
               href={APP_DOWNLOAD_URL} 
               className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded shadow transition-transform hover:scale-105"
@@ -138,10 +163,9 @@ const WelcomePage: React.FC = () => {
             </a>
           </header>
 
-          {/* Main Content Centered Vertically */}
+          {/* Main Content */}
           <main className="flex-1 flex flex-col items-center justify-center px-6 md:px-12 w-full max-w-lg mx-auto">
             
-            {/* Logo / Heading */}
             <div className="text-center mb-10">
               <h1 className="text-5xl font-extrabold text-green-500 mb-2">
                 Spazaafy
@@ -151,14 +175,12 @@ const WelcomePage: React.FC = () => {
               </p>
             </div>
 
-            {/* Action Card */}
             <div className="w-full bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-100 dark:border-gray-700">
               <h2 className="text-2xl font-semibold text-gray-800 dark:text-white text-center mb-8">
                 Create an Account
               </h2>
               
               <div className="space-y-4">
-                {/* Consumer Button (Outline Style) */}
                 <Link
                   to="/register"
                   state={{ role: 'consumer' }}
@@ -167,7 +189,6 @@ const WelcomePage: React.FC = () => {
                   I'm a consumer
                 </Link>
 
-                {/* Shop Owner Button (Outline Style - Red/Orange) */}
                 <Link
                   to="/register"
                   state={{ role: 'shop_owner' }}
@@ -206,7 +227,7 @@ const WelcomePage: React.FC = () => {
 
         {/* 
           ------------------------------------------------------------
-          4. DOWNLOAD POPUP (Modal)
+          DOWNLOAD POPUP (Modal)
           ------------------------------------------------------------
         */}
         {showPopup && (
@@ -217,18 +238,18 @@ const WelcomePage: React.FC = () => {
           >
             <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6 md:p-8 transform transition-transform duration-500 scale-100">
               
-              {/* Close Button */}
               <button 
                 onClick={handleClosePopup}
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                aria-label="Close popup"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
 
               <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
                 
-                {/* Left: Phone Image */}
-                <div className="flex-shrink-0 w-32 md:w-48">
+                {/* Phone Image */}
+                <div className="flex-shrink-0 w-32 md:w-44">
                   <img 
                     src={PHONE_MOCKUP} 
                     alt="App Preview" 
@@ -236,21 +257,38 @@ const WelcomePage: React.FC = () => {
                   />
                 </div>
 
-                {/* Right: Text & Action */}
-                <div className="flex-1 flex flex-col justify-center text-center md:text-left pt-4">
+                {/* Content */}
+                <div className="flex-1 flex flex-col justify-center text-center md:text-left pt-2">
                   <h3 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-2">
                     Download the app!
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300 mb-6 text-sm md:text-base leading-relaxed">
+                  <p className="text-gray-600 dark:text-gray-300 mb-6 text-sm leading-relaxed">
                     Click on the link below to download the mobile app and start your journey.
                   </p>
                   
-                  <a 
-                    href={APP_DOWNLOAD_URL}
-                    className="inline-block w-full md:w-auto text-center bg-transparent border-2 border-green-500 text-green-600 font-bold py-3 px-8 rounded-lg hover:bg-green-500 hover:text-white transition-all duration-300 shadow-sm"
-                  >
-                    Download App
-                  </a>
+                  <div className="flex flex-col space-y-4 items-center md:items-start">
+                    {/* Option 1: APK Download Button */}
+                    <a
+                      href={APK_DOWNLOAD_URL}
+                      download="Spazaafy.apk"
+                      className="inline-flex items-center justify-center px-8 py-3 rounded-full text-base font-semibold text-white bg-gradient-to-r from-green-500 to-green-600 shadow-md hover:shadow-lg hover:opacity-95 transition-all transform hover:-translate-y-0.5"
+                    >
+                      Download App
+                    </a>
+
+                    {/* Option 2: Website Link */}
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Or visit{' '}
+                      <a 
+                        href={APP_DOWNLOAD_URL}
+                        target="_blank"
+                        rel="noreferrer" 
+                        className="text-green-600 underline hover:text-green-700"
+                      >
+                        spazaafy.co.za/download
+                      </a>
+                    </p>
+                  </div>
                 </div>
               </div>
 
