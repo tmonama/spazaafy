@@ -34,6 +34,7 @@ const AdminProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // 2. Check Roles
   // We need to handle the fact that backend roles (ADMIN) might map to multiple frontend contexts (HR, LEGAL, TECH)
   const userRole = user.role;
+  console.log("AdminProtectedRoute user.role:", user?.role, "allowedRoles:", allowedRoles);
 
   // If the route allows the user's role, render children
   if (allowedRoles.includes(userRole)) {
