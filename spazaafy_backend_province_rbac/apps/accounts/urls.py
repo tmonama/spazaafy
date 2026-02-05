@@ -2,7 +2,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import RegisterView, LoginView, MeView, UserViewSet, RequestAdminVerificationCodeView, AdminVerifiedRegistrationView, EmailVerificationConfirmView, DeleteAccountView, GoogleAuthView, RequestLegalCodeView, LegalRegisterView, RequestTechCodeView, TechRegisterView
+from .views import (RegisterView, LoginView, MeView, UserViewSet, RequestAdminVerificationCodeView, 
+    AdminVerifiedRegistrationView, EmailVerificationConfirmView, DeleteAccountView, GoogleAuthView, 
+    RequestLegalCodeView, LegalRegisterView, RequestTechCodeView, TechRegisterView, RequestTechCodeView, TechRegisterView,
+    RequestHRCodeView, HRRegisterView)
 
 # 1. Create a router
 router = DefaultRouter()
@@ -33,5 +36,7 @@ urlpatterns = [
     path('legal/register', LegalRegisterView.as_view(), name='legal-register'),
     path('tech/request-code', RequestTechCodeView.as_view(), name='tech-request-code'),
     path('tech/register', TechRegisterView.as_view(), name='tech-register'),
+    path('hr/request-code', RequestHRCodeView.as_view(), name='hr-request-code'),  # ✅ add
+    path('hr/register', HRRegisterView.as_view(), name='hr-register'),
 
 ]

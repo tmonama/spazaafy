@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
 
 const AdminProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  // Default to ADMIN only and /admin-login if props aren't passed
+  // Default to ADMIN only
   allowedRoles = [UserRole.ADMIN], 
   loginPath = "/admin-login" 
 }) => {
@@ -28,23 +28,37 @@ const AdminProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // 1. Not Logged In -> Redirect to specific loginPath
   if (!user) {
-    // state={{ from: location }} allows the Login page to redirect them back after successful login
     return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
-  // 2. Logged In, but wrong Role -> Redirect to a safe default
-  // (e.g. A Consumer trying to access Admin Portal gets sent to their Dashboard)
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // If they are internal (HR/Tech) but trying to access Global Admin, send them back to their portal
-    if (user.role === UserRole.HR) return <Navigate to="/hr/hiring" replace />;
-    if (user.role === UserRole.LEGAL) return <Navigate to="/legal/dashboard" replace />;
-    if (user.role === UserRole.EMPLOYEE) return <Navigate to="/employee/dashboard" replace />;
-    
-    // Default fallback for consumers or unknown roles
-    return <Navigate to="/dashboard" replace />;
+  // 2. Check Roles
+  // We need to handle the fact that backend roles (ADMIN) might map to multiple frontend contexts (HR, LEGAL, TECH)
+  const userRole = user.role;
+
+  // If the route allows the user's role, render children
+  if (allowedRoles.includes(userRole)) {
+      return <>{children}</>;
   }
 
-  return <>{children}</>;
+  // 3. If Role is NOT allowed, Redirect based on their actual role
+  // This prevents an HR Admin (role=ADMIN) from getting stuck if they accidentally hit a Consumer route,
+  // BUT critically, if they are an EMPLOYEE trying to hit HR, they get sent to Employee Dashboard.
+
+  if (userRole === UserRole.EMPLOYEE) {
+      return <Navigate to="/employee/dashboard" replace />;
+  }
+  
+  if (userRole === UserRole.CONSUMER || userRole === UserRole.SHOP_OWNER) {
+      return <Navigate to="/dashboard" replace />;
+  }
+
+  // If they are an ADMIN but trying to access a route they aren't explicitly allowed in (rare config),
+  // send them to the main admin dashboard as a fallback.
+  if (userRole === UserRole.ADMIN) {
+      return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  return <Navigate to={loginPath} replace />;
 };
 
 export default AdminProtectedRoute;

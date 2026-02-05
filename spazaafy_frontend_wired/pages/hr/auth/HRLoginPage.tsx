@@ -20,10 +20,14 @@ const HRLoginPage: React.FC = () => {
     setError('');
 
     try {
-      await login(email, password);
-      navigate('/hr/hiring');
+      // 1. Login
+      const user = await login(email, password);
+      
+      // 2. Explicit Redirect based on successful login
+      navigate('/hr/hiring'); 
+      
     } catch (err: any) {
-      setError('Invalid credentials.');
+      setError('Invalid credentials or unauthorized access.');
     } finally {
       setLoading(false);
     }

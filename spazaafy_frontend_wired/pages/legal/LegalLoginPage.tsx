@@ -22,9 +22,10 @@ const LegalLoginPage: React.FC = () => {
 
     try {
       await login(email, password);
+      // ✅ Explicit Redirect
       navigate('/legal/dashboard');
     } catch (err: any) {
-      setError('Invalid credentials or unauthorized access.');
+      setError('Invalid credentials.');
     } finally {
       setLoading(false);
     }

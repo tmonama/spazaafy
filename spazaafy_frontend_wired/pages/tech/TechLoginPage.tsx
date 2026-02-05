@@ -23,9 +23,10 @@ const TechLoginPage: React.FC = () => {
 
     try {
       await login(email, password);
+      // ✅ Explicit Redirect
       navigate('/tech/dashboard');
     } catch (err: any) {
-      setError('Invalid credentials or unauthorized access.');
+      setError('Invalid credentials.');
     } finally {
       setLoading(false);
     }

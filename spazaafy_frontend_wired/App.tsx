@@ -170,7 +170,7 @@ function App() {
               path="/tech" 
               element={
                 <AdminProtectedRoute 
-                  allowedRoles={[UserRole.ADMIN]} // Tech users are Admins
+                  allowedRoles={[UserRole.TECH, UserRole.ADMIN]} // Tech users are Admins
                   loginPath="/tech/login"
                 >
                   <TechLayout />
@@ -275,7 +275,10 @@ function App() {
             <Route
               path="/admin"
               element={
-                <AdminProtectedRoute>
+                <AdminProtectedRoute
+                  allowedRoles={[UserRole.ADMIN, UserRole.EMPLOYEE]} 
+                  loginPath="/admin-login"
+                >
                   <AdminLayout />
                 </AdminProtectedRoute>
               }
