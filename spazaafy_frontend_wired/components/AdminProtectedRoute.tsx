@@ -18,6 +18,14 @@ const AdminProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
+  if (user) {
+    console.log("DEBUG PROTECTION:", { 
+        email: user.email, 
+        role: user.role, 
+        department: user.department, // <--- Check if this is undefined
+        allowedDepts: allowedDepartments 
+    });
+  }
 
   if (loading) {
     return (
@@ -65,6 +73,7 @@ const AdminProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Default Admin fallback
   return <Navigate to="/admin/dashboard" replace />;
+  
 };
 
 export default AdminProtectedRoute;

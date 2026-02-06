@@ -120,6 +120,7 @@ function toUser(u: any): User {
     phone: u.phone ? String(u.phone) : undefined,
     role: toUserRole(u.role),
     dateJoined: u.date_joined ?? u.dateJoined ?? undefined,
+    department: u.department ? String(u.department) : undefined, 
   };
 }
 
