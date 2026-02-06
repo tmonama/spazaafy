@@ -200,10 +200,11 @@ class LoginSerializer(serializers.Serializer):
         }
 
 class UserSerializer(serializers.ModelSerializer):
+    department = serializers.CharField(source='employee_profile.department', read_only=True, allow_null=True)
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'role', 'phone', 'date_joined', 'expo_push_token']
-        read_only_fields = ['email', 'role', 'date_joined']
+        fields = ['id', 'email', 'first_name', 'last_name', 'role', 'phone', 'date_joined', 'expo_push_token', 'department']
+        read_only_fields = ['email', 'role', 'date_joined', 'department']
 
 
 # ✅ DEFINE THE STRICT ALLOW LIST

@@ -170,7 +170,8 @@ function App() {
               path="/tech" 
               element={
                 <AdminProtectedRoute 
-                  allowedRoles={[UserRole.TECH, UserRole.ADMIN]} // Tech users are Admins
+                  allowedRoles={[UserRole.ADMIN]} // Tech users are Admins
+                  allowedDepartments={['TECH']}
                   loginPath="/tech/login"
                 >
                   <TechLayout />
@@ -191,7 +192,8 @@ function App() {
               path="/hr" 
               element={
                 <AdminProtectedRoute 
-                  allowedRoles={[UserRole.HR, UserRole.ADMIN]} 
+                  allowedRoles={[UserRole.ADMIN]} 
+                  allowedDepartments={['HR']}
                   loginPath="/hr/login"
                 >
                   <HRLayout />
@@ -222,7 +224,8 @@ function App() {
               path="/legal"
               element={
                 <AdminProtectedRoute 
-                  allowedRoles={[UserRole.LEGAL, UserRole.ADMIN]} 
+                  allowedRoles={[UserRole.ADMIN]} 
+                  allowedDepartments={['LEGAL']}
                   loginPath="/legal/login"
                 >
                   <LegalLayout />
@@ -276,7 +279,8 @@ function App() {
               path="/admin"
               element={
                 <AdminProtectedRoute
-                  allowedRoles={[UserRole.ADMIN, UserRole.EMPLOYEE]} 
+                  allowedRoles={[UserRole.ADMIN]} 
+                  allowedDepartments={['SUPPORT', 'FIELD']}
                   loginPath="/admin-login"
                 >
                   <AdminLayout />
