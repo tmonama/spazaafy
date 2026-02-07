@@ -3,11 +3,13 @@
 export enum UserRole {
   CONSUMER = 'consumer',
   SHOP_OWNER = 'shop_owner',
-  ADMIN = 'admin',
-  EMPLOYEE = 'employee',
-  HR = 'hr',
-  LEGAL = 'legal',
-  TECH = 'tech'
+  ADMIN = "ADMIN",
+  EMPLOYEE = "EMPLOYEE",
+  TECH_ADMIN = "TECH_ADMIN",
+  HR_ADMIN = "HR_ADMIN",
+  LEGAL_ADMIN = "LEGAL_ADMIN",
+  FIELD_ADMIN = "FIELD_ADMIN",
+  SUPPORT_ADMIN = "SUPPORT_ADMIN",
 }
 
 declare global {
@@ -30,6 +32,17 @@ export enum SiteVisitStatus {
   EXPIRED = 'Expired', 
 }
 
+export type Department =
+  | "TECH"
+  | "HR"
+  | "LEGAL"
+  | "SUPPORT"
+  | "FIELD"
+  | "FINANCE"
+  | "EXECUTIVE"
+  | "SALES"
+  | "MARKETING";
+
 export interface User {
   id: string;
   email: string;
@@ -38,7 +51,7 @@ export interface User {
   role: UserRole;
   phone?: string;
   dateJoined?: string;
-  department?: string;
+  department?: Department | null;
 }
 
 // SpazaShop now correctly includes all User properties via `extends`
