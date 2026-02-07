@@ -22,6 +22,8 @@ from .permissions import IsOwnerOrAdmin
 from django.views.generic import TemplateView
 from apps.core.utils import send_email_with_fallback
 from apps.core.models import AccessLog
+from apps.hr.models import Employee
+from apps.accounts.models import AdminVerificationCode, User
 
 # Google Imports
 from google.oauth2 import id_token
