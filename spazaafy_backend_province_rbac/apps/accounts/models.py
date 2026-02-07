@@ -10,7 +10,6 @@ class User(AbstractUser):
     class Roles(models.TextChoices):
         CONSUMER="CONSUMER","Consumer"
         OWNER="OWNER","Spaza Owner"
-        ADMIN="ADMIN","Admin"
         EMPLOYEE="EMPLOYEE","Employee"
         # ✅ NEW: Specific Admin Roles
         ADMIN = "ADMIN", "Global Admin" # Superuser / Executive
