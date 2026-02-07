@@ -5,7 +5,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (RegisterView, LoginView, MeView, UserViewSet, RequestAdminVerificationCodeView, 
     AdminVerifiedRegistrationView, EmailVerificationConfirmView, DeleteAccountView, GoogleAuthView, 
     RequestLegalCodeView, LegalRegisterView, RequestTechCodeView, TechRegisterView, RequestTechCodeView, TechRegisterView,
-    RequestHRCodeView, HRRegisterView)
+    RequestHRCodeView, HRRegisterView, UpgradeToAdminView)
 
 # 1. Create a router
 router = DefaultRouter()
@@ -28,8 +28,6 @@ urlpatterns = [
     path('register-admin-verified', AdminVerifiedRegistrationView.as_view(), name='admin-register-verified'),
     path('verify-email/confirm/', EmailVerificationConfirmView.as_view(), name='email_verify_confirm'),
 
-    path('', include(router.urls)), # Include the new user routes,
-
     path("delete-account/", DeleteAccountView.as_view(), name="delete-account"),
 
     path('legal/request-code', RequestLegalCodeView.as_view(), name='legal-request-code'),
@@ -38,5 +36,10 @@ urlpatterns = [
     path('tech/register', TechRegisterView.as_view(), name='tech-register'),
     path('hr/request-code', RequestHRCodeView.as_view(), name='hr-request-code'),  # ✅ add
     path('hr/register', HRRegisterView.as_view(), name='hr-register'),
+
+    # ✅ NEW: Upgrade Access Endpoint (Fixes the 404)
+    path('upgrade-access/', UpgradeToAdminView.as_view(), name='upgrade-access'),
+
+    path('', include(router.urls)), # Include the new user routes,
 
 ]
