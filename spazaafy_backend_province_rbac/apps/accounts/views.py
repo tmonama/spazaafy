@@ -377,15 +377,24 @@ class UpgradeToAdminView(generics.GenericAPIView):
             
             # Map to Role
             new_role = 'EMPLOYEE'
-            if target_portal == 'TECH': new_role = 'TECH_ADMIN', user.department = 'TECH'
-            elif target_portal == 'HR': new_role = 'HR_ADMIN', user.department = 'HR'
-            elif target_portal == 'LEGAL': new_role = 'LEGAL_ADMIN', user.department = 'LEGAL'
+            if target_portal == 'TECH': 
+                new_role = 'TECH_ADMIN' 
+                user.department = 'TECH'
+            elif target_portal == 'HR': 
+                new_role = 'HR_ADMIN' 
+                user.department = 'HR'
+            elif target_portal == 'LEGAL': 
+                new_role = 'LEGAL_ADMIN'
+                user.department = 'LEGAL'
             elif target_portal == 'ADMIN': 
                 # Only specific depts get General Admin
                 if emp.department in ['SUPPORT', 'FIELD']:
-                    if emp.department == 'SUPPORT': new_role = 'SUPPORT_ADMIN', user.department = emp.department
-                    elif emp.department == 'FIELD': new_role = 'FIELD_ADMIN', user.department = emp.department
-                    else: new_role = 'ADMIN'
+                    if emp.department == 'SUPPORT': 
+                        new_role = 'SUPPORT_ADMIN' 
+                        user.department = emp.department
+                    elif emp.department == 'FIELD': 
+                        new_role = 'FIELD_ADMIN' 
+                        user.department = emp.department
                 else:
                     return Response({"detail": "Your department does not have Admin Portal access."}, status=403)
             
