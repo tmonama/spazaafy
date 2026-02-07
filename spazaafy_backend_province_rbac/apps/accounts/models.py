@@ -12,6 +12,16 @@ class User(AbstractUser):
         OWNER="OWNER","Spaza Owner"
         ADMIN="ADMIN","Admin"
         EMPLOYEE="EMPLOYEE","Employee"
+        # ✅ NEW: Specific Admin Roles
+        ADMIN = "ADMIN", "Global Admin" # Superuser / Executive
+        TECH_ADMIN = "TECH_ADMIN", "Tech Admin"
+        HR_ADMIN = "HR_ADMIN", "HR Admin"
+        LEGAL_ADMIN = "LEGAL_ADMIN", "Legal Admin"
+        FIELD_ADMIN = "FIELD_ADMIN", "Field Admin"
+        SUPPORT_ADMIN = "SUPPORT_ADMIN", "Support Admin"
+
+    # Keep Department for record-keeping, but we won't use it for routing anymore
+    department = models.CharField(max_length=50, null=True, blank=True)
     role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.CONSUMER)
     phone = models.CharField(max_length=30, blank=True)
     province = models.ForeignKey(Province, null=True, blank=True, on_delete=models.SET_NULL,

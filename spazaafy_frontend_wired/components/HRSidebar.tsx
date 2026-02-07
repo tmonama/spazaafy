@@ -1,7 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useSidebar } from './SidebarContext';
-import { Users, Briefcase, GraduationCap, UserPlus, FileWarning, UserMinus, MessageSquare, UserCircle, Megaphone, Settings, LifeBuoy } from 'lucide-react';
+import { Users, Briefcase, GraduationCap, 
+  UserPlus, FileWarning, UserMinus, 
+  MessageSquare, UserCircle, Megaphone, 
+  Settings, LifeBuoy, History } from 'lucide-react';
 
 const HRSidebar: React.FC = () => {
   const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
@@ -55,6 +58,10 @@ const HRSidebar: React.FC = () => {
         <NavLink to="/hr/announcements" className={getNavLinkClass} onClick={handleLinkClick}>
             <Megaphone className="h-5 w-5 mr-3" /> Announcements
         </NavLink>
+        <NavLink to="/hr/access-logs" className={getNavLinkClass} onClick={handleLinkClick}>
+          <History className="h-5 w-5 mr-3" />
+          Access Logs
+      </NavLink>
       </nav>
 
       {/* Bottom Section */}

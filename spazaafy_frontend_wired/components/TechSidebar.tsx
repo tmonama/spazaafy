@@ -7,7 +7,9 @@ import {
   LogOut, 
   ArrowLeft, 
   UserCircle,
-  Activity 
+  Activity,
+  History, 
+  ShieldAlert
 } from 'lucide-react';
 
 // ✅ Imports fixed for "Same Folder" location
@@ -75,6 +77,15 @@ const TechSidebar: React.FC = () => {
         <NavLink to="/tech/status" className={getNavLinkClass} onClick={handleLinkClick}>
             <Activity className="w-5 h-5 mr-3" />
             System Status
+        </NavLink>
+        <NavLink to="/tech/access-logs" className={getNavLinkClass} onClick={handleLinkClick}>
+            <History className="w-5 h-5 mr-3" />
+            Access Logs
+        </NavLink>
+
+        <NavLink to="/tech/access-control" className={getNavLinkClass} onClick={handleLinkClick}>
+            <ShieldAlert className="w-5 h-5 mr-3" />
+            Access Control
         </NavLink>
 
         <div className="pt-4 mt-4 border-t border-gray-800">

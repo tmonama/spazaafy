@@ -96,6 +96,8 @@ import TechTicketDetail from './pages/tech/TechTicketDetail';
 import InternalTechTicketDetail from './pages/support/InternalTechTicketDetail';
 import PublicStatusPage from './pages/PublicStatusPage';
 import TechStatusPage from './pages/tech/TechStatusPage';
+import AccessLogPage from './pages/AccessLogPage';
+import TechAccessControlPage from './pages/tech/TechAccessControlPage';
 
 import { UserRole } from './types';
 
@@ -185,6 +187,8 @@ function App() {
                 <Route path="account" element={<AccountPage />} />
                 <Route path="tickets/:ticketId" element={<TechTicketDetail />} />
                 <Route path="status" element={<TechStatusPage />} />
+                <Route path="access-logs" element={<AccessLogPage />} />
+                <Route path="access-control" element={<TechAccessControlPage />} />
             </Route>
 
             {/* --- HR PORTAL --- */}
@@ -217,6 +221,7 @@ function App() {
                 <Route path="support" element={<SupportPage />} />
                 <Route path="support/tech/:ticketId" element={<ProtectedRoute><InternalTechTicketDetail /></ProtectedRoute>} />
                 <Route path="account" element={<AccountPage />} />
+                <Route path="access-logs" element={<AccessLogPage />} />
             </Route>
 
             {/* --- LEGAL PORTAL --- */}
@@ -247,6 +252,7 @@ function App() {
                 <Route path="disputes" element={<LegalCategoryPage categoryProp="disputes" />} />
                 <Route path="terminations" element={<LegalCategoryPage categoryProp="termination" />} />
                 <Route path="other" element={<LegalCategoryPage categoryProp="other" />} />
+                <Route path="access-logs" element={<AccessLogPage />} />
             </Route>
 
             {/* --- EMPLOYEE PORTAL --- */}
@@ -305,6 +311,7 @@ function App() {
               <Route path="crm" element={<AdminCRMPage />} />
               <Route path="crm/:id" element={<AdminCampaignDetail />} />
               <Route path="crm/template/:templateId/analytics" element={<AdminTemplateAnalytics />} />
+              <Route path="access-logs" element={<AccessLogPage />} />
             </Route>
 
             {/* ================= PROTECTED CONSUMER/OWNER ROUTES ================= */}

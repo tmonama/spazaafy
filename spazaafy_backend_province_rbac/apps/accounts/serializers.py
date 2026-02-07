@@ -284,7 +284,8 @@ class LegalRegistrationSerializer(serializers.ModelSerializer):
             password=validated_data['password'], 
             first_name=validated_data['first_name'], 
             last_name=validated_data['last_name'], 
-            role='ADMIN' # or 'LEGAL' if you have specific roles
+            role='LEGAL_ADMIN', # ✅ Specific Role
+            department='LEGAL'
         )
         user.is_staff = True
         user.save()
@@ -379,7 +380,8 @@ class TechRegistrationSerializer(serializers.ModelSerializer):
             password=validated_data['password'], 
             first_name=validated_data['first_name'], 
             last_name=validated_data['last_name'], 
-            role='ADMIN'
+            role='TECH_ADMIN', # ✅ Specific Role
+            department='TECH'
         )
         user.is_staff = True
         user.save()
@@ -469,7 +471,8 @@ class HRRegistrationSerializer(serializers.ModelSerializer):
             password=validated_data['password'], 
             first_name=validated_data['first_name'], 
             last_name=validated_data['last_name'], 
-            role='ADMIN'
+            role='HR_ADMIN', # ✅ Specific Role
+            department='HR'
         )
         user.is_staff = True
         user.save()

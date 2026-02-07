@@ -120,3 +120,32 @@ class SystemIncident(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.status})"
+    
+class AccessLog(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='access_logs')
+    role_granted = models.CharField(max_length=50)
+    granted_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.user.email} -> {self.role_granted}"
+
+class AccessRevocationRequest(models.Model):
+    STATUS_CHOICES = [('PENDING', 'Pending'), ('ACCEPTED', 'Accepted'), ('REJECTED', 'Rejected')]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    target_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='revocation_targets')
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='revocation_requests')
+    
+    reason = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    
+    # Snapshot of role before suspension, so we know what to restore if rejected
+    previous_role = models.CharField(max_length=50)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='resolved_revocations', blank=True)
+
+    def __str__(self):
+        return f"Revoke {self.target_user.email} ({self.status})"

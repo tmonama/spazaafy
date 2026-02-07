@@ -1,16 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import mockApi from '../../../api/mockApi'; // Using base auth api for code request
+import mockApi from '../../../api/mockApi'; 
 import Card from '../../../components/Card';
 import Input from '../../../components/Input';
 import Button from '../../../components/Button';
-
-const ALLOWED_EMAILS = [
-  'spazaafy@gmail.com',
-  'onboarding.internal@spazaafy.co.za',
-  'training.internal@spazaafy.co.za',
-  'hr@spazaafy.co.za',
-];
+import { Mail, CheckCircle } from 'lucide-react';
 
 const HRRegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,10 +12,6 @@ const HRRegisterPage: React.FC = () => {
   const [step, setStep] = useState<1 | 2>(1);
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [password, setPassword] = useState('');
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -30,14 +20,8 @@ const HRRegisterPage: React.FC = () => {
     setLoading(true);
     setError('');
 
-    if (!ALLOWED_EMAILS.includes(email.toLowerCase())) {
-      setLoading(false);
-      setError('Access Denied: This email is not authorized for HR.');
-      return;
-    }
-
     try {
-      await mockApi.auth.requestAdminCode(email); // Reusing admin code logic
+      await mockApi.auth.requestHRCode(email);
       setStep(2);
     } catch (err: any) {
       setError(err.message || 'Failed to send code.');
@@ -46,21 +30,16 @@ const HRRegisterPage: React.FC = () => {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleUpgrade = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      await mockApi.auth.registerAdminVerified({
-        email,
-        code,
-        first_name: firstName,
-        last_name: lastName,
-        password,
-      });
+      // ✅ Call NEW upgrade endpoint
+      const res = await mockApi.accessControl.upgradeUser(email, code, 'HR');
 
-      alert('Registration successful.');
+      alert(res.detail || 'Access granted. Please log in.');
       navigate('/hr/login');
     } catch (err: any) {
       setError(err.message || 'Registration failed.');
@@ -86,6 +65,9 @@ const HRRegisterPage: React.FC = () => {
 
           {step === 1 ? (
             <form onSubmit={handleRequestCode} className="space-y-4">
+              <div className="bg-purple-50 p-3 rounded text-sm text-purple-800 border border-purple-200">
+                You must have an <strong>Employee Profile</strong> to proceed.
+              </div>
               <Input
                 id="email"
                 type="email"
@@ -103,42 +85,19 @@ const HRRegisterPage: React.FC = () => {
               </Button>
             </form>
           ) : (
-            <form onSubmit={handleRegister} className="space-y-4">
+            <form onSubmit={handleUpgrade} className="space-y-4">
               <div className="bg-purple-50 border border-purple-200 text-purple-800 p-3 rounded text-sm mb-2 text-center">
                 Verification code sent to <strong>{email}</strong>
               </div>
 
-              <Input id="code" label="Code" value={code} onChange={(e) => setCode(e.target.value)} required />
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  id="fname"
-                  label="First Name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  required
-                />
-                <Input
-                  id="lname"
-                  label="Last Name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  required
-                />
-              </div>
-              <Input
-                id="pass"
-                type="password"
-                label="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <Input id="code" label="Verification Code" value={code} onChange={(e) => setCode(e.target.value)} required />
+              
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center"
               >
-                {loading ? 'Registering...' : 'Register'}
+                {loading ? 'Verifying...' : <><CheckCircle className="w-4 h-4 mr-2"/> Verify & Access</>}
               </Button>
             </form>
           )}

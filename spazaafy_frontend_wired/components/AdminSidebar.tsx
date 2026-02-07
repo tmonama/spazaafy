@@ -13,7 +13,8 @@ import {
   UserCircle,
   Settings,
   LifeBuoy,
-  Users
+  Users,
+  History
 } from 'lucide-react';
 
 const AdminSidebar: React.FC = () => {
@@ -103,6 +104,10 @@ const AdminSidebar: React.FC = () => {
         <NavLink to="/admin/crm" className={getNavLinkClass} onClick={handleLinkClick}>
             <Users className="h-5 w-5 mr-3" />
             CRM
+        </NavLink>
+        <NavLink to="/admin/access-logs" className={getNavLinkClass} onClick={handleLinkClick}>
+          <History className="h-5 w-5 mr-3" />
+          Access Logs
         </NavLink>
       </nav>
 

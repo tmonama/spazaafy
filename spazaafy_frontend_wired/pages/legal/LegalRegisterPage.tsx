@@ -11,10 +11,6 @@ const LegalRegisterPage: React.FC = () => {
   const [step, setStep] = useState<1 | 2>(1);
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [password, setPassword] = useState('');
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -33,21 +29,16 @@ const LegalRegisterPage: React.FC = () => {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleUpgrade = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      await mockApi.auth.registerLegal({
-        email,
-        code,
-        first_name: firstName,
-        last_name: lastName,
-        password,
-      });
+      // ✅ Call NEW upgrade endpoint
+      const res = await mockApi.accessControl.upgradeUser(email, code, 'LEGAL');
 
-      alert('Registration successful. Please log in.');
+      alert(res.detail || 'Access granted. Please log in.');
       navigate('/legal/login');
     } catch (err: any) {
       setError(err.message || 'Registration failed.');
@@ -61,7 +52,7 @@ const LegalRegisterPage: React.FC = () => {
       <div className="max-w-md w-full space-y-6">
         <div className="text-center">
           <h1 className="text-3xl font-extrabold text-rose-900">Legal Portal</h1>
-          <p className="text-rose-600">Secure Registration</p>
+          <p className="text-rose-600">Secure Access Request</p>
         </div>
 
         <Card className="p-8 shadow-xl">
@@ -73,6 +64,9 @@ const LegalRegisterPage: React.FC = () => {
 
           {step === 1 ? (
             <form onSubmit={handleRequestCode} className="space-y-6">
+              <div className="bg-rose-50 p-3 rounded text-sm text-rose-800 border border-rose-200">
+                You must have an <strong>Employee Profile</strong> to request Legal Admin access.
+              </div>
               <Input
                 id="email"
                 type="email"
@@ -91,7 +85,7 @@ const LegalRegisterPage: React.FC = () => {
               </Button>
             </form>
           ) : (
-            <form onSubmit={handleRegister} className="space-y-6">
+            <form onSubmit={handleUpgrade} className="space-y-6">
               <div className="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded text-sm mb-4 text-center">
                 Code sent to: <span className="font-bold">{email}</span>
               </div>
@@ -104,38 +98,12 @@ const LegalRegisterPage: React.FC = () => {
                 required
               />
 
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  id="fname"
-                  label="First Name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  required
-                />
-                <Input
-                  id="lname"
-                  label="Last Name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <Input
-                id="pass"
-                type="password"
-                label="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-
               <Button
                 type="submit"
                 disabled={loading}
                 className="w-full bg-rose-600 hover:bg-rose-700 text-white"
               >
-                {loading ? 'Registering...' : 'Complete Registration'}
+                {loading ? 'Processing...' : 'Verify & Grant Access'}
               </Button>
             </form>
           )}

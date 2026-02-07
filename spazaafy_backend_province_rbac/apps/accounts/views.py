@@ -21,6 +21,7 @@ from datetime import timedelta
 from .permissions import IsOwnerOrAdmin
 from django.views.generic import TemplateView
 from apps.core.utils import send_email_with_fallback
+from apps.core.models import AccessLog
 
 # Google Imports
 from google.oauth2 import id_token
@@ -333,3 +334,75 @@ class HRRegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+    
+
+# 1. NEW ENDPOINT: Upgrade User to Admin (Used by Tech/HR/Legal login screens)
+class UpgradeToAdminView(generics.GenericAPIView):
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email').strip().lower()
+        code = request.data.get('code')
+        target_portal = request.data.get('portal') # 'TECH', 'HR', 'LEGAL', 'ADMIN'
+        
+        # 1. Verify OTP
+        try:
+            verification = AdminVerificationCode.objects.get(email=email)
+            if verification.code != code:
+                return Response({"detail": "Invalid code"}, status=400)
+        except AdminVerificationCode.DoesNotExist:
+             return Response({"detail": "Code expired or invalid"}, status=400)
+
+        # 2. Get Existing User (Must exist as Employee first)
+        try:
+            user = User.objects.get(email=email)
+            # Ensure they are currently an employee or lower (don't downgrade existing admins accidentally)
+            # Actually, we just want to apply the specific role now.
+        except User.DoesNotExist:
+            return Response({"detail": "Account not found. Please register on the Employee Portal first."}, status=404)
+
+        # 3. Check Department Match via HR Record
+        try:
+            emp = Employee.objects.get(email__iexact=email)
+            
+            # Strict Department Check
+            if target_portal == 'TECH' and emp.department != 'TECH':
+                return Response({"detail": "Access Denied: You are not in the Technology department."}, status=403)
+            elif target_portal == 'HR' and emp.department != 'HR':
+                return Response({"detail": "Access Denied: You are not in the HR department."}, status=403)
+            elif target_portal == 'LEGAL' and emp.department != 'LEGAL':
+                return Response({"detail": "Access Denied: You are not in the Legal department."}, status=403)
+            
+            # Map to Role
+            new_role = 'EMPLOYEE'
+            if target_portal == 'TECH': new_role = 'TECH_ADMIN'
+            elif target_portal == 'HR': new_role = 'HR_ADMIN'
+            elif target_portal == 'LEGAL': new_role = 'LEGAL_ADMIN'
+            elif target_portal == 'ADMIN': 
+                # Only specific depts get General Admin
+                if emp.department in ['SUPPORT', 'FIELD', 'FINANCE', 'EXECUTIVE', 'SALES', 'MARKETING']:
+                    if emp.department == 'SUPPORT': new_role = 'SUPPORT_ADMIN'
+                    elif emp.department == 'FIELD': new_role = 'FIELD_ADMIN'
+                    else: new_role = 'ADMIN'
+                else:
+                    return Response({"detail": "Your department does not have Admin Portal access."}, status=403)
+            
+            # 4. Apply Upgrade
+            user.role = new_role
+            user.is_staff = True # Give admin site access
+            user.is_active = True # Ensure they aren't suspended
+            user.save()
+            
+            # 5. Log Access
+            AccessLog.objects.create(user=user, role_granted=new_role)
+            
+            # Cleanup
+            verification.delete()
+            
+            return Response({
+                "detail": "Access granted. Please log in with your employee password.",
+                "role": new_role
+            })
+
+        except Employee.DoesNotExist:
+             return Response({"detail": "HR Record not found."}, 404)

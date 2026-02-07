@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions
-from .models import Province, Campaign, EmailTemplate, EmailLog, SystemComponent, SystemIncident
-from .serializers import ProvinceSerializer, CampaignSerializer, EmailTemplateSerializer, SystemComponentSerializer, SystemIncidentSerializer
+from .models import Province, Campaign, EmailTemplate, EmailLog, SystemComponent, SystemIncident, AccessLog, AccessRevocationRequest
+from .serializers import (ProvinceSerializer, CampaignSerializer, EmailTemplateSerializer, SystemComponentSerializer, 
+SystemIncidentSerializer, AccessLogSerializer, AccessRevocationRequestSerializer)
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags, linebreaks
@@ -11,6 +12,104 @@ from apps.accounts.models import User
 from rest_framework.decorators import action
 from django.db.models import Count 
 from django.shortcuts import get_object_or_404
+
+class AccessControlViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAdminUser]
+
+    # 1. List Access Logs (For all Admin Portals)
+    @action(detail=False, methods=['get'])
+    def logs(self, request):
+        # Filter based on user's scope? Or show all?
+        # Let's show logs relevant to the current user's role/dept context if needed
+        # For simplicity: Show all recent access grants
+        logs = AccessLog.objects.all().order_by('-granted_at')[:100]
+        
+        data = []
+        for log in logs:
+            data.append({
+                "id": log.id,
+                "email": log.user.email,
+                "name": log.user.get_full_name(),
+                "role": log.user.role,
+                "role_granted": log.role_granted,
+                "granted_at": log.granted_at,
+                "is_suspended": not log.user.is_active
+            })
+        return Response(data)
+
+    # 2. Revoke Access (Triggers Suspension)
+    @action(detail=False, methods=['post'])
+    def revoke(self, request):
+        target_email = request.data.get('email')
+        reason = request.data.get('reason')
+        
+        try:
+            target = User.objects.get(email=target_email)
+            if target == request.user:
+                return Response({"detail": "Cannot revoke your own access"}, 400)
+            
+            # Create Request
+            AccessRevocationRequest.objects.create(
+                target_user=target,
+                requested_by=request.user,
+                reason=reason,
+                previous_role=target.role
+            )
+            
+            # SUSPEND IMMEDIATELLY
+            target.is_active = False
+            target.save()
+            
+            return Response({"detail": "User suspended. Request sent to Tech."})
+        except User.DoesNotExist:
+            return Response({"detail": "User not found"}, 404)
+
+    # 3. List Revocation Requests (For Tech Portal)
+    @action(detail=False, methods=['get'])
+    def revocation_requests(self, request):
+        if request.user.role != 'TECH_ADMIN':
+            return Response({"detail": "Unauthorized"}, 403)
+            
+        reqs = AccessRevocationRequest.objects.filter(status='PENDING').order_by('-created_at')
+        return Response(AccessRevocationRequestSerializer(reqs, many=True).data)
+
+    # 4. Resolve Request (Tech Only)
+    @action(detail=True, methods=['post'])
+    def resolve_revocation(self, request, pk=None):
+        if request.user.role != 'TECH_ADMIN':
+            return Response({"detail": "Unauthorized"}, 403)
+            
+        decision = request.data.get('decision') # ACCEPT (keep revoked/downgrade) or REJECT (restore)
+        
+        try:
+            rev_req = AccessRevocationRequest.objects.get(pk=pk)
+            target = rev_req.target_user
+            
+            if decision == 'ACCEPT':
+                # Admin accepts the revocation.
+                # User remains active BUT role downgraded to EMPLOYEE
+                target.is_active = True
+                target.role = 'EMPLOYEE'
+                target.is_staff = False
+                rev_req.status = 'ACCEPTED'
+                
+            elif decision == 'REJECT':
+                # Admin rejects revocation. Restore access.
+                target.is_active = True
+                # Role remains what it was (captured in previous_role or just kept)
+                # But we must ensure it matches prev
+                target.role = rev_req.previous_role
+                rev_req.status = 'REJECTED'
+            
+            target.save()
+            rev_req.resolved_at = timezone.now()
+            rev_req.resolved_by = request.user
+            rev_req.save()
+            
+            return Response({"detail": f"Request {decision.lower()}ed."})
+            
+        except AccessRevocationRequest.DoesNotExist:
+            return Response({"detail": "Request not found"}, 404)
 
 class ProvinceViewSet(viewsets.ReadOnlyModelViewSet):
     """

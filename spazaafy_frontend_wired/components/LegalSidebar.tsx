@@ -12,7 +12,8 @@ import {
   UserMinus,
   UserCircle,
   LifeBuoy, 
-  Settings
+  Settings,
+  History
 } from 'lucide-react';
 
 const LegalSidebar: React.FC = () => {
@@ -70,6 +71,10 @@ const LegalSidebar: React.FC = () => {
             {item.label}
           </NavLink>
         ))}
+        <NavLink to="/legal/access-logs" className={getNavLinkClass} onClick={handleLinkClick}>
+            <History className="h-5 w-5 mr-3" />
+            Access Logs
+        </NavLink>
       </nav>
 
       <div className="absolute bottom-0 w-full p-4 border-t border-gray-100 dark:border-gray-700">

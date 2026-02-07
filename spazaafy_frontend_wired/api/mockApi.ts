@@ -120,7 +120,7 @@ function toUser(u: any): User {
     phone: u.phone ? String(u.phone) : undefined,
     role: toUserRole(u.role),
     dateJoined: u.date_joined ?? u.dateJoined ?? undefined,
-    department: u.department ? String(u.department) : undefined, 
+    department: u.department || u.employee_profile?.department || undefined,
   };
 }
 
@@ -515,8 +515,30 @@ const auth = {
             body: JSON.stringify(payload),
         }, false);
     },
-    async requestAdminCode(email: string): Promise<void> {
-        await request('/auth/request-admin-code', {
+    async requestHRCode(email: string) {
+        return request('/auth/hr/request-code', { 
+            method: 'POST', 
+            body: JSON.stringify({ email }) 
+        }, false);
+    },
+
+    async requestLegalCode(email: string) {
+        return request('/auth/legal/request-code', { 
+            method: 'POST', 
+            body: JSON.stringify({ email }) 
+        }, false);
+    },
+
+    async requestTechCode(email: string) {
+        return request('/auth/tech/request-code', { 
+            method: 'POST', 
+            body: JSON.stringify({ email }) 
+        }, false);
+    },
+
+    // Standard Admin Code Request
+    async requestAdminCode(email: string) {
+        return request('/auth/request-admin-code', {
             method: 'POST',
             body: JSON.stringify({ email }),
         }, false);
@@ -537,23 +559,10 @@ const auth = {
       });
     },
 
-    async requestLegalCode(email: string) {
-        return request('/auth/legal/request-code', { 
-            method: 'POST', 
-            body: JSON.stringify({ email }) 
-        }, false);
-    },
-
     async registerLegal(payload: any) {
         return request('/auth/legal/register', { 
             method: 'POST', 
             body: JSON.stringify(payload) 
-        }, false);
-    },
-    async requestTechCode(email: string) {
-        return request('/auth/tech/request-code', { 
-            method: 'POST', 
-            body: JSON.stringify({ email }) 
         }, false);
     },
 
@@ -866,9 +875,53 @@ const crm = {
             method: 'PATCH',
             body: JSON.stringify({ id, ...data })
         });
+    },
+    
+};
+
+// ✅ Define the accessControl object
+const accessControl = {
+    // 1. Upgrade User (Public Endpoint for Registration)
+    async upgradeUser(email: string, code: string, portal: string) {
+        return request('/auth/upgrade-access/', {
+            method: 'POST',
+            body: JSON.stringify({ email, code, portal })
+        }, false); 
+    },
+    
+    // 2. Get Logs
+    async getAccessLogs(token: string) {
+        return request('/core/access-control/logs/', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+
+    // 3. Revoke Access
+    async revokeAccess(email: string, reason: string, token: string) {
+        return request('/core/access-control/revoke/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ email, reason })
+        });
+    },
+
+    // 4. Get Pending Requests (Tech)
+    async getRevocationRequests(token: string) {
+        return request('/core/access-control/revocation_requests/', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    },
+
+    // 5. Resolve Request
+    async resolveRevocation(id: string, decision: 'ACCEPT' | 'REJECT', token: string) {
+        return request(`/core/access-control/${id}/resolve_revocation/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ decision })
+        });
     }
 };
 
-const mockApi = { auth, users, shops, documents, tickets, visits, site, core, reports, assistance, crm };
+const mockApi = { auth, users, shops, documents, tickets, visits, site, core, reports, assistance, crm, accessControl };
 
 export default mockApi;
