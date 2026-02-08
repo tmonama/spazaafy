@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Theme } from '../types';
+import { User, Theme, UserRole } from '../types';
 import mockApi from '../api/mockApi';
 
 export interface AuthContextType {
@@ -92,11 +92,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const currentPath = location.pathname;
     let redirectPath = '/login';
 
-    if (currentPath.startsWith('/legal')) {
+    if (currentPath.startsWith('/legal') && UserRole.LEGAL_ADMIN) {
         redirectPath = '/legal/login';
     } else if (currentPath.startsWith('/hr')) {
         redirectPath = '/hr/login';
-    } else if (currentPath.startsWith('/tech')) {
+    } else if (currentPath.startsWith('/tech') && UserRole.TECH_ADMIN) {
         redirectPath = '/tech/login';
     } else if (currentPath.startsWith('/employee')) {
         redirectPath = '/employee/login';
