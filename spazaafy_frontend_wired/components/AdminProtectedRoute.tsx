@@ -5,75 +5,57 @@ import { UserRole } from '../types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: UserRole[];
-  allowedDepartments?: string[]; // ✅ New Prop
+  allowedRoles?: UserRole[]; 
+  allowedDepartments?: string[]; 
   loginPath?: string;
 }
 
 const AdminProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
   allowedRoles = [UserRole.ADMIN], 
-  allowedDepartments = [], // Default to empty
+  allowedDepartments,
   loginPath = "/admin-login" 
 }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
-  if (user) {
-    console.log("DEBUG PROTECTION:", { 
-        email: user.email, 
-        role: user.role, 
-        department: user.department, // <--- Check if this is undefined
-        allowedDepts: allowedDepartments 
-    });
-  }
 
-  if (loading) {
-    return (
-        <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-gray-900">
-            <div className="text-primary text-xl font-semibold">Loading...</div>
-        </div>
-    );
-  }
+  if (loading) return <div>Loading...</div>;
 
   if (!user) {
     return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
-  // ✅ 1. CHECK DEPARTMENT ACCESS
-  // If the route has specific departments, and the user matches, ALLOW them regardless of role
-  if (allowedDepartments.length > 0 && user.department) {
+  // ✅ 1. CHECK DEPARTMENT (Priority)
+  if (allowedDepartments && user.department) {
       if (allowedDepartments.includes(user.department)) {
           return <>{children}</>;
       }
   }
 
-  // ✅ 2. CHECK ROLE ACCESS
-  // If they matched the role (e.g. ADMIN), ALLOW them
+  // ✅ 2. CHECK ROLE (Updated to handle Specific Admins)
+  // If the route allows 'ADMIN', we also allow specific admins IF they match the context
+  // But generally, the 'allowedRoles' prop in App.tsx should now be specific.
+  
   if (allowedRoles.includes(user.role)) {
       return <>{children}</>;
   }
 
-  // -----------------------------------------------------------
-  // 3. FALLBACK REDIRECTION (If access denied)
-  // -----------------------------------------------------------
-
-  // If they have a department, send them to their department home
-  if (user.department === 'HR') return <Navigate to="/hr/hiring" replace />;
-  if (user.department === 'LEGAL') return <Navigate to="/legal/dashboard" replace />;
-  if (user.department === 'TECH') return <Navigate to="/tech/dashboard" replace />;
-  
-  // Standard Role Redirections
-  if (user.role === UserRole.EMPLOYEE) {
-      return <Navigate to="/employee/dashboard" replace />;
-  }
-  
-  if (user.role === UserRole.CONSUMER || user.role === UserRole.SHOP_OWNER) {
-      return <Navigate to="/dashboard" replace />;
+  // ✅ 3. GLOBAL ADMIN OVERRIDE
+  // Global Admins can access everything
+  if (user.role === UserRole.ADMIN) {
+      return <>{children}</>;
   }
 
-  // Default Admin fallback
-  return <Navigate to="/admin/dashboard" replace />;
+  // --- REDIRECT LOGIC (Fallback) ---
   
+  // If I am a Tech Admin trying to access HR, send me back to Tech
+  if (user.role === UserRole.TECH_ADMIN) return <Navigate to="/tech/dashboard" replace />;
+  if (user.role === UserRole.HR_ADMIN) return <Navigate to="/hr/hiring" replace />;
+  if (user.role === UserRole.LEGAL_ADMIN) return <Navigate to="/legal/dashboard" replace />;
+  
+  if (user.role === UserRole.EMPLOYEE) return <Navigate to="/employee/dashboard" replace />;
+  
+  return <Navigate to="/dashboard" replace />; // Consumer fallback
 };
 
 export default AdminProtectedRoute;
