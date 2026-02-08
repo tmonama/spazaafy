@@ -104,10 +104,17 @@ async function requestAndDownloadCsv(url: string, filename: string) {
 
 function toUserRole(apiRole?: string): UserRole {
   const r = String(apiRole || '').toLowerCase();
-  if (r === 'owner') return UserRole.SHOP_OWNER;
-  if (r === 'consumer') return UserRole.CONSUMER;
-  if (r === 'admin') return UserRole.ADMIN;
-  if (r === 'employee') return UserRole.EMPLOYEE;
+  if (r === 'OWNER') return UserRole.SHOP_OWNER;
+  if (r === 'CONSUMER') return UserRole.CONSUMER;
+  if (r === 'EMPLOYEE') return UserRole.EMPLOYEE;
+  
+  // ✅ ENSURE THESE ARE PRESENT
+  if (r === 'ADMIN') return UserRole.ADMIN;
+  if (r === 'TECH_ADMIN') return UserRole.TECH_ADMIN;
+  if (r === 'HR_ADMIN') return UserRole.HR_ADMIN;
+  if (r === 'LEGAL_ADMIN') return UserRole.LEGAL_ADMIN;
+  if (r === 'FIELD_ADMIN') return UserRole.FIELD_ADMIN;
+  if (r === 'SUPPORT_ADMIN') return UserRole.SUPPORT_ADMIN;
   return UserRole.CONSUMER;
 }
 

@@ -3,13 +3,14 @@
 export enum UserRole {
   CONSUMER = 'consumer',
   SHOP_OWNER = 'shop_owner',
-  ADMIN = "ADMIN",
-  EMPLOYEE = "EMPLOYEE",
-  TECH_ADMIN = "TECH_ADMIN",
-  HR_ADMIN = "HR_ADMIN",
-  LEGAL_ADMIN = "LEGAL_ADMIN",
-  FIELD_ADMIN = "FIELD_ADMIN",
-  SUPPORT_ADMIN = "SUPPORT_ADMIN",
+  ADMIN = 'admin',
+  EMPLOYEE = 'employee',
+  // ✅ New Roles
+  HR_ADMIN = 'hr_admin',
+  LEGAL_ADMIN = 'legal_admin',
+  TECH_ADMIN = 'tech_admin',
+  FIELD_ADMIN = 'field_admin',
+  SUPPORT_ADMIN = 'support_admin'
 }
 
 declare global {
