@@ -1,8 +1,8 @@
 // types.ts
 
 export enum UserRole {
-  CONSUMER = 'consumer',
-  SHOP_OWNER = 'shop_owner',
+  CONSUMER = 'CONSUMER',
+  SHOP_OWNER = 'OWNER',
   EMPLOYEE = 'EMPLOYEE',
   ADMIN = 'ADMIN',
   TECH_ADMIN = 'TECH_ADMIN',
