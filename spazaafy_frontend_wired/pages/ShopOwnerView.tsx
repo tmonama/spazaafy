@@ -27,7 +27,7 @@ const ShopOwnerView: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const isOwner = useMemo(() => !!user && user.role === 'shop_owner', [user]);
+  const isOwner = useMemo(() => !!user && user.role === 'OWNER', [user]);
 
   const { isShopUnverifiedDueToCompliance, complianceMessage } = useMemo(() => {
     if (!shop) {
