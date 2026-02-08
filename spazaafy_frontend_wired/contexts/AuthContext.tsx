@@ -92,11 +92,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const currentPath = location.pathname;
     let redirectPath = '/login';
 
-    if (currentPath.startsWith('/legal') && UserRole.LEGAL_ADMIN) {
+    if (currentPath.startsWith('/legal')) {
         redirectPath = '/legal/login';
     } else if (currentPath.startsWith('/hr')) {
         redirectPath = '/hr/login';
-    } else if (currentPath.startsWith('/tech') && UserRole.TECH_ADMIN) {
+    } else if (currentPath.startsWith('/tech')) {
         redirectPath = '/tech/login';
     } else if (currentPath.startsWith('/employee')) {
         redirectPath = '/employee/login';

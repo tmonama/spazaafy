@@ -115,6 +115,8 @@ function toUserRole(apiRole?: string): UserRole {
   if (r === 'LEGAL_ADMIN') return UserRole.LEGAL_ADMIN;
   if (r === 'FIELD_ADMIN') return UserRole.FIELD_ADMIN;
   if (r === 'SUPPORT_ADMIN') return UserRole.SUPPORT_ADMIN;
+  // ⚠️ If it doesn't match, log it so we can see why it's failing
+  console.warn("⚠️ Unrecognized role from backend:", r);
   return UserRole.CONSUMER;
 }
 
