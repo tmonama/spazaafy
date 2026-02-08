@@ -135,14 +135,16 @@ const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-6 flex justify-center">
-               <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => setError('Google Sign In was unsuccessful')}
-                  theme="outline"
-                  width="100%" 
-                  // Note: The Google button has a specific width style, usually handled by library
-               />
+            <div className="mt-6 w-full">
+              <div className="w-full flex justify-center">
+                <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setError('Google Sign In was unsuccessful')}
+                    theme="outline"
+                     
+                    // Note: The Google button has a specific width style, usually handled by library
+                />
+               </div>
             </div>
           </div>
         </Card>

@@ -433,13 +433,13 @@ const RegisterPage: React.FC = () => {
 
               {/* ✅ Google Auth Section (Only if not already authenticated via Google) */}
               {!googleToken && (
-                <div className="mb-4">
+                <div className="mt-6 w-full">
                    <div className="flex justify-center w-full">
                        <GoogleLogin 
                           onSuccess={handleGoogleSuccess}
                           onError={() => setError('Google sign up failed.')}
                           text="signup_with"
-                          width="100%"
+                          
                        />
                    </div>
                    <div className="relative mt-4">
